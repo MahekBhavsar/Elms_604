@@ -2,29 +2,30 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-admin-managed-staff',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [RouterLink, CommonModule, FormsModule],
   templateUrl: './admin-managed-staff.html',
   styleUrl: './admin-managed-staff.css'
 })
 export class AdminManagedStaff implements OnInit {
   staffList: any[] = [];
   // Object matches your MongoDB keys exactly
-  staffForm: any = { 
-    "Name": '', 
-    "Email": '', 
-    "Password": null, 
-    "role": 'Staff', 
-    "staffType": 'none', 
-    "department": '' 
+  staffForm: any = {
+    "Name": '',
+    "Email": '',
+    "Password": null,
+    "role": 'Staff',
+    "staffType": 'none',
+    "department": ''
   };
   isEditMode = false;
   currentEditId = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   ngOnInit() {
     this.getAllStaff();
@@ -58,7 +59,7 @@ export class AdminManagedStaff implements OnInit {
     this.isEditMode = true;
     this.currentEditId = staff._id;
     // Spread operator to avoid modifying the table row while typing
-    this.staffForm = { ...staff }; 
+    this.staffForm = { ...staff };
   }
 
   onDelete(id: string) {
