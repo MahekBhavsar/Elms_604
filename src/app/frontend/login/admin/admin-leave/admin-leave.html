@@ -1,60 +1,396 @@
-<div class="admin-leave-container" style="padding: 20px;">
-  <h2>Admin Leave Decision Panel</h2>
+<style>
+  .admin-dashboard-container {
+    background-color: #f8f9fa;
+  }
 
-  <section style="margin-bottom: 25px; border: 1px solid #ddd; padding: 10px;">
-    <h3 style="color: grey;">1. Waiting for HOD Approval</h3>
-    <table border="1" width="100%">
-      @for (l of getPending(); track l._id) {
-        <tr>
-          <td>{{ l.Name }} ({{ l.Emp_CODE }})</td>
-          <td>{{ l.Total_Days }} Days</td>
-          <td style="color: orange;">Awaiting HOD Action</td>
-        </tr>
-      }
-    </table>
-  </section>
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    overflow-y: auto;
+  }
 
-  <section style="margin-bottom: 25px; border: 2px solid #007bff; padding: 15px; background: #f0f7ff;">
-    <h3 style="color: #007bff;">2. Action Required: HOD Approved Leaves</h3>
-    <table border="1" width="100%">
-      @for (l of getHodApproved(); track l._id) {
-        <tr>
-          <td><strong>{{ l.Name }}</strong></td>
-          <td>{{ l.Type_of_Leave }} ({{ l.Total_Days }} Days)</td>
-          <td>
-            @if (l.Status === 'HOD Approved') {
-              <button (click)="processLeave(l._id, 'Approved')" 
-                      style="background: green; color: white; padding: 5px; cursor: pointer;">
-                Approve & Deduct
-              </button>
-              
-              <button (click)="processLeave(l._id, 'Rejected')" 
-                      style="background: red; color: white; padding: 5px; cursor: pointer; margin-left: 5px;">
-                Reject
-              </button>
-            }
-          </td>
-        </tr>
-      }
-    </table>
-  </section>
+  .sidebar-link {
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s;
+    border-radius: 8px;
+    margin-bottom: 5px;
+  }
 
-  <section style="border: 1px solid #ddd; padding: 10px;">
-    <h3>3. Processed History</h3>
-    <table border="1" width="100%">
-      @for (l of getFinalProcessed(); track l._id) {
-        <tr>
-          <td>{{ l.Name }}</td>
-          <td>{{ l.Total_Days }} Days</td>
-          <td>
-            @if (l.Status === 'Approved') {
-              <strong style="color: green;">Final Approved</strong>
-            } @else if (l.Status === 'Rejected') {
-              <strong style="color: red;">Rejected</strong>
-            }
-          </td>
-        </tr>
-      }
-    </table>
-  </section>
+  .sidebar-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+  }
+
+  .sidebar-link.active {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .main-content {
+    margin-left: 280px;
+    background-image: url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    background-attachment: fixed;
+  }
+
+  .main-content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(248, 249, 250, 0.85);
+    /* Light overlay */
+  }
+
+  .content-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .content-card-action {
+    background: rgba(240, 247, 255, 0.95);
+    border: 1px solid rgba(13, 110, 253, 0.3);
+    box-shadow: 0 10px 30px rgba(13, 110, 253, 0.15);
+  }
+
+  .logout-btn {
+    transition: all 0.3s;
+  }
+
+  .logout-btn:hover {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+  }
+
+  .table> :not(caption)>*>* {
+    padding: 1rem 1rem;
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .table-header-custom th {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+    color: #495057;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+  }
+
+  .action-btn {
+    transition: transform 0.2s;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-2px);
+  }
+</style>
+
+<div class="d-flex min-vh-100 admin-dashboard-container">
+  <!-- Sidebar -->
+  <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white">
+    <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none px-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor"
+        class="bi bi-mortarboard-fill me-3" viewBox="0 0 16 16">
+        <path
+          d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z" />
+        <path
+          d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z" />
+      </svg>
+      <span class="fs-4 fw-bold">Admin Panel</span>
+    </a>
+    <hr class="border-light opacity-25">
+
+    <ul class="nav nav-pills flex-column mb-auto">
+      <li class="nav-item">
+        <a routerLink="/admin-dashboard" routerLinkActive="active"
+          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+            class="bi bi-speedometer2 me-3" viewBox="0 0 16 16">
+            <path
+              d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z" />
+            <path fill-rule="evenodd"
+              d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 2.54-3.942 2.662-1.839.105-3.126.123-3.605.123-.48 0-1.766-.018-3.605-.123-2.097-.122-3.5-1.409-3.942-2.662A8.001 8.001 0 0 1 0 10zm8-7a7 7 0 0 0-6.603 9.329c.203.575.923 1.79 2.493 1.878C5.584 14.305 6.827 14.32 8 14.32c1.174 0 2.416-.015 4.11-.113 1.57-.088 2.29-1.303 2.493-1.878A7 7 0 1 0 8 3z" />
+          </svg>
+          Dashboard Home
+        </a>
+      </li>
+      <li>
+        <a routerLink="/admin-managed-staff" routerLinkActive="active"
+          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+            class="bi bi-people-fill me-3" viewBox="0 0 16 16">
+            <path
+              d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7Zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.784 6A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216ZM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+          </svg>
+          Manage Staff Members
+        </a>
+      </li>
+      <li>
+        <a routerLink="/admin-leave" routerLinkActive="active"
+          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+            class="bi bi-calendar-check-fill me-3" viewBox="0 0 16 16">
+            <path
+              d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zm-5.146-5.146-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708z" />
+          </svg>
+          Leave Applications
+        </a>
+      </li>
+    </ul>
+
+    <hr class="border-light opacity-25 mt-auto">
+    <div class="mt-2">
+      <!-- Added logic placeholder for logout if used. It wasn't in the original template but is standard in sidebar. -->
+      <button
+        class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center fw-bold py-2 logout-btn rounded-pill border-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+          class="bi bi-box-arrow-right me-2" viewBox="0 0 16 16">
+          <path fill-rule="evenodd"
+            d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z" />
+          <path fill-rule="evenodd"
+            d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
+        </svg>
+        Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="flex-grow-1 main-content w-100 overflow-auto">
+    <div class="position-relative z-1 p-4 p-md-5">
+
+      <!-- Header -->
+      <div
+        class="d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pb-3 mb-4">
+        <div>
+          <h2 class="text-primary fw-bold mb-0">Admin Leave Decision Panel</h2>
+          <p class="text-muted small mb-0 mt-1">Review, approve, or reject staff leave applications across all
+            departments.</p>
+        </div>
+        <div class="d-none d-md-block">
+          <span class="badge bg-primary rounded-pill px-3 py-2 d-flex align-items-center shadow-sm fs-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+              class="bi bi-person-circle me-2" viewBox="0 0 16 16">
+              <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+              <path fill-rule="evenodd"
+                d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
+            </svg>
+            Administrator
+          </span>
+        </div>
+      </div>
+
+      <!-- Section 2: Action Required (Highlighted at Top) -->
+      <section class="content-card content-card-action mb-5">
+        <div class="card-header bg-transparent border-bottom border-primary border-opacity-25 px-4 py-3">
+          <h4 class="mb-0 text-primary fw-bold d-flex align-items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"
+              class="bi bi-exclamation-circle-fill me-2" viewBox="0 0 16 16">
+              <path
+                d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
+            </svg>
+            Action Required: HOD Approved Leaves
+          </h4>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-header-custom">
+              <tr>
+                <th scope="col" class="ps-4">Staff Details</th>
+                <th scope="col">Leave Request Info</th>
+                <th scope="col" class="text-end pe-4">Required Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of getHodApproved(); track l._id) {
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center">
+                    <div
+                      class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                      style="width: 40px; height: 40px;">
+                      <span class="fw-bold">{{ l.Name.charAt(0) | uppercase }}</span>
+                    </div>
+                    <span class="fw-bold text-dark">{{ l.Name }}</span>
+                  </div>
+                </td>
+                <td class="text-secondary">
+                  <span class="badge bg-light text-dark border me-2">{{ l.Type_of_Leave }}</span>
+                  <span class="fw-medium">{{ l.Total_Days }} Days</span>
+                </td>
+                <td class="text-end pe-4">
+                  @if (l.Status === 'HOD Approved') {
+                  <button (click)="processLeave(l._id, 'Approved')"
+                    class="btn btn-sm btn-success shadow-sm rounded-pill px-3 me-2 action-btn fw-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                      class="bi bi-check-circle-fill me-1" viewBox="0 0 16 16">
+                      <path
+                        d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                    </svg>
+                    Approve & Deduct
+                  </button>
+                  <button (click)="processLeave(l._id, 'Rejected')"
+                    class="btn btn-sm btn-danger shadow-sm rounded-pill px-3 action-btn fw-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                      class="bi bi-x-circle-fill me-1" viewBox="0 0 16 16">
+                      <path
+                        d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z" />
+                    </svg>
+                    Reject
+                  </button>
+                  }
+                </td>
+              </tr>
+              } @empty {
+              <tr>
+                <td colspan="3" class="text-center p-4 text-muted small">
+                  No leaves currently require action.
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="row g-4">
+        <!-- Section 1: Waiting for HOD -->
+        <div class="col-xl-6">
+          <section class="content-card h-100">
+            <div class="card-header bg-transparent border-bottom border-light px-4 py-3">
+              <h5 class="mb-0 text-secondary fw-bold d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                  class="bi bi-hourglass-split me-2" viewBox="0 0 16 16">
+                  <path
+                    d="M2.5 15a.5.5 0 1 1 0-1h1v-1a4.5 4.5 0 0 1 2.557-4.06c.29-.139.443-.377.443-.59v-.7c0-.213-.154-.451-.443-.59A4.5 4.5 0 0 1 3.5 3V2h-1a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-1v1a4.5 4.5 0 0 1-2.557 4.06c-.29.139-.443.377-.443.59v.7c0 .213.154.451.443.59A4.5 4.5 0 0 1 12.5 13v1h1a.5.5 0 0 1 0 1h-11zm2-13v1c0 .537.12 1.045.337 1.524a3.5 3.5 0 0 0 1.849 1.849c.811.385 1.314 1.12 1.314 2.037v.7c0 .917-.503 1.652-1.314 2.037a3.5 3.5 0 0 0-1.849 1.849A3.5 3.5 0 0 0 4.5 13v1h7v-1c0-.537-.12-1.045-.337-1.524a3.5 3.5 0 0 0-1.849-1.849c-.811-.385-1.314-1.12-1.314-2.037v-.7c0-.917.503-1.652 1.314-2.037a3.5 3.5 0 0 0 1.849-1.849A3.5 3.5 0 0 0 11.5 2V1h-7z" />
+                </svg>
+                Waiting for HOD Approval
+              </h5>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-header-custom">
+                  <tr>
+                    <th scope="col" class="ps-4">Staff Details</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col" class="text-end pe-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (l of getPending(); track l._id) {
+                  <tr>
+                    <td class="ps-4">
+                      <span class="fw-medium text-dark">{{ l.Name }}</span>
+                      <div class="small text-muted">Emp ID: {{ l.Emp_CODE }}</div>
+                    </td>
+                    <td class="text-secondary">
+                      <span class="badge bg-light text-dark border mb-1 d-block w-fit">{{ l.Type_of_Leave }}</span>
+                      {{ l.Total_Days }} Days
+                    </td>
+                    <td class="text-end pe-4">
+                      <span class="badge bg-warning text-dark border shadow-sm px-3 py-2 rounded-pill">Awaiting
+                        HOD</span>
+                    </td>
+                  </tr>
+                  } @empty {
+                  <tr>
+                    <td colspan="3" class="text-center p-3 text-muted small">
+                      No pending approvals.
+                    </td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Section 3: Processed History -->
+        <div class="col-xl-6">
+          <section class="content-card h-100">
+            <div class="card-header bg-transparent border-bottom border-light px-4 py-3">
+              <h5 class="mb-0 text-dark fw-bold d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                  class="bi bi-clock-history me-2 text-primary" viewBox="0 0 16 16">
+                  <path
+                    d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z" />
+                  <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z" />
+                  <path
+                    d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z" />
+                </svg>
+                Processed History
+              </h5>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-header-custom">
+                  <tr>
+                    <th scope="col" class="ps-4">Staff Name</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col" class="text-end pe-4">Final Verdict</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (l of getFinalProcessed(); track l._id) {
+                  <tr>
+                    <td class="ps-4 fw-medium text-dark">{{ l.Name }}</td>
+                    <td class="text-secondary">{{ l.Total_Days }} Days</td>
+                    <td class="text-end pe-4">
+                      @if (l.Status === 'Approved') {
+                      <span class="badge bg-success border shadow-sm px-2 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor"
+                          class="bi bi-check-lg me-1" viewBox="0 0 16 16">
+                          <path
+                            d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z" />
+                        </svg>
+                        Final Approved
+                      </span>
+                      } @else if (l.Status === 'Rejected') {
+                      <span class="badge bg-danger shadow-sm px-2 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor"
+                          class="bi bi-x-lg me-1" viewBox="0 0 16 16">
+                          <path
+                            d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z" />
+                        </svg>
+                        Rejected
+                      </span>
+                      }
+                    </td>
+                  </tr>
+                  } @empty {
+                  <tr>
+                    <td colspan="3" class="text-center p-3 text-muted small">
+                      No processing history yet.
+                    </td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
