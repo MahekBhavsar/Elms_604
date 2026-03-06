@@ -249,9 +249,15 @@
               </div>
 
               <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Department</label>
+                <label class="form-label text-muted fw-semibold small text-uppercase">Department Name</label>
                 <input type="text" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
                   [(ngModel)]="staffForm.department" name="dept" placeholder="Computer Science">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label text-muted fw-semibold small text-uppercase">Department Code</label>
+                <input type="number" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
+                  [(ngModel)]="staffForm.dept_code" name="dept_code" placeholder="1" required>
               </div>
 
               <div class="col-md-6">
@@ -295,6 +301,7 @@
                 <th scope="col">Email Address</th>
                 <th scope="col">Role</th>
                 <th scope="col">Department</th>
+                <th scope="col">Dept Code</th>
                 <th scope="col" class="text-end pe-4">Actions</th>
               </tr>
             </thead>
@@ -320,6 +327,7 @@
                   </span>
                 </td>
                 <td class="text-secondary">{{ staff.department }}</td>
+                <td class="text-secondary fw-bold">{{ staff.dept_code }}</td>
                 <td class="text-end pe-4">
                   <button
                     class="btn btn-sm btn-light text-primary border shadow-sm rounded-pill px-3 me-2 action-btn fw-semibold"

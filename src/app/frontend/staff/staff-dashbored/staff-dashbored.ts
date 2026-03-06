@@ -1,118 +1,71 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Component, OnInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { isPlatformBrowser, CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-staff-dashbored',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './staff-dashbored.html',
-  styleUrl: './staff-dashbored.css',
+  styleUrl: './staff-dashbored.css'
 })
 export class StaffDashbored implements OnInit {
   user: any = null;
+  leaveTypes: any[] = [];
+  myLeaves: any[] = [];
+  leaveBalances: { [key: string]: number } = {};
 
-  // Leave Form
-  leaveData = {
-    TypeOfLeave: '',
-    FromDate: '',
-    ToDate: ''
-  };
-  isSubmitting = false;
-
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
 
   ngOnInit() {
-    // Retrieve the dynamic user data (Email String, Password Int32, staffType, etc.)
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      this.user = JSON.parse(savedUser);
-      if (this.user.role === 'Hod' || this.user.staffType === 'permenet') {
-        this.fetchHodLeaves();
+    if (isPlatformBrowser(this.platformId)) {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        this.user = JSON.parse(savedUser);
+        this.fetchData();
       }
     }
   }
 
-  submitLeave() {
-    if (!this.leaveData.TypeOfLeave || !this.leaveData.FromDate || !this.leaveData.ToDate) {
-      alert('Please fill all fields');
-      return;
-    }
+  fetchData() {
+    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
+      next: (types) => {
+        this.leaveTypes = types;
+        this.calculateBalances();
+      }
+    });
 
-    const from = new Date(this.leaveData.FromDate);
-    const to = new Date(this.leaveData.ToDate);
-
-    if (to < from) {
-      alert('To Date cannot be before From Date');
-      return;
-    }
-
-    const diffTime = Math.abs(to.getTime() - from.getTime());
-    const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-    this.isSubmitting = true;
-
-    // We expect user to have empCode after my previous login endpoint change, but fallback if not
-    const deptCodeMap: { [key: string]: number } = {
-      'IT': 1, 'HR': 2, 'Finance': 3, 'Marketing': 4
-    };
-    const deptCode = deptCodeMap[this.user.dept] || 0;
-
-    const payload = {
-      Emp_CODE: this.user.empCode || Math.floor(Math.random() * 10000), // Fallback if old token
-      Name: this.user.name,
-      Dept_Code: deptCode,
-      Type_of_Leave: this.leaveData.TypeOfLeave,
-      From: this.leaveData.FromDate,
-      To: this.leaveData.ToDate,
-      Total_Days: totalDays,
-      Role: this.user.role || this.user.staffType
-    };
-
-    this.http.post('http://localhost:5000/api/leaves/apply', payload)
-      .subscribe({
-        next: (res: any) => {
-          this.isSubmitting = false;
-          if (res.success) {
-            alert('Leave application submitted successfully! Pending admin approval.');
-            // Reset form
-            this.leaveData = { TypeOfLeave: '', FromDate: '', ToDate: '' };
-          } else {
-            alert('Failed to submit leave application.');
-          }
-        },
-        error: (err) => {
-          this.isSubmitting = false;
-          alert('Error submitting application. Please try again.');
-          console.error(err);
+    if (this.user?.empCode) {
+      this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`).subscribe({
+        next: (data) => {
+          this.myLeaves = data;
+          this.calculateBalances();
         }
       });
-  }
-
-  // --- HOD Logic ---
-  hodLeaves: any[] = [];
-
-  fetchHodLeaves() {
-    this.http.get<any[]>(`http://localhost:5000/api/leaves/hod`).subscribe(data => {
-      this.hodLeaves = data;
-    });
-  }
-
-  processLeave(id: string, decision: 'HOD Approved' | 'Rejected') {
-    if (confirm(`Are you sure you want to ${decision} this request?`)) {
-      this.http.post(`http://localhost:5000/api/leaves/process/${id}`, { status: decision }).subscribe({
-        next: () => {
-          alert(`Leave ${decision} successfully`);
-          this.fetchHodLeaves();
-        },
-        error: () => alert("Failed to process decision")
-      });
     }
   }
 
-  logout() {
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+  calculateBalances() {
+    if (!this.leaveTypes.length) return;
+    this.leaveTypes.forEach(type => {
+      const used = this.myLeaves
+        .filter(l => 
+          l.Type_of_Leave?.toLowerCase() === type.leave_name?.toLowerCase() && 
+          (l.Status === 'Approved' || l.Status === 'HOD Approved')
+        )
+        .reduce((acc, curr) => acc + (Number(curr.Total_Days) || 0), 0);
+
+      this.leaveBalances[type.leave_name] = type.total_yearly_limit - used;
+    });
+    this.cdr.detectChanges(); // Fixes ExpressionChangedAfterItHasBeenCheckedError
+  }
+
+  isHOD(): boolean {
+    return this.user?.role?.toUpperCase() === 'HOD';
   }
 }

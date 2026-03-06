@@ -235,8 +235,13 @@
                   </div>
                 </td>
                 <td class="text-secondary">
-                  <span class="badge bg-light text-dark border me-2">{{ l.Type_of_Leave }}</span>
-                  <span class="fw-medium">{{ l.Total_Days }} Days</span>
+                  <div class="mb-1">
+                    <span class="badge bg-light text-dark border me-2">{{ l.Type_of_Leave }}</span>
+                    <span class="fw-medium">{{ l.Total_Days }} Days</span>
+                  </div>
+                  @if (l.Remaining_Leaves !== undefined) {
+                  <small class="text-primary fw-bold">Remaining Balance: {{ l.Remaining_Leaves }} Days</small>
+                  }
                 </td>
                 <td class="text-end pe-4">
                   @if (l.Status === 'HOD Approved') {
@@ -304,8 +309,13 @@
                       <div class="small text-muted">Emp ID: {{ l.Emp_CODE }}</div>
                     </td>
                     <td class="text-secondary">
-                      <span class="badge bg-light text-dark border mb-1 d-block w-fit">{{ l.Type_of_Leave }}</span>
-                      {{ l.Total_Days }} Days
+                      <div class="mb-1">
+                        <span class="badge bg-light text-dark border mb-1 d-block w-fit">{{ l.Type_of_Leave }}</span>
+                        {{ l.Total_Days }} Days
+                      </div>
+                      @if (l.Remaining_Leaves !== undefined) {
+                      <small class="text-primary fw-bold">Remaining Balance: {{ l.Remaining_Leaves }} Days</small>
+                      }
                     </td>
                     <td class="text-end pe-4">
                       <span class="badge bg-warning text-dark border shadow-sm px-3 py-2 rounded-pill">Awaiting

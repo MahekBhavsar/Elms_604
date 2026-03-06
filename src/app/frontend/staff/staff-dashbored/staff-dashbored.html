@@ -1,219 +1,107 @@
 <div class="container-fluid py-4 px-lg-5 bg-light min-vh-100">
-  <!-- Header Section -->
-  <div class="row border-0 mb-4 shadow-sm rounded-4 overflow-hidden">
-    <div class="col-12 p-0">
-      <div class="bg-primary p-5 text-white position-relative"
-        style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
-        <!-- Optional background decoration -->
-        <div class="position-absolute top-0 end-0 h-100 w-50"
-          style="background: radial-gradient(circle at top right, rgba(255,255,255,0.15) 0%, transparent 60%);"></div>
-        <div class="position-relative" style="z-index: 1;">
-          <h2 class="display-6 fw-bold mb-3">Welcome, {{ user?.name }}</h2>
-          <div class="d-flex flex-wrap align-items-center gap-3 fs-6">
-            <span class="badge bg-white text-primary rounded-pill px-3 py-2 fw-medium shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                class="bi bi-building me-1 mb-1" viewBox="0 0 16 16">
-                <path
-                  d="M4 2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1ZM4 5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1ZM4 8.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1Z" />
-                <path
-                  d="M2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V1Zm11 0H3v14h3v-2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V15h3V1Z" />
-              </svg>
-              Department: {{ user?.dept }}
-            </span>
-            <span class="badge border border-white text-white rounded-pill px-3 py-2 fw-medium pe-auto">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                class="bi bi-person-badge me-1 mb-1" viewBox="0 0 16 16">
-                <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-                <path
-                  d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-.776-.492C11.392 12.387 10.063 12 8 12s-3.392.387-4.224.803a4.2 4.2 0 0 0-.776.492V2.5z" />
-              </svg>
-              Staff Type: {{ user?.staffType }}
-            </span>
-          </div>
+  
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="p-4 text-white shadow-sm rounded-4 d-flex justify-content-between align-items-center"
+        style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+        <div>
+          <h2 class="fw-bold mb-1">Welcome, {{ user?.name }}</h2>
+          <p class="mb-0 opacity-75">Employee Code: {{ user?.empCode }} | Dept: {{ user?.dept }}</p>
+        </div>
+        <div class="text-end d-none d-md-block">
+          <span class="badge bg-white text-primary rounded-pill px-3 py-2">Role: {{ user?.role }}</span>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row g-4 align-items-stretch">
-    <!-- Staff Tasks Section -->
-    <div class="col-12 col-xl-4">
-      <div class="card h-100 border-0 shadow-sm rounded-4">
-        <div class="card-body p-4 p-xl-5 d-flex flex-column text-center align-items-center">
-          <div
-            class="bg-light text-primary rounded-circle p-4 mb-3 d-flex align-items-center justify-content-center border border-primary border-opacity-25"
-            style="width: 70px; height: 70px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" fill="currentColor"
-              class="bi bi-calendar-plus" viewBox="0 0 16 16">
-              <path
-                d="M8 7a.5.5 0 0 1 .5.5V9H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V10H6a.5.5 0 0 1 0-1h1.5V7.5A.5.5 0 0 1 8 7" />
-              <path
-                d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" />
-            </svg>
-          </div>
-          <h4 class="card-title fw-bold text-dark mb-2">Apply for Leave</h4>
-          <p class="text-secondary mb-4 flex-grow-1" style="font-size: 0.9rem;">Submit a new leave application securely
-            to the Admin.</p>
-
-          <form class="w-100 text-start" (ngSubmit)="submitLeave()">
-            <div class="mb-3">
-              <label class="form-label fw-semibold text-secondary small mb-1">Type of Leave</label>
-              <select class="form-select bg-light border-0 shadow-none px-3 py-2" [(ngModel)]="leaveData.TypeOfLeave"
-                name="typeOfLeave" required>
-                <option value="" disabled selected>Select Leave Type</option>
-                <option value="Annual Leave">Annual Leave</option>
-                <option value="Sick Leave">Sick Leave</option>
-                <option value="Casual Leave">Casual Leave</option>
-                <option value="Unpaid Leave">Unpaid Leave</option>
-                <option value="Duty Leave">Duty Leave</option>
-                <option value="Other Leave">Other Leave</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold text-secondary small mb-1">From Date</label>
-              <input type="date" class="form-control bg-light border-0 shadow-none px-3 py-2"
-                [(ngModel)]="leaveData.FromDate" name="fromDate" required>
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label fw-semibold text-secondary small mb-1">To Date</label>
-              <input type="date" class="form-control bg-light border-0 shadow-none px-3 py-2"
-                [(ngModel)]="leaveData.ToDate" name="toDate" required>
-            </div>
-
-            <button type="submit"
-              class="btn btn-primary btn-lg rounded-pill shadow-sm fw-semibold w-100 py-3 mt-auto d-flex justify-content-center align-items-center"
-              [disabled]="isSubmitting">
-              @if (isSubmitting) {
-              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              Submitting...
-              } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-                class="bi bi-send-fill me-2" viewBox="0 0 16 16">
-                <path
-                  d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z" />
-              </svg>
-              Apply Now
-              }
-            </button>
-          </form>
+  <div class="row g-3 mb-5">
+    <div class="col-6 col-md-3 col-lg-2">
+      <div class="card border-0 shadow-sm rounded-4 text-center p-3 h-100 action-card" 
+           routerLink="/apply-leave" style="cursor: pointer;">
+        <div class="bg-primary bg-opacity-10 p-2 rounded-circle mx-auto mb-2" style="width: 50px;">
+          <i class="bi bi-plus-lg text-primary fs-4"></i>
         </div>
+        <h6 class="fw-bold mb-0">Apply Leave</h6>
       </div>
     </div>
 
-    <!-- HOD Approval Panel (Conditional) -->
-    @if (user?.staffType === 'permenet' || user?.role === 'Hod') {
-    <div class="col-12 col-xl-8">
-      <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
-        <div class="position-absolute top-0 start-0 w-100"
-          style="height: 5px; background: linear-gradient(90deg, #198754, #20c997);"></div>
-        <div class="card-body p-0 d-flex flex-column">
-          <!-- HOD Panel Header -->
-          <div class="p-4 p-md-5 border-bottom w-100 bg-white">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
-              <div>
-                <div class="d-flex align-items-center mb-2">
-                  <div
-                    class="bg-success text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center shadow-sm"
-                    style="width: 44px; height: 44px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"
-                      class="bi bi-shield-check" viewBox="0 0 16 16">
-                      <path
-                        d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z" />
-                      <path
-                        d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
-                    </svg>
-                  </div>
-                  <h3 class="card-title fw-bold text-success mb-0">HOD Leave Approval Panel</h3>
-                </div>
-                <p class="text-secondary mb-0 ms-0 ms-md-5 mt-2 mt-md-0" style="padding-left: md-0.5rem">Managing
-                  applications for the <strong class="text-dark bg-light px-2 py-1 rounded">{{ user?.dept }}</strong>
-                  department.</p>
-              </div>
-              <span
-                class="badge bg-danger text-white px-3 py-2 rounded-pill fs-6 fw-medium shadow-sm mt-2 mt-md-0 d-inline-flex align-items-center">
-                <span class="spinner-grow spinner-grow-sm me-2 bg-white" role="status" aria-hidden="true"
-                  style="width: 0.5rem; height: 0.5rem;"></span>
-                Action Required
-              </span>
+    @if (isHOD()) {
+    <div class="col-6 col-md-3 col-lg-2">
+      <div class="card border-0 shadow-sm rounded-4 text-center p-3 h-100 action-card border-bottom border-warning border-3" 
+           routerLink="/hod-leave-approved" style="cursor: pointer;">
+        <div class="bg-warning bg-opacity-10 p-2 rounded-circle mx-auto mb-2" style="width: 50px;">
+          <i class="bi bi-people-fill text-warning fs-4"></i>
+        </div>
+        <h6 class="fw-bold mb-0">Approvals</h6>
+      </div>
+    </div>
+    }
+  </div>
+
+  <h5 class="fw-bold mb-3 text-dark">Remaining Leave Quota</h5>
+  <div class="row g-4 mb-5">
+    @for (type of leaveTypes; track type._id) {
+    <div class="col-md-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 bg-white border-top border-primary border-4">
+        <div class="text-uppercase fw-bold text-muted small mb-2">{{ type.leave_name }}</div>
+        
+        <h1 class="display-5 fw-bold text-primary mb-0">
+          {{ leaveBalances[type.leave_name] || 0 }}
+        </h1>
+        
+        <div class="mt-3">
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-primary" 
+              [style.width]="((leaveBalances[type.leave_name] || 0) / type.total_yearly_limit * 100) + '%'">
             </div>
           </div>
-
-          <!-- HOD Panel Table -->
-          <div class="p-0 flex-grow-1 overflow-auto">
-            <table class="table table-hover align-middle mb-0 bg-white">
-              <thead class="table-light sticky-top" style="z-index: 1;">
-                <tr>
-                  <th scope="col" class="text-secondary fw-semibold py-3 px-4 px-md-5 border-0 text-uppercase"
-                    style="font-size: 0.85rem; letter-spacing: 0.5px;">Employee</th>
-                  <th scope="col" class="text-secondary fw-semibold py-3 px-4 border-0 text-uppercase"
-                    style="font-size: 0.85rem; letter-spacing: 0.5px;">Reason</th>
-                  <th scope="col" class="text-secondary fw-semibold py-3 px-4 px-md-5 border-0 text-uppercase text-end"
-                    style="font-size: 0.85rem; letter-spacing: 0.5px;">Action</th>
-                </tr>
-              </thead>
-              <tbody class="border-top-0">
-                @for (l of hodLeaves; track l._id) {
-                <tr>
-                  <td class="px-4 px-md-5 py-4">
-                    <div class="d-flex align-items-center">
-                      <div
-                        class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold border border-primary border-opacity-25"
-                        style="width: 48px; height: 48px; font-size: 1.1rem;">
-                        {{ l.Name ? (l.Name.charAt(0) | uppercase) : '?' }}
-                      </div>
-                      <div>
-                        <p class="mb-0 fw-bold text-dark fs-5">{{ l.Name || 'Unknown Employee' }}</p>
-                        <small class="text-muted d-block mt-1">Emp ID: {{ l.Emp_CODE || 'N/A' }}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-4 py-4">
-                    <span
-                      class="badge border border-secondary text-secondary px-3 py-2 rounded-pill fs-6 fw-normal bg-white shadow-sm mb-2 d-inline-block">{{
-                      l.Type_of_Leave || 'No Reason Provided' }}</span>
-                    <div class="small fw-medium text-dark">{{ l.Total_Days || 0 }} Days</div>
-                  </td>
-                  <td class="px-4 px-md-5 py-4 text-end">
-                    <div class="d-flex justify-content-end gap-2">
-                      <button (click)="processLeave(l._id, 'HOD Approved')"
-                        class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-semibold d-inline-flex align-items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-                          class="bi bi-check2-circle me-2" viewBox="0 0 16 16">
-                          <path
-                            d="M2.5 8a5.5 5.5 0 0 1 8.25-4.764.5.5 0 0 0 .5-.866A6.5 6.5 0 1 0 14.5 8a.5.5 0 0 0-1 0 5.5 5.5 0 1 1-11 0z" />
-                          <path
-                            d="M15.354 3.354a.5.5 0 0 0-.708-.708L8 9.293 5.354 6.646a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l7-7z" />
-                        </svg>
-                        Approve
-                      </button>
-                      <button (click)="processLeave(l._id, 'Rejected')"
-                        class="btn btn-danger rounded-pill px-4 py-2 shadow-sm fw-semibold d-inline-flex align-items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-                          class="bi bi-x-circle me-2" viewBox="0 0 16 16">
-                          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                          <path
-                            d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                        </svg>
-                        Reject
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                } @empty {
-                <tr>
-                  <td colspan="3" class="text-center p-5 text-muted">
-                    No pending leave applications for your department.
-                  </td>
-                </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          <small class="text-secondary d-block mt-2">Available of {{ type.total_yearly_limit }} Days</small>
         </div>
       </div>
     </div>
     }
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="p-4 border-bottom bg-white rounded-top-4 d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-bold text-dark">My Request History</h5>
+      <span class="badge bg-light text-dark border">{{ myLeaves.length }} Total Requests</span>
+    </div>
+    <div class="card-body p-0 table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4 py-3">Type</th>
+            <th class="py-3">From - To</th>
+            <th class="py-3 text-center">Days</th>
+            <th class="py-3 text-end pe-4">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of myLeaves; track l._id) {
+          <tr>
+            <td class="ps-4"><span class="fw-bold">{{ l.Type_of_Leave }}</span></td>
+            <td>{{ l.From | date:'dd MMM yyyy' }} - {{ l.To | date:'dd MMM yyyy' }}</td>
+            <td class="text-center">{{ l.Total_Days }}</td>
+            <td class="text-end pe-4">
+              <span class="badge rounded-pill px-3 py-2"
+                [ngClass]="{
+                  'bg-success': l.Status === 'Approved' || l.Status === 'HOD Approved', 
+                  'bg-warning text-dark': l.Status === 'Pending',
+                  'bg-danger': l.Status === 'Rejected'
+                }">
+                {{ l.Status }}
+              </span>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="4" class="text-center p-5 text-muted">No records found.</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>

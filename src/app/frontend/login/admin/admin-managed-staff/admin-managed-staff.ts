@@ -13,14 +13,14 @@ import { RouterLink } from '@angular/router';
 })
 export class AdminManagedStaff implements OnInit {
   staffList: any[] = [];
-  // Object matches your MongoDB keys exactly
   staffForm: any = {
     "Name": '',
     "Email": '',
     "Password": null,
     "role": 'Staff',
     "staffType": 'none',
-    "department": ''
+    "department": '',
+    "dept_code": 1
   };
   isEditMode = false;
   currentEditId = '';
@@ -31,26 +31,31 @@ export class AdminManagedStaff implements OnInit {
     this.getAllStaff();
   }
 
-  // Fixes the 404 error by calling the correct GET route
   getAllStaff() {
     this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
       next: (res) => this.staffList = res,
-      error: (err) => console.error("Error loading staff table:", err)
+      error: (err) => console.error("Error loading staff:", err)
     });
   }
 
   onSubmit() {
     if (this.isEditMode) {
-      // Update logic
-      this.http.put(`http://localhost:5000/api/staff/${this.currentEditId}`, this.staffForm).subscribe(() => {
-        this.resetForm();
-        this.getAllStaff();
+      this.http.put(`http://localhost:5000/api/staff/${this.currentEditId}`, this.staffForm).subscribe({
+        next: () => {
+          alert("Staff Updated Successfully!");
+          this.resetForm();
+          this.getAllStaff();
+        },
+        error: (err) => alert("Update Failed: Check Console")
       });
     } else {
-      // Add logic
-      this.http.post('http://localhost:5000/api/staff', this.staffForm).subscribe(() => {
-        this.resetForm();
-        this.getAllStaff();
+      this.http.post('http://localhost:5000/api/staff', this.staffForm).subscribe({
+        next: () => {
+          alert("Staff Added Successfully!");
+          this.resetForm();
+          this.getAllStaff();
+        },
+        error: (err) => alert("Add Failed: Check Console")
       });
     }
   }
@@ -58,7 +63,7 @@ export class AdminManagedStaff implements OnInit {
   onEdit(staff: any) {
     this.isEditMode = true;
     this.currentEditId = staff._id;
-    // Spread operator to avoid modifying the table row while typing
+    // We use spread to decouple the form from the table row
     this.staffForm = { ...staff };
   }
 
@@ -73,6 +78,10 @@ export class AdminManagedStaff implements OnInit {
   resetForm() {
     this.isEditMode = false;
     this.currentEditId = '';
-    this.staffForm = { "Name": '', "Email": '', "Password": null, "role": 'Staff', "staffType": 'none', "department": '' };
+    this.staffForm = { 
+      "Name": '', "Email": '', "Password": null, 
+      "role": 'Staff', "staffType": 'none', 
+      "department": '', "dept_code": 1 
+    };
   }
 }
