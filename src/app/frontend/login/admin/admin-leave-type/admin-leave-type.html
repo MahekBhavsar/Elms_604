@@ -1,0 +1,39 @@
+<div class="admin-type-container">
+  <div class="header">
+    <h2>Configure Yearly Leave Quotas</h2>
+    <p>Set the maximum allowable days for each leave category per year.</p>
+  </div>
+
+  <div class="form-card">
+    <div class="input-group">
+      <label for="leaveName">Leave Type</label>
+      <input 
+        id="leaveName" 
+        [(ngModel)]="leaveLimit.leave_name" 
+        name="leave_name" 
+        placeholder="e.g., CL, SL, SAT, VAL" 
+        type="text"
+      >
+    </div>
+
+    <div class="input-group">
+      <label for="leaveLimit">Total Yearly Days</label>
+      <input 
+        id="leaveLimit" 
+        [(ngModel)]="leaveLimit.limit" 
+        name="limit" 
+        type="number" 
+        placeholder="e.g., 12"
+      >
+    </div>
+
+    <div class="button-group">
+      <button class="btn-save" (click)="saveYearlyLimit()">Set Yearly Limit</button>
+      <button class="btn-reset" (click)="resetForm()">Clear</button>
+    </div>
+  </div>
+
+  <div class="info-note">
+    <p><strong>Note:</strong> Once set, these limits are used to calculate and deduct remaining balances for staff members upon final approval of applications.</p>
+  </div>
+</div>
