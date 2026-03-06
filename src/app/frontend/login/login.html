@@ -1,12 +1,135 @@
-<div class="login-box">
-  <h2>Employee Login</h2>
-  
-  <input type="email" [(ngModel)]="loginForm.email" placeholder="Email Address">
-  <input type="password" [(ngModel)]="loginForm.password" placeholder="Password">
-  
-  <button (click)="onLogin()">Sign In</button>
-
-  @if (errorMsg) {
-    <p style="color: red; text-align: center;">{{ errorMsg }}</p>
+<style>
+  /* Education-themed background with an overlay */
+  .bg-education {
+    background: linear-gradient(rgba(10, 30, 60, 0.7), rgba(10, 30, 60, 0.8)),
+      url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+    background-size: cover;
+    background-attachment: fixed;
   }
+
+  /* Glassmorphism card effect */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Input focus effects */
+  .input-effect {
+    transition: all 0.3s ease;
+  }
+
+  .input-effect:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.15) !important;
+    border-color: #0d6efd;
+  }
+
+  /* Button hover animation */
+  .btn-hover-effect {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-hover-effect:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.4) !important;
+  }
+</style>
+
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-education">
+  <div class="card glass-card shadow-lg rounded-4" style="max-width: 450px; width: 100%;">
+
+    <!-- Header with Education theme color (Primary / Blue) -->
+    <div class="card-header text-white text-center py-4 rounded-top-4 border-0 position-relative overflow-hidden"
+      style="background: linear-gradient(135deg, #0d6efd, #0a58ca);">
+
+      <!-- Decorative icon background -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" fill="currentColor"
+        class="bi bi-mortarboard-fill position-absolute opacity-25" style="top: -20px; right: -20px;"
+        viewBox="0 0 16 16">
+        <path
+          d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z" />
+        <path
+          d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z" />
+      </svg>
+
+      <div class="position-relative z-index-1">
+        <h2 class="mb-0 fw-bold">Employee Login</h2>
+        <p class="mb-0 mt-1 small text-light opacity-75">Education Information System</p>
+      </div>
+    </div>
+
+    <div class="card-body p-4 p-sm-5 rounded-bottom-4">
+      <div class="text-center mb-4">
+        <h5 class="text-secondary fw-bold mb-1">Welcome Back!</h5>
+        <p class="text-muted small">Access your workspace and classes</p>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-muted fw-bold small text-uppercase" for="emailInput">Email Address</label>
+        <div class="input-group input-group-lg shadow-sm">
+          <span class="input-group-text bg-light border-end-0 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+              class="bi bi-envelope-fill" viewBox="0 0 16 16">
+              <path
+                d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555ZM0 4.697v7.104l5.803-3.558L0 4.697ZM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586l-1.239-.757Zm3.436-.586L16 11.801V4.697l-5.803 3.546Z" />
+            </svg>
+          </span>
+          <input type="email" id="emailInput"
+            class="form-control form-control-lg bg-light border-start-0 ps-0 input-effect" [(ngModel)]="loginForm.email"
+            placeholder="instructor@education.edu">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-muted fw-bold small text-uppercase" for="passwordInput">Password</label>
+        <div class="input-group input-group-lg shadow-sm">
+          <span class="input-group-text bg-light border-end-0 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-lock-fill"
+              viewBox="0 0 16 16">
+              <path
+                d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+            </svg>
+          </span>
+          <input type="password" id="passwordInput"
+            class="form-control form-control-lg bg-light border-start-0 ps-0 input-effect"
+            [(ngModel)]="loginForm.password" placeholder="••••••••">
+        </div>
+      </div>
+
+      <div class="d-grid mt-5 mb-3">
+        <button
+          class="btn btn-primary btn-lg fw-bold rounded-pill shadow btn-hover-effect py-3 d-flex align-items-center justify-content-center"
+          (click)="onLogin()">
+          Sign In
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+            class="bi bi-arrow-right-short ms-2" viewBox="0 0 16 16">
+            <path fill-rule="evenodd"
+              d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8z" />
+          </svg>
+        </button>
+      </div>
+
+      @if (errorMsg) {
+      <div
+        class="alert alert-danger border-0 shadow-sm rounded-3 py-2 text-center mt-3 mb-0 d-flex align-items-center justify-content-center"
+        role="alert">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+          class="bi bi-exclamation-triangle-fill me-2" viewBox="0 0 16 16">
+          <path
+            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+        </svg>
+        {{ errorMsg }}
+      </div>
+      }
+    </div>
+  </div>
 </div>

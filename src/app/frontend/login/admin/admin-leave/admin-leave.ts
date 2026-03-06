@@ -1,17 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-admin-leave',
   standalone: true,
-  imports: [CommonModule],
+  imports: [RouterLink, CommonModule],
   templateUrl: './admin-leave.html'
 })
 export class AdminLeave implements OnInit {
   allLeaves: any[] = [];
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   ngOnInit() {
     this.fetchLeaves();
@@ -24,18 +25,18 @@ export class AdminLeave implements OnInit {
   }
 
   // 1. Pending HOD Section
-  getPending() { 
-    return this.allLeaves.filter(l => l.Status === 'Pending'); 
+  getPending() {
+    return this.allLeaves.filter(l => l.Status === 'Pending');
   }
-  
+
   // 2. Action Required (Cleared by HOD) Section
-  getHodApproved() { 
-    return this.allLeaves.filter(l => l.Status === 'HOD Approved'); 
+  getHodApproved() {
+    return this.allLeaves.filter(l => l.Status === 'HOD Approved');
   }
-  
+
   // 3. Final History Section
-  getFinalProcessed() { 
-    return this.allLeaves.filter(l => l.Status === 'Approved' || l.Status === 'Rejected'); 
+  getFinalProcessed() {
+    return this.allLeaves.filter(l => l.Status === 'Approved' || l.Status === 'Rejected');
   }
 
   // Final Admin Decision Function

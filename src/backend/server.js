@@ -55,12 +55,13 @@ app.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ "Email": email, "Password": Number(password) });
     if (user) {
-      res.json({ 
-        success: true, 
-        name: user["Name"], 
-        role: user["role"], 
-        staffType: user["staffType"], 
-        dept: user["department"] 
+      res.json({
+        success: true,
+        name: user["Name"],
+        empCode: user["Employee Code"],
+        role: user["role"],
+        staffType: user["staffType"],
+        dept: user["department"]
       });
     } else {
       res.status(401).json({ success: false, message: "Invalid Credentials" });
@@ -68,6 +69,44 @@ app.post('/login', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
+// Staff: Apply for leave
+app.post('/api/leaves/apply', async (req, res) => {
+  try {
+    const { Emp_CODE, Name, Dept_Code, Type_of_Leave, From, To, Total_Days, Role } = req.body;
+
+    // Direct to Admin if applicant is HOD
+    const isHod = Role === 'Hod' || Role === 'HOD';
+    const initialStatus = isHod ? 'HOD Approved' : 'Pending';
+
+    const newLeave = new Leave({
+      Emp_CODE,
+      Name,
+      Dept_Code,
+      Type_of_Leave,
+      From,
+      To,
+      Total_Days,
+      Status: initialStatus,
+      HOD_Approved: isHod
+    });
+
+    await newLeave.save();
+    res.json({ success: true, message: "Leave applied successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to apply for leave" });
+  }
+});
+
+// HOD: Get pending leaves
+app.get('/api/leaves/hod', async (req, res) => {
+  try {
+    const leaves = await Leave.find({ Status: 'Pending', Emp_CODE: { $ne: null, $exists: true } });
+    res.json(leaves);
+  } catch (err) { res.status(500).send("Error fetching leaves"); }
+});
+
+// Admin: Get all staff for management table
 app.get('/api/staff', async (req, res) => {
   try {
     const staff = await User.find({});
@@ -99,9 +138,10 @@ app.get('/api/leaves/admin', async (req, res) => {
 });
 
 // Admin Decision: Approve & Deduct or Reject
+// Admin & HOD: Process Approve/Reject Action
 app.post('/api/leaves/process/:id', async (req, res) => {
   try {
-    const { status } = req.body; // 'Approved' or 'Rejected'
+    const { status } = req.body; // 'Approved', 'HOD Approved', or 'Rejected'
     const leave = await Leave.findById(req.params.id);
     
     if (!leave) return res.status(404).send("Leave record not found");
@@ -115,6 +155,9 @@ app.post('/api/leaves/process/:id', async (req, res) => {
     }
 
     leave.Status = status;
+    if (status === 'HOD Approved') {
+      leave.HOD_Approved = true;
+    }
     await leave.save();
     res.json({ success: true, message: `Leave ${status} and balance updated.` });
   } catch (err) { res.status(500).send("Server Error processing leave"); }
