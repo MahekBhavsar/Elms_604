@@ -1,0 +1,60 @@
+<div class="admin-leave-container" style="padding: 20px;">
+  <h2>Admin Leave Decision Panel</h2>
+
+  <section style="margin-bottom: 25px; border: 1px solid #ddd; padding: 10px;">
+    <h3 style="color: grey;">1. Waiting for HOD Approval</h3>
+    <table border="1" width="100%">
+      @for (l of getPending(); track l._id) {
+        <tr>
+          <td>{{ l.Name }} ({{ l.Emp_CODE }})</td>
+          <td>{{ l.Total_Days }} Days</td>
+          <td style="color: orange;">Awaiting HOD Action</td>
+        </tr>
+      }
+    </table>
+  </section>
+
+  <section style="margin-bottom: 25px; border: 2px solid #007bff; padding: 15px; background: #f0f7ff;">
+    <h3 style="color: #007bff;">2. Action Required: HOD Approved Leaves</h3>
+    <table border="1" width="100%">
+      @for (l of getHodApproved(); track l._id) {
+        <tr>
+          <td><strong>{{ l.Name }}</strong></td>
+          <td>{{ l.Type_of_Leave }} ({{ l.Total_Days }} Days)</td>
+          <td>
+            @if (l.Status === 'HOD Approved') {
+              <button (click)="processLeave(l._id, 'Approved')" 
+                      style="background: green; color: white; padding: 5px; cursor: pointer;">
+                Approve & Deduct
+              </button>
+              
+              <button (click)="processLeave(l._id, 'Rejected')" 
+                      style="background: red; color: white; padding: 5px; cursor: pointer; margin-left: 5px;">
+                Reject
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </table>
+  </section>
+
+  <section style="border: 1px solid #ddd; padding: 10px;">
+    <h3>3. Processed History</h3>
+    <table border="1" width="100%">
+      @for (l of getFinalProcessed(); track l._id) {
+        <tr>
+          <td>{{ l.Name }}</td>
+          <td>{{ l.Total_Days }} Days</td>
+          <td>
+            @if (l.Status === 'Approved') {
+              <strong style="color: green;">Final Approved</strong>
+            } @else if (l.Status === 'Rejected') {
+              <strong style="color: red;">Rejected</strong>
+            }
+          </td>
+        </tr>
+      }
+    </table>
+  </section>
+</div>

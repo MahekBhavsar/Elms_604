@@ -1,0 +1,60 @@
+<div class="management-container" style="padding: 20px;">
+  <h2 style="border-bottom: 2px solid #333; padding-bottom: 10px;">Staff Directory Management</h2>
+
+  <div class="form-card" style="background: #f4f4f4; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+    <h3>{{ isEditMode ? 'Update Staff Member' : 'Register New Staff' }}</h3>
+    <form (submit)="onSubmit()" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+      <input type="text" [(ngModel)]="staffForm.Name" name="name" placeholder="Full Name" required>
+      <input type="email" [(ngModel)]="staffForm.Email" name="email" placeholder="Email (Unique)" required>
+      <input type="number" [(ngModel)]="staffForm.Password" name="password" placeholder="Password (Numeric)" required>
+      
+      <select [(ngModel)]="staffForm.role" name="role">
+        <option value="Staff">Staff</option>
+        <option value="Hod">Hod</option>
+        <option value="Admin">Admin</option>
+      </select>
+
+      <input type="text" [(ngModel)]="staffForm.department" name="dept" placeholder="Department (e.g., Computer)">
+      <input type="text" [(ngModel)]="staffForm.staffType" name="type" placeholder="Staff Type (e.g., permenet)">
+      
+      <div style="grid-column: span 2;">
+        <button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer;">
+          {{ isEditMode ? 'Save Changes' : 'Add to Database' }}
+        </button>
+        @if (isEditMode) {
+          <button type="button" (click)="resetForm()" style="margin-left: 10px;">Cancel</button>
+        }
+      </div>
+    </form>
+  </div>
+
+  <table border="1" width="100%" style="border-collapse: collapse; text-align: left;">
+    <thead style="background: #333; color: white;">
+      <tr>
+        <th style="padding: 10px;">Name</th>
+        <th style="padding: 10px;">Email</th>
+        <th style="padding: 10px;">Role</th>
+        <th style="padding: 10px;">Department</th>
+        <th style="padding: 10px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (staff of staffList; track staff._id) {
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 10px;">{{ staff.Name }}</td>
+          <td style="padding: 10px;">{{ staff.Email }}</td>
+          <td style="padding: 10px;">{{ staff.role }}</td>
+          <td style="padding: 10px;">{{ staff.department }}</td>
+          <td style="padding: 10px;">
+            <button (click)="onEdit(staff)" style="background: #ffc107; border: none; padding: 5px 10px; cursor: pointer;">Edit</button>
+            <button (click)="onDelete(staff._id)" style="background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-left: 5px;">Delete</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 20px;">No staff found. Ensure your backend is running on port 5000.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

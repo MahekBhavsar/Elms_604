@@ -1,0 +1,28 @@
+<div class="admin-sidebar">
+  <h2>Admin Control Panel</h2>
+  <nav>
+    <ul>
+      <li>
+        <a routerLink="/admin-dashboard" routerLinkActive="active">Dashboard Home</a>
+      </li>
+
+      <li>
+        <a routerLink="/admin-managed-staff" routerLinkActive="active">Manage Staff Members</a>
+      </li>
+
+      <li>
+        <a routerLink="/admin-leave" routerLinkActive="active">Leave Applications</a>
+      </li>
+
+      <hr>
+      <li>
+        <button (click)="logout()" class="btn-logout">Logout</button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<div class="main-display">
+  <h1>Welcome, Admin</h1>
+  <p>Use the sidebar to manage staff records or process leave requests.</p>
+</div>

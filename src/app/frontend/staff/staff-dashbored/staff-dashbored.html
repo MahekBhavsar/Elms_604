@@ -1,0 +1,35 @@
+<div class="dashboard-wrapper">
+  <h2>Welcome, {{ user?.name }}</h2>
+  <p>Department: {{ user?.dept }} | Staff Type: {{ user?.staffType }}</p>
+
+  <hr>
+
+  <section class="staff-tasks">
+    <h3>Apply for Leave</h3>
+    <button class="btn-primary">New Application</button>
+  </section>
+
+  @if (user?.staffType === 'permenet' || user?.role === 'Hod') {
+    <section class="hod-approval-panel" style="margin-top: 20px; padding: 20px; border: 2px solid #28a745; background-color: #f9fff9;">
+      <h3 style="color: #28a745;">HOD Leave Approval Panel</h3>
+      <p>Managing applications for the <strong>{{ user?.dept }}</strong> department.</p>
+      
+      <table border="1" width="100%">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Reason</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sample Staff</td>
+            <td>Annual Leave</td>
+            <td><button style="background-color: #28a745; color: white;">Approve</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  }
+</div>

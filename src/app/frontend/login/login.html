@@ -1,0 +1,12 @@
+<div class="login-box">
+  <h2>Employee Login</h2>
+  
+  <input type="email" [(ngModel)]="loginForm.email" placeholder="Email Address">
+  <input type="password" [(ngModel)]="loginForm.password" placeholder="Password">
+  
+  <button (click)="onLogin()">Sign In</button>
+
+  @if (errorMsg) {
+    <p style="color: red; text-align: center;">{{ errorMsg }}</p>
+  }
+</div>
