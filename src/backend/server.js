@@ -6,49 +6,49 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. Database Connection
+// Database Connection
 mongoose.connect('mongodb://127.0.0.1:27017/employeeDB')
-  .then(() => console.log("Connected to MongoDB: employeeDB"))
+  .then(() => console.log("Connected to MongoDB - employeeDB"))
   .catch(err => console.error("Database Connection Error:", err));
 
-// 2. Staff/User Schema 
-// Includes 'leaveBalance' to track remaining days
+// --- Schemas ---
+
 const userSchema = new mongoose.Schema({
   "Employee Code": Number,
   "Name": String,
   "Email": { type: String, required: true },
-  "Password": { type: Number, required: true }, // Int32 type
+  "Password": { type: Number, required: true },
   "role": String,
   "staffType": String,
   "department": String,
-  "leaveBalance": { type: Number, default: 30 } 
-}, { collection: 'users' });
+  "dept_code": Number,
+  "leaveBalance": { type: Number, default: 30 }
+}, { collection: 'users', versionKey: false });
 
 const User = mongoose.model('User', userSchema);
 
-// 3. Leave Type Schema (Yearly Limits for CL, SL, etc.)
 const leaveTypeSchema = new mongoose.Schema({
-  leave_name: String, 
-  total_yearly_limit: Number
-}, { collection: 'leave_types' });
+  leave_name: String,        // e.g., "cl", "sl"
+  total_yearly_limit: Number // e.g., 12
+}, { collection: 'leave_types', versionKey: false });
 
 const LeaveType = mongoose.model('LeaveType', leaveTypeSchema);
 
-// 4. Leave Application Schema (Matches your Excel/CSV columns)
 const leaveSchema = new mongoose.Schema({
   Emp_CODE: Number,
   Name: String,
   Dept_Code: Number,
   Type_of_Leave: String,
-  From: Date,
-  To: Date,
+  From: String,
+  To: String,
   Total_Days: Number,
-  Status: { type: String, default: 'Pending' } 
-}, { collection: 'leave_applications' });
+  Status: { type: String, default: 'Pending' },
+  HOD_Approved: { type: Boolean, default: false }
+}, { collection: 'leave_applications', versionKey: false });
 
 const Leave = mongoose.model('Leave', leaveSchema);
 
-// --- AUTH & STAFF ROUTES ---
+// --- Routes ---
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -60,8 +60,8 @@ app.post('/login', async (req, res) => {
         name: user["Name"],
         empCode: user["Employee Code"],
         role: user["role"],
-        staffType: user["staffType"],
-        dept: user["department"]
+        dept: user["department"],
+        leaveBalance: user.leaveBalance
       });
     } else {
       res.status(401).json({ success: false, message: "Invalid Credentials" });
@@ -69,98 +69,118 @@ app.post('/login', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// Staff: Apply for leave
-app.post('/api/leaves/apply', async (req, res) => {
+app.get('/api/leave-types', async (req, res) => {
   try {
-    const { Emp_CODE, Name, Dept_Code, Type_of_Leave, From, To, Total_Days, Role } = req.body;
-
-    // Direct to Admin if applicant is HOD
-    const isHod = Role === 'Hod' || Role === 'HOD';
-    const initialStatus = isHod ? 'HOD Approved' : 'Pending';
-
-    const newLeave = new Leave({
-      Emp_CODE,
-      Name,
-      Dept_Code,
-      Type_of_Leave,
-      From,
-      To,
-      Total_Days,
-      Status: initialStatus,
-      HOD_Approved: isHod
-    });
-
-    await newLeave.save();
-    res.json({ success: true, message: "Leave applied successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Failed to apply for leave" });
-  }
+    const types = await LeaveType.find({});
+    res.json(types);
+  } catch (err) { res.status(500).json({ error: "Failed to fetch types" }); }
 });
 
-// HOD: Get pending leaves
-app.get('/api/leaves/hod', async (req, res) => {
+app.get('/api/leaves/staff/:empCode', async (req, res) => {
   try {
-    const leaves = await Leave.find({ Status: 'Pending', Emp_CODE: { $ne: null, $exists: true } });
+    const empCode = Number(req.params.empCode);
+    const leaves = await Leave.find({ Emp_CODE: empCode }).sort({ _id: -1 });
     res.json(leaves);
-  } catch (err) { res.status(500).send("Error fetching leaves"); }
+  } catch (err) { res.status(500).json({ error: "Failed to fetch history" }); }
 });
 
-// Admin: Get all staff for management table
-app.get('/api/staff', async (req, res) => {
-  try {
-    const staff = await User.find({});
-    res.json(staff);
-  } catch (err) { res.status(500).send("Error fetching staff"); }
-});
-
-// --- LEAVE MANAGEMENT ROUTES ---
-
-// Set Yearly Leave Limits
-app.post('/api/leave-types/set', async (req, res) => {
-  const { leave_name, limit } = req.body;
-  try {
-    await LeaveType.findOneAndUpdate(
-      { leave_name }, 
-      { total_yearly_limit: limit }, 
-      { upsert: true }
-    );
-    res.json({ success: true });
-  } catch (err) { res.status(500).send("Error setting limits"); }
-});
-
-// Admin: Get all leave applications
-app.get('/api/leaves/admin', async (req, res) => {
-  try {
-    const leaves = await Leave.find({});
-    res.json(leaves);
-  } catch (err) { res.status(500).send("Error fetching leaves"); }
-});
-
-// Admin Decision: Approve & Deduct or Reject
-// Admin & HOD: Process Approve/Reject Action
 app.post('/api/leaves/process/:id', async (req, res) => {
   try {
-    const { status } = req.body; // 'Approved', 'HOD Approved', or 'Rejected'
+    const { status } = req.body;
     const leave = await Leave.findById(req.params.id);
-    
-    if (!leave) return res.status(404).send("Leave record not found");
+    if (!leave) return res.status(404).send("Not found");
 
     if (status === 'Approved') {
-      // Deducting Total_Days from User balance based on Emp_CODE
       await User.updateOne(
         { "Employee Code": leave.Emp_CODE },
         { $inc: { leaveBalance: -leave.Total_Days } }
       );
     }
-
     leave.Status = status;
-    if (status === 'HOD Approved') {
-      leave.HOD_Approved = true;
-    }
+    if (status === 'HOD Approved') leave.HOD_Approved = true;
     await leave.save();
-    res.json({ success: true, message: `Leave ${status} and balance updated.` });
-  } catch (err) { res.status(500).send("Server Error processing leave"); }
+    res.json({ success: true });
+  } catch (err) { res.status(500).send("Error"); }
 });
 
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+app.post('/api/leaves/apply', async (req, res) => {
+  try {
+    const payload = req.body;
+    const isHod = payload.role === 'Hod' || payload.role === 'HOD';
+    const newLeave = new Leave({
+      ...payload,
+      Status: isHod ? 'HOD Approved' : 'Pending',
+      HOD_Approved: isHod
+    });
+    await newLeave.save();
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// Admin endpoint to get all leaves and append remaining balance
+app.get('/api/leaves/admin', async (req, res) => {
+  try {
+    const leaves = await Leave.find({}).sort({ _id: -1 }).lean();
+    const leaveTypes = await LeaveType.find({}).lean();
+
+    const usedMap = {};
+    for (const leave of leaves) {
+      if (leave.Status === 'Approved') {
+        const typeStr = (leave.Type_of_Leave || "").toLowerCase();
+        const key = `${leave.Emp_CODE}_${typeStr}`;
+        usedMap[key] = (usedMap[key] || 0) + (Number(leave.Total_Days) || 0);
+      }
+    }
+
+    const enrichedLeaves = leaves.map(leave => {
+      const typeStr = (leave.Type_of_Leave || "").toLowerCase();
+      const lType = leaveTypes.find(t => (t.leave_name || "").toLowerCase() === typeStr);
+      const limit = lType ? lType.total_yearly_limit : 0;
+      const used = usedMap[`${leave.Emp_CODE}_${typeStr}`] || 0;
+
+      return {
+        ...leave,
+        Remaining_Leaves: limit - used
+      };
+    });
+
+    res.json(enrichedLeaves);
+  } catch (err) { res.status(500).json({ error: "Failed to fetch admin leaves" }); }
+});
+
+// Staff CRUD endpoints
+app.get('/api/staff', async (req, res) => {
+  try {
+    const staff = await User.find({});
+    res.json(staff);
+  } catch (err) { res.status(500).json({ error: "Failed to fetch staff" }); }
+});
+
+app.post('/api/staff', async (req, res) => {
+  try {
+    const latestUser = await User.findOne().sort({ "Employee Code": -1 });
+    const nextCode = latestUser && latestUser["Employee Code"] ? latestUser["Employee Code"] + 1 : 101;
+    const body = req.body;
+    body["Employee Code"] = nextCode;
+    const newUser = new User(body);
+    await newUser.save();
+    res.json(newUser);
+  } catch (err) { res.status(500).json({ error: "Failed to create staff" }); }
+});
+
+app.put('/api/staff/:id', async (req, res) => {
+  try {
+    const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ error: "Failed to update staff" }); }
+});
+
+app.delete('/api/staff/:id', async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: "Failed to delete staff" }); }
+});
+
+const PORT = 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
