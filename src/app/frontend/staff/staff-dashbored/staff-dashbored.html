@@ -81,13 +81,15 @@
         <tbody>
           @for (l of myLeaves; track l._id) {
           <tr>
-            <td class="ps-4"><span class="fw-bold">{{ l.Type_of_Leave }}</span></td>
-            <td>{{ l.From | date:'dd MMM yyyy' }} - {{ l.To | date:'dd MMM yyyy' }}</td>
-            <td class="text-center">{{ l.Total_Days }}</td>
+            <td class="ps-4">
+              <span class="fw-bold">{{ l['Type of Leave'] || l.Type_of_Leave }}</span>
+            </td>
+            <td>{{ l.From }} - {{ l.To }}</td>
+            <td class="text-center">{{ l['Total Days'] || l.Total_Days }}</td>
             <td class="text-end pe-4">
               <span class="badge rounded-pill px-3 py-2"
                 [ngClass]="{
-                  'bg-success': l.Status === 'Approved' || l.Status === 'HOD Approved', 
+                  'bg-success': l.Status === 'Approved' || l.Status === 'Final Approved' || l.Status === 'HOD Approved', 
                   'bg-warning text-dark': l.Status === 'Pending',
                   'bg-danger': l.Status === 'Rejected'
                 }">

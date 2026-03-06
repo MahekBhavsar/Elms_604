@@ -33,6 +33,7 @@ export class StaffDashbored implements OnInit {
   }
 
   fetchData() {
+    // 1. Fetch Yearly Limits (cl/sl: 12)
     this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
       next: (types) => {
         this.leaveTypes = types;
@@ -40,6 +41,7 @@ export class StaffDashbored implements OnInit {
       }
     });
 
+    // 2. Fetch Personal history
     if (this.user?.empCode) {
       this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`).subscribe({
         next: (data) => {
@@ -52,17 +54,28 @@ export class StaffDashbored implements OnInit {
 
   calculateBalances() {
     if (!this.leaveTypes.length) return;
+
     this.leaveTypes.forEach(type => {
       const used = this.myLeaves
-        .filter(l => 
-          l.Type_of_Leave?.toLowerCase() === type.leave_name?.toLowerCase() && 
-          (l.Status === 'Approved' || l.Status === 'HOD Approved')
-        )
-        .reduce((acc, curr) => acc + (Number(curr.Total_Days) || 0), 0);
+        .filter(l => {
+          // Handles keys with spaces (CSV) and underscores (Manual)
+          const typeOfLeave = (l['Type of Leave'] || l.Type_of_Leave || "").toLowerCase();
+          const status = l.Status || "";
+          
+          return typeOfLeave === type.leave_name?.toLowerCase() && 
+                 (status === 'Approved' || status === 'Final Approved' || status === 'HOD Approved');
+        })
+        .reduce((acc, curr) => {
+          // Extracts days using both formats
+          const days = Number(curr['Total Days']) || Number(curr.Total_Days) || 0;
+          return acc + days;
+        }, 0);
 
-      this.leaveBalances[type.leave_name] = type.total_yearly_limit - used;
+      const remaining = type.total_yearly_limit - used;
+      this.leaveBalances[type.leave_name] = remaining > 0 ? remaining : 0;
     });
-    this.cdr.detectChanges(); // Fixes ExpressionChangedAfterItHasBeenCheckedError
+    
+    this.cdr.detectChanges(); 
   }
 
   isHOD(): boolean {
