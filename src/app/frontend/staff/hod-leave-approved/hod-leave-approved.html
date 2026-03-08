@@ -1,32 +1,28 @@
+<app-staff-sidebar>
 <div class="container-fluid py-4 px-lg-5 bg-light min-vh-100">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold text-dark mb-0">Department Leave Approvals</h2>
-            <p class="text-muted">Manage leave requests for Dept Code: <strong>{{ hodData.dept_code }}</strong></p>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="p-4 bg-white shadow-sm rounded-4 border-start border-primary border-5">
+                <h2 class="fw-bold text-dark mb-0">Department Approvals</h2>
+                <p class="text-muted mb-0">Managing Staff for Dept Code: <strong>{{ hodData.dept_code }}</strong></p>
+                <small class="text-primary italic">Note: Your own leave applications are sent directly to Admin for review.</small>
+            </div>
         </div>
     </div>
 
-    <!-- Pending Requests -->
     <div class="card border-0 shadow-sm rounded-4 mb-5">
         <div class="p-4 border-bottom bg-white rounded-top-4 d-flex align-items-center">
-            <div class="bg-warning text-dark p-2 rounded-3 me-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                    class="bi bi-hourglass-split" viewBox="0 0 16 16">
-                    <path
-                        d="M2.5 15a.5.5 0 1 1 0-1h1v-1a4.5 4.5 0 0 1 2.557-4.06c.29-.139.443-.377.443-.59v-.7c0-.213-.154-.451-.443-.59A4.5 4.5 0 0 1 3.5 3V2h-1a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-1v1a4.5 4.5 0 0 1-2.557 4.06c-.29.139-.443.377-.443.59v.7c0 .213.154.451.443.59A4.5 4.5 0 0 1 12.5 13v1h1a.5.5 0 0 1 0 1h-11zm2-13v1c0 .537.12 1.045.337 1.5h6.326c.216-.455.337-.963.337-1.5V2h-7zm3 6.35c0 .701-.478 1.236-1.011 1.492A3.5 3.5 0 0 0 4.5 13s.866-1.299 3-1.48V8.35zm1 0v3.17c2.134.181 3 1.48 3 1.48a3.5 3.5 0 0 0-1.989-3.158C8.978 9.586 8.5 9.052 8.5 8.35z" />
-                </svg>
-            </div>
-            <h4 class="mb-0 fw-bold text-dark">Pending Staff Requests</h4>
+            <i class="bi bi-hourglass-split fs-4 text-warning me-3"></i>
+            <h4 class="mb-0 fw-bold text-dark">Awaiting Your Review</h4>
         </div>
         <div class="card-body p-0 table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
-                    <tr>
+                    <tr class="small text-uppercase text-muted">
                         <th class="ps-4 py-3">Employee</th>
-                        <th class="py-3">Type</th>
-                        <th class="py-3">Period</th>
-                        <th class="py-3 text-center">Days</th>
-                        <th class="py-3 text-end pe-4">HOD Actions</th>
+                        <th class="py-3">Leave Type</th>
+                        <th class="py-3 text-center">Duration</th>
+                        <th class="py-3 text-end pe-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,26 +30,28 @@
                     <tr>
                         <td class="ps-4">
                             <div class="fw-bold text-dark">{{ l.Name }}</div>
-                            <small class="text-muted">Code: {{ l.Emp_CODE }}</small>
+                            <small class="text-muted">ID: {{ l.Emp_CODE }}</small>
                         </td>
-                        <td><span class="badge bg-secondary rounded-pill">{{ l.Type_of_Leave }}</span></td>
-                        <td>{{ l.From | date }} to {{ l.To | date }}</td>
-                        <td class="text-center fw-bold">{{ l.Total_Days }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border rounded-pill px-3">
+                                {{ l['Type of Leave'] || l.Type_of_Leave }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="fw-bold text-dark">{{ l['Total Days'] || l.Total_Days }} Days</div>
+                            <small class="text-muted">{{ l.From | displayDate }} - {{ l.To | displayDate }}</small>
+                        </td>
                         <td class="text-end pe-4">
-                            <button class="btn btn-sm btn-success rounded-pill px-3 me-2 shadow-sm"
-                                (click)="processLeave(l._id, 'HOD Approved')">
-                                Approve
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3"
-                                (click)="processLeave(l._id, 'Rejected')">
-                                Reject
-                            </button>
+                            <button class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold" 
+                                    (click)="processLeave(l._id, 'HOD Approved')">Approve</button>
+                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" 
+                                    (click)="processLeave(l._id, 'Rejected')">Reject</button>
                         </td>
                     </tr>
                     } @empty {
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            No pending leave requests in your department.
+                        <td colspan="4" class="text-center py-5 text-muted fst-italic">
+                            No pending staff requests found for your department.
                         </td>
                     </tr>
                     }
@@ -62,38 +60,29 @@
         </div>
     </div>
 
-    <!-- Previously Processed -->
-    <div class="card border-0 shadow-sm rounded-4 opacity-75">
-        <div class="p-4 border-bottom bg-white rounded-top-4 d-flex align-items-center">
-            <div class="bg-secondary text-white p-2 rounded-3 me-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                    class="bi bi-check2-all" viewBox="0 0 16 16">
-                    <path
-                        d="M12.354 4.354a.5.5 0 0 0-.708-.708L5 10.293 1.854 7.146a.5.5 0 1 0-.708.708l3.5 3.5a.5.5 0 0 0 .708 0l7-7zm-4.208 7-.896-.897.707-.707.543.543 6.646-6.647a.5.5 0 0 1 .708.708l-7 7a.5.5 0 0 1-.708 0z" />
-                    <path d="m5.354 7.146.896.897-.707.707-.897-.896a.5.5 0 1 1 .708-.708z" />
-                </svg>
-            </div>
-            <h5 class="mb-0 fw-bold text-secondary">Recently Processed by You</h5>
+    <div class="card border-0 shadow-sm rounded-4 border">
+        <div class="p-4 border-bottom bg-white rounded-top-4">
+            <h5 class="mb-0 fw-bold text-secondary">Recently Processed History</h5>
         </div>
         <div class="card-body p-0 table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table align-middle mb-0 small">
                 <thead class="table-light">
-                    <tr>
+                    <tr class="text-uppercase text-muted">
                         <th class="ps-4 py-3">Employee</th>
                         <th class="py-3">Type</th>
-                        <th class="py-3">Period</th>
-                        <th class="py-3 text-end pe-4">HOD Decision</th>
+                        <th class="py-3 text-center">Days</th>
+                        <th class="py-3 text-end pe-4">Decision</th>
                     </tr>
                 </thead>
                 <tbody>
                     @for (l of getProcessed(); track l._id) {
                     <tr>
-                        <td class="ps-4">{{ l.Name }}</td>
-                        <td>{{ l.Type_of_Leave }}</td>
-                        <td>{{ l.From | date }} to {{ l.To | date }}</td>
+                        <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
+                        <td>{{ l['Type of Leave'] || l.Type_of_Leave }}</td>
+                        <td class="text-center">{{ l['Total Days'] || l.Total_Days }}</td>
                         <td class="text-end pe-4">
-                            <span class="badge rounded-pill px-3 py-2"
-                                [ngClass]="{'bg-success': l.Status === 'HOD Approved', 'bg-danger': l.Status === 'Rejected'}">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold shadow-sm" 
+                                  [ngClass]="{'bg-info text-dark': l.Status === 'HOD Approved', 'bg-danger text-white': l.Status === 'Rejected'}">
                                 {{ l.Status }}
                             </span>
                         </td>
@@ -104,3 +93,4 @@
         </div>
     </div>
 </div>
+</app-staff-sidebar>

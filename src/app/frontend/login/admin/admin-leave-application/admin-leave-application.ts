@@ -1,17 +1,16 @@
-import { Component, OnInit, signal, computed, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, Inject, OnInit, PLATFORM_ID, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
+import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 
 @Component({
-  selector: 'app-apply-leave',
-  standalone: true,
-  imports: [CommonModule, FormsModule, StaffSidebar],
-  templateUrl: './apply-leave.html',
-  styleUrl: './apply-leave.css'
+  selector: 'app-admin-leave-application',
+  imports: [CommonModule, FormsModule,AdminSidebar],
+  templateUrl: './admin-leave-application.html',
+  styleUrl: './admin-leave-application.css',
 })
-export class ApplyLeave implements OnInit {
+export class AdminLeaveApplication implements OnInit {
   // Signals for fine-grained reactivity (Angular 21+)
   staffData = signal<any>({});
   remainingBalance = signal<number>(0);

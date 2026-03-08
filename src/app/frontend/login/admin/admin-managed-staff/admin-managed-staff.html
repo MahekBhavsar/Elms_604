@@ -1,376 +1,137 @@
-<style>
-  .admin-dashboard-container {
-    background-color: #f8f9fa;
-  }
-
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 280px;
-    background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    overflow-y: auto;
-  }
-
-  .sidebar-link {
-    color: rgba(255, 255, 255, 0.8);
-    transition: all 0.3s;
-    border-radius: 8px;
-    margin-bottom: 5px;
-  }
-
-  .sidebar-link:hover {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
-  }
-
-  .sidebar-link.active {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.2);
-    font-weight: 600;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .main-content {
-    margin-left: 280px;
-    background-image: url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
-    position: relative;
-    background-attachment: fixed;
-  }
-
-  .main-content::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(248, 249, 250, 0.85);
-    /* Light overlay for readability */
-  }
-
-  .content-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  }
-
-  .logout-btn {
-    transition: all 0.3s;
-  }
-
-  .logout-btn:hover {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-    color: white !important;
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
-  }
-
-  .table-glass {
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .table> :not(caption)>*>* {
-    padding: 1rem 1rem;
-    background-color: transparent;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-
-  thead.bg-primary-subtle th {
-    background-color: #e0ebfb !important;
-    color: #0d6efd;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-  }
-
-  .input-effect:focus {
-    box-shadow: 0 0.25rem 0.5rem rgba(13, 110, 253, 0.15) !important;
-    border-color: #0d6efd;
-  }
-
-  .action-btn {
-    transition: transform 0.2s;
-  }
-
-  .action-btn:hover {
-    transform: translateY(-2px);
-  }
-</style>
-
-<div class="d-flex min-vh-100 admin-dashboard-container">
-  <!-- Sidebar -->
-  <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white" style="width: 280px; min-height: 100vh;">
-    <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none px-2">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor"
-        class="bi bi-mortarboard-fill me-3" viewBox="0 0 16 16">
-        <path
-          d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z" />
-        <path
-          d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z" />
-      </svg>
-      <span class="fs-4 fw-bold">Admin Panel</span>
-    </a>
-    <hr class="border-light opacity-25">
-
-    <ul class="nav nav-pills flex-column mb-auto">
-      <li class="nav-item">
-        <a routerLink="/admin-dashboard" routerLinkActive="active"
-          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-            class="bi bi-speedometer2 me-3" viewBox="0 0 16 16">
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z" />
-            <path fill-rule="evenodd"
-              d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 2.54-3.942 2.662-1.839.105-3.126.123-3.605.123-.48 0-1.766-.018-3.605-.123-2.097-.122-3.5-1.409-3.942-2.662A8.001 8.001 0 0 1 0 10zm8-7a7 7 0 0 0-6.603 9.329c.203.575.923 1.79 2.493 1.878C5.584 14.305 6.827 14.32 8 14.32c1.174 0 2.416-.015 4.11-.113 1.57-.088 2.29-1.303 2.493-1.878A7 7 0 1 0 8 3z" />
-          </svg>
-          Dashboard Home
-        </a>
-      </li>
-      <li>
-        <a routerLink="/admin-managed-staff" routerLinkActive="active"
-          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-            class="bi bi-people-fill me-3" viewBox="0 0 16 16">
-            <path
-              d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7Zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.784 6A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216ZM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-          </svg>
-          Manage Staff Members
-        </a>
-      </li>
-      <li>
-        <a routerLink="/admin-leave" routerLinkActive="active"
-          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-            class="bi bi-calendar-check-fill me-3" viewBox="0 0 16 16">
-            <path
-              d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zm-5.146-5.146-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708z" />
-          </svg>
-          Leave Applications
-        </a>
-      </li>
-    </ul>
-
-    <hr class="border-light opacity-25 mt-auto">
-    <div class="mt-2">
-      <button
-        class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center fw-bold py-2 logout-btn rounded-pill border-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-          class="bi bi-box-arrow-right me-2" viewBox="0 0 16 16">
-          <path fill-rule="evenodd"
-            d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z" />
-          <path fill-rule="evenodd"
-            d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
-        </svg>
-        Logout
-      </button>
-    </div>
-  </div>
-
-  <!-- Main Content Area -->
-  <div class="flex-grow-1 main-content w-100 overflow-auto">
-    <div class="position-relative z-1 p-4 p-md-5">
-
-      <!-- Header -->
-      <div
-        class="d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pb-3 mb-4">
-        <div>
-          <h2 class="text-primary fw-bold mb-0">Staff Directory Management</h2>
-          <p class="text-muted small mb-0 mt-1">Register new staff members or update existing records in the database.
-          </p>
-        </div>
-        <div class="d-none d-md-block">
-          <span class="badge bg-primary rounded-pill px-3 py-2 d-flex align-items-center shadow-sm fs-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-              class="bi bi-person-circle me-2" viewBox="0 0 16 16">
-              <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-              <path fill-rule="evenodd"
-                d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
-            </svg>
-            Administrator
-          </span>
+<app-admin-sidebar>
+  <div class="container-fluid py-4 bg-light min-vh-100">
+    
+    <div class="row align-items-center mb-4">
+      <div class="col-md-5">
+        <h3 class="fw-bold text-dark mb-0">Staff Directory</h3>
+        <p class="text-muted small mb-0">Manage {{ totalStaff() }} personnel.</p>
+      </div>
+      <div class="col-md-7">
+        <div class="d-flex gap-2 justify-content-md-end mt-3 mt-md-0">
+          <div class="input-group shadow-sm w-75">
+            <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-0 py-2" 
+                   placeholder="Search by name, email or department..." 
+                   [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)">
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Form Card -->
-      <div class="content-card mb-5">
-        <div class="card-header bg-transparent border-bottom border-light px-4 py-3">
-          <h4 class="mb-0 text-dark fw-bold d-flex align-items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-              class="bi bi-person-plus-fill me-2 text-primary" viewBox="0 0 16 16">
-              <path d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-              <path fill-rule="evenodd"
-                d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z" />
-            </svg>
-            {{ isEditMode ? 'Update Staff Member' : 'Register New Staff' }}
-          </h4>
-        </div>
-        <div class="card-body px-4 py-4">
-          <form (submit)="onSubmit()">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Full Name</label>
-                <input type="text" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.Name" name="name" placeholder="John Doe" required>
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 20px;">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-4 text-primary">
+              {{ isEditMode ? 'Edit Staff Member' : 'Add New Staff' }}
+            </h5>
+            <form (ngSubmit)="onSubmit()">
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">Full Name</label>
+                <input type="text" name="Name" [(ngModel)]="staffForm.Name" class="form-control bg-light border-0 py-2" required>
               </div>
-
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Email Address</label>
-                <input type="email" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.Email" name="email" placeholder="instructor@education.edu" required>
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">Email Address</label>
+                <input type="email" name="Email" [(ngModel)]="staffForm.Email" class="form-control bg-light border-0 py-2" required>
               </div>
-
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Password (Numeric)</label>
-                <input type="number" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.Password" name="password" placeholder="12345" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Account Role</label>
-                <select class="form-select form-select-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.role" name="role">
-                  <option value="Staff">Staff</option>
-                  <option value="Hod">HOD</option>
-                  <option value="Admin">Admin</option>
-                </select>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Department Name</label>
-                <input type="text" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.department" name="dept" placeholder="Computer Science">
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Department Code</label>
-                <input type="number" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.dept_code" name="dept_code" placeholder="1" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label text-muted fw-semibold small text-uppercase">Staff Type</label>
-                <input type="text" class="form-control form-control-lg bg-light border-0 shadow-sm input-effect"
-                  [(ngModel)]="staffForm.staffType" name="type" placeholder="Permanent / Contract">
-              </div>
-
-              <div class="col-12 mt-4">
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm px-4 action-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-                      class="bi bi-cloud-arrow-up-fill me-2" viewBox="0 0 16 16">
-                      <path
-                        d="M8 2a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 6.095 0 7.555 0 9.318 0 11.366 1.708 13 3.781 13h8.906C14.502 13 16 11.57 16 9.773c0-1.636-1.242-2.969-2.834-3.194C12.923 3.999 10.69 2 8 2zm2.354 5.146a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2z" />
-                    </svg>
-                    {{ isEditMode ? 'Save Changes' : 'Add to Database' }}
-                  </button>
-
-                  @if (isEditMode) {
-                  <button type="button"
-                    class="btn btn-outline-secondary btn-lg fw-bold rounded-pill px-4 action-btn bg-white"
-                    (click)="resetForm()">
-                    Cancel
-                  </button>
-                  }
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small fw-bold text-muted text-uppercase">Role</label>
+                  <select name="role" [(ngModel)]="staffForm.role" class="form-select bg-light border-0 py-2">
+                    <option value="Staff">Staff</option>
+                    <option value="HOD">HOD</option>
+                    <option value="Admin">Admin</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-bold text-muted text-uppercase">Type</label>
+                  <select name="staffType" [(ngModel)]="staffForm.staffType" (change)="onStaffTypeChange()" class="form-select bg-light border-0 py-2">
+                    <option value="none">Select Type</option>
+                    <option value="Teaching">Teaching</option>
+                    <option value="Peon">Peon</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
               </div>
-            </div>
-          </form>
+              <div class="p-3 bg-light rounded-3 mb-4">
+                <div class="row g-2">
+                  <div class="col-8">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Department</label>
+                    <input type="text" name="department" [(ngModel)]="staffForm.department" [disabled]="staffForm.staffType === 'Peon'" class="form-control border-0">
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Code</label>
+                    <input type="number" name="dept_code" [(ngModel)]="staffForm.dept_code" [disabled]="staffForm.staffType === 'Peon'" class="form-control border-0">
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-3 shadow-sm">
+                {{ isEditMode ? 'Save Changes' : 'Confirm Registration' }}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
-      <!-- Data Table Card -->
-      <div class="table-glass">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="bg-primary-subtle">
-              <tr>
-                <th scope="col" class="ps-4">Full Name</th>
-                <th scope="col">Email Address</th>
-                <th scope="col">Role</th>
-                <th scope="col">Department</th>
-                <th scope="col">Dept Code</th>
-                <th scope="col" class="text-end pe-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (staff of staffList; track staff._id) {
-              <tr>
-                <td class="ps-4 fw-medium text-dark">
-                  <div class="d-flex align-items-center">
-                    <div
-                      class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3"
-                      style="width: 40px; height: 40px;">
-                      <span class="fw-bold">{{ staff.Name.charAt(0) | uppercase }}</span>
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-white">
+                <tr class="text-muted small text-uppercase fw-bolder">
+                  <th class="ps-4 py-3">Staff Member</th>
+                  <th class="py-3">Role / Type</th>
+                  <th class="py-3 text-center cursor-pointer" (click)="toggleSort()">
+                    Dept Code 
+                    <i class="bi" [ngClass]="sortOrder() === 'asc' ? 'bi-sort-numeric-down' : sortOrder() === 'desc' ? 'bi-sort-numeric-up' : 'bi-hash'"></i>
+                  </th>
+                  <th class="py-3 text-end pe-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of filteredStaff(); track s._id) {
+                <tr>
+                  <td class="ps-4">
+                    <div class="d-flex align-items-center">
+                      <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3" style="width: 38px; height: 38px;">
+                        {{ s.Name.charAt(0) }}
+                      </div>
+                      <div>
+                        <div class="fw-bold text-dark">{{ s.Name }}</div>
+                        <div class="text-muted small">{{ s.Email }}</div>
+                        <div class="text-secondary small fw-semibold">
+                          Emp Code: {{ s['Employee Code'] || s.empCode || s.Emp_CODE || '-' }}
+                        </div>
+                      </div>
                     </div>
-                    {{ staff.Name }}
-                  </div>
-                </td>
-                <td class="text-secondary">{{ staff.Email }}</td>
-                <td>
-                  <span class="badge" [class.bg-success]="staff.role === 'Admin'"
-                    [class.bg-warning]="staff.role === 'Hod'" [class.bg-info]="staff.role === 'Staff'"
-                    [class.text-dark]="staff.role === 'Hod'">
-                    {{ staff.role }}
-                  </span>
-                </td>
-                <td class="text-secondary">{{ staff.department }}</td>
-                <td class="text-secondary fw-bold">{{ staff.dept_code }}</td>
-                <td class="text-end pe-4">
-                  <button
-                    class="btn btn-sm btn-light text-primary border shadow-sm rounded-pill px-3 me-2 action-btn fw-semibold"
-                    (click)="onEdit(staff)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                      class="bi bi-pencil-fill me-1" viewBox="0 0 16 16">
-                      <path
-                        d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z" />
-                    </svg>
-                    Edit
-                  </button>
-                  <button class="btn btn-sm btn-danger shadow-sm rounded-pill px-3 action-btn fw-semibold"
-                    (click)="onDelete(staff._id)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                      class="bi bi-trash-fill me-1" viewBox="0 0 16 16">
-                      <path
-                        d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z" />
-                    </svg>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-              } @empty {
-              <tr>
-                <td colspan="5" class="text-center p-5">
-                  <div class="d-flex flex-column align-items-center text-muted">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor"
-                      class="bi bi-inbox-fill opacity-50 mb-3" viewBox="0 0 16 16">
-                      <path
-                        d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4H4.98zM3.81.563A1.5 1.5 0 0 1 4.98 0h6.04a1.5 1.5 0 0 1 1.17.563l3.7 4.625a.5.5 0 0 1 .106.374l-.39 3.124A1.5 1.5 0 0 1 14.117 10H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374l3.7-4.625z" />
-                    </svg>
-                    <h5 class="fw-bold mb-1 text-dark">No Staff Found</h5>
-                    <p class="small mb-0">Ensure your backend is running on port 5000 and data exists in the database.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-              }
-            </tbody>
-          </table>
+                  </td>
+                  <td>
+                    <span class="badge rounded-pill fw-medium px-2 py-1 mb-1 shadow-sm"
+                          [ngClass]="{'bg-info text-dark': s.role === 'Staff', 'bg-warning text-dark': s.role === 'HOD', 'bg-danger text-white': s.role === 'Admin'}">
+                      {{ s.role }}
+                    </span>
+                    <small class="text-muted d-block">{{ s.staffType }}</small>
+                  </td>
+                  <td class="text-center">
+                    @if (s.department !== 'N/A') {
+                      <div class="fw-bold text-primary small">{{ s.department }} ({{ s.dept_code }})</div>
+                    } @else {
+                      <span class="text-muted small fst-italic">N/A</span>
+                    }
+                  </td>
+                  <td class="text-end pe-4">
+                    <button class="btn btn-light btn-sm rounded-circle me-1 border" (click)="onEdit(s)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-light btn-sm rounded-circle border" (click)="onDelete(s._id)"><i class="bi bi-trash"></i></button>
+                  </td>
+                </tr>
+                } @empty {
+                  <tr><td colspan="4" class="text-center p-5 text-muted">No matching staff members found.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
     </div>
   </div>
-</div>
+</app-admin-sidebar>
