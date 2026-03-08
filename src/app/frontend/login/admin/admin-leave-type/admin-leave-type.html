@@ -1,62 +1,110 @@
-<div class="container-fluid py-4">
-  <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-      
-      <div class="content-card p-4 shadow-sm border-0">
-        <div class="d-flex align-items-center mb-4">
-          <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#0d6efd" class="bi bi-gear-wide-connected" viewBox="0 0 16 16">
-              <path d="M7.068.727c.243-.97 1.62-.97 1.864 0l.071.286a.96.96 0 0 0 1.622.634l.244-.163c.845-.563 1.812.404 1.25 1.25l-.163.244a.96.96 0 0 0 .634 1.622l.286.071c.97.243.97 1.62 0 1.864l-.286.071a.96.96 0 0 0-.634 1.622l.163.244c.563.845-.404 1.812-1.25 1.25l-.244-.163a.96.96 0 0 0-1.622.634l-.071.286c-.243.97-1.62.97-1.864 0l-.071-.286a.96.96 0 0 0-1.622-.634l-.244.163c-.845.563-1.812-.404-1.25-1.25l.163-.244a.96.96 0 0 0-.634-1.622l-.286-.071c-.97-.243-.97-1.62 0-1.864l.286-.071a.96.96 0 0 0 .634-1.622l-.163-.244c-.563-.845.404-1.812 1.25-1.25l.244.163a.96.96 0 0 0 1.622-.634l.071-.286zM8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/>
-            </svg>
-          </div>
-          <div>
-            <h3 class="fw-bold text-dark mb-0">Leave Quotas</h3>
-            <small class="text-muted">Set yearly limits for staff</small>
-          </div>
-        </div>
+<app-admin-sidebar>
+  <div class="flex-grow-1 min-vh-100 bg-light p-4 p-md-5">
+    <div class="row align-items-center mb-5">
+      <div class="col-md-6">
+        <h3 class="fw-bold text-dark mb-0">Leave Quota Configurations</h3>
+        <p class="text-muted small mb-0">Manage annual limits across multiple departments.</p>
+      </div>
+    </div>
 
-        <form (submit)="saveYearlyLimit()" #quotaForm="ngForm">
-          <div class="mb-3">
-            <label for="leaveName" class="form-label fw-semibold text-secondary small text-uppercase">Leave Type</label>
-            <input 
-              id="leaveName" 
-              [(ngModel)]="leaveLimit.leave_name" 
-              name="leave_name" 
-              class="form-control form-control-lg border-2 shadow-none"
-              placeholder="e.g., CL, SL, SAT" 
-              required
-              type="text">
-          </div>
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-4 text-primary">Configuration</h5>
+            
+            <form (ngSubmit)="saveYearlyLimit()">
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">Leave Name</label>
+                <input type="text" [(ngModel)]="leaveLimit.leave_name" name="leave_name" 
+                       class="form-control bg-light border-0 py-2 shadow-none" placeholder="e.g. CL" required>
+              </div>
 
-          <div class="mb-4">
-            <label for="leaveLimit" class="form-label fw-semibold text-secondary small text-uppercase">Total Yearly Days</label>
-            <input 
-              id="leaveLimit" 
-              [(ngModel)]="leaveLimit.limit" 
-              name="limit" 
-              class="form-control form-control-lg border-2 shadow-none"
-              placeholder="e.g., 12" 
-              required
-              type="number">
-          </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">Annual Limit (Days)</label>
+                <input type="number" [(ngModel)]="leaveLimit.total_yearly_limit" name="total_yearly_limit" 
+                       class="form-control bg-light border-0 py-2 shadow-none" required>
+              </div>
 
-          <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm py-2">
-              Set Yearly Limit
-            </button>
-            <button type="button" (click)="resetForm()" class="btn btn-link text-decoration-none text-secondary btn-sm">
-              Clear Form
-            </button>
-          </div>
-        </form>
+              <div class="mb-4">
+                <label class="form-label small fw-bold text-muted text-uppercase d-block mb-2">Dept Codes</label>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (dept of availableDeptCodes; track dept) {
+                    <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
+                      [ngClass]="leaveLimit.dept_codes.includes(dept) ? 'btn-primary border-primary' : 'btn-white text-muted'"
+                      (click)="toggleSelection(leaveLimit.dept_codes, dept)">{{ dept }}</button>
+                  }
+                </div>
+              </div>
 
-        <div class="mt-4 p-3 bg-light rounded-3 border-start border-4 border-primary">
-          <p class="mb-0 small text-muted">
-            <strong>Note:</strong> These limits are used to calculate remaining balances for staff members upon final approval.
-          </p>
+              <div class="mb-4">
+                <label class="form-label small fw-bold text-muted text-uppercase d-block mb-2">Staff Categories</label>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (st of availableStaffTypes; track st) {
+                    <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
+                      [ngClass]="leaveLimit.staffTypes.includes(st) ? 'btn-primary border-primary' : 'btn-white text-muted'"
+                      (click)="toggleSelection(leaveLimit.staffTypes, st)">{{ st }}</button>
+                  }
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm">
+                {{ editingId() ? 'Update Configuration' : 'Save Bulk Quota' }}
+              </button>
+              
+              @if (editingId()) {
+                <button (click)="resetForm()" type="button" class="btn btn-link w-100 mt-2 text-muted small text-decoration-none">Cancel Edit</button>
+              }
+            </form>
+          </div>
         </div>
       </div>
 
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-nowrap">
+              <thead class="bg-light border-bottom">
+                <tr class="small text-muted text-uppercase">
+                  <th class="ps-4 py-3">Leave Type</th>
+                  <th>Categories</th>
+                  <th class="text-center">Dept Codes</th>
+                  <th class="text-center">Limit</th>
+                  <th class="text-end pe-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (group of groupedLeaveTypes(); track group.leave_name + group.total_yearly_limit) {
+                <tr>
+                  <td class="ps-4">
+                    <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 rounded-3">
+                      {{ group.leave_name | uppercase }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-dark fw-medium small">{{ group.category_display }}</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-light text-dark border px-2 shadow-none fw-normal">{{ group.dept_display }}</span>
+                  </td>
+                  <td class="text-center fw-bold text-dark">{{ group.total_yearly_limit }} Days</td>
+                  <td class="text-end pe-4">
+                    <button class="btn btn-light btn-sm rounded-circle me-1 border shadow-none" (click)="editType(group)">
+                      <i class="bi bi-pencil-square text-primary"></i>
+                    </button>
+                    <button class="btn btn-light btn-sm rounded-circle border shadow-none" (click)="deleteType(group._id)">
+                      <i class="bi bi-trash text-danger"></i>
+                    </button>
+                  </td>
+                </tr>
+                } @empty {
+                  <tr><td colspan="5" class="text-center p-5 text-muted small italic">No leave quotas defined yet.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</app-admin-sidebar>

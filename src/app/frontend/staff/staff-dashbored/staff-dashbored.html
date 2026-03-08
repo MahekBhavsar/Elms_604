@@ -1,109 +1,98 @@
-<div class="container-fluid py-4 px-lg-5 bg-light min-vh-100">
-  
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="p-4 text-white shadow-sm rounded-4 d-flex justify-content-between align-items-center"
-        style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-        <div>
-          <h2 class="fw-bold mb-1">Welcome, {{ user?.name }}</h2>
-          <p class="mb-0 opacity-75">Employee Code: {{ user?.empCode }} | Dept: {{ user?.dept }}</p>
-        </div>
-        <div class="text-end d-none d-md-block">
-          <span class="badge bg-white text-primary rounded-pill px-3 py-2">Role: {{ user?.role }}</span>
+<app-staff-sidebar>
+  <div class="main-content flex-grow-1 w-100 dash-bg d-flex flex-column h-100 p-4 p-md-5 overflow-auto bg-light">
+    
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="p-4 text-white shadow-sm rounded-4 d-flex justify-content-between align-items-center hero-card">
+          <div>
+            <h2 class="fw-bold mb-1">Welcome, {{ user?.name }}</h2>
+            <p class="mb-0 opacity-75">Employee Code: {{ user?.empCode }} | Dept: {{ user?.dept }}</p>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-white text-primary rounded-pill px-3 py-2">Role: {{ user?.role }}</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="row g-3 mb-5">
-    <div class="col-6 col-md-3 col-lg-2">
-      <div class="card border-0 shadow-sm rounded-4 text-center p-3 h-100 action-card" 
-           routerLink="/apply-leave" style="cursor: pointer;">
-        <div class="bg-primary bg-opacity-10 p-2 rounded-circle mx-auto mb-2" style="width: 50px;">
-          <i class="bi bi-plus-lg text-primary fs-4"></i>
+    <h5 class="fw-bold mb-3 text-dark">My Leave Quotas</h5>
+    <div class="row g-4 mb-5">
+      @if (!dataReady) {
+        <div class="col-12 text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2">Loading leave details...</p>
         </div>
-        <h6 class="fw-bold mb-0">Apply Leave</h6>
-      </div>
-    </div>
-
-    @if (isHOD()) {
-    <div class="col-6 col-md-3 col-lg-2">
-      <div class="card border-0 shadow-sm rounded-4 text-center p-3 h-100 action-card border-bottom border-warning border-3" 
-           routerLink="/hod-leave-approved" style="cursor: pointer;">
-        <div class="bg-warning bg-opacity-10 p-2 rounded-circle mx-auto mb-2" style="width: 50px;">
-          <i class="bi bi-people-fill text-warning fs-4"></i>
-        </div>
-        <h6 class="fw-bold mb-0">Approvals</h6>
-      </div>
-    </div>
-    }
-  </div>
-
-  <h5 class="fw-bold mb-3 text-dark">Remaining Leave Quota</h5>
-  <div class="row g-4 mb-5">
-    @for (type of leaveTypes; track type._id) {
-    <div class="col-md-6 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 bg-white border-top border-primary border-4">
-        <div class="text-uppercase fw-bold text-muted small mb-2">{{ type.leave_name }}</div>
-        
-        <h1 class="display-5 fw-bold text-primary mb-0">
-          {{ leaveBalances[type.leave_name] || 0 }}
-        </h1>
-        
-        <div class="mt-3">
-          <div class="progress" style="height: 6px;">
-            <div class="progress-bar bg-primary" 
-              [style.width]="((leaveBalances[type.leave_name] || 0) / type.total_yearly_limit * 100) + '%'">
+      } @else {
+        @for (card of quotaCards; track card.name) {
+          <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 bg-white border-top border-primary border-4 quota-card">
+              <div class="text-uppercase fw-bold text-muted small mb-2">{{ card.name }}</div>
+              <h1 class="display-5 fw-bold text-primary mb-0">{{ card.remaining }}</h1>
+              <div class="mt-3">
+                <div class="progress" style="height: 8px; background-color: #e9ecef;">
+                  <div class="progress-bar" role="progressbar" 
+                       [style.width.%]="card.percent" 
+                       style="background: #2a5298; transition: width 1s ease-in-out;">
+                  </div>
+                </div>
+                <small class="text-secondary d-block mt-2">Available of {{ card.limit }} Days</small>
+              </div>
             </div>
           </div>
-          <small class="text-secondary d-block mt-2">Available of {{ type.total_yearly_limit }} Days</small>
+        }
+      }
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold text-dark mb-0">Leave Application Status</h5>
+      <span class="badge bg-primary text-white px-3 py-2 rounded-pill shadow-sm">
+        Total: {{ getTotalStats() }}
+      </span>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+          <small class="text-muted fw-bold text-uppercase">Approved</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ leaveStats.approved }}</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4">
+          <small class="text-muted fw-bold text-uppercase">Pending</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ leaveStats.pending }}</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4">
+          <small class="text-muted fw-bold text-uppercase">Rejected</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ leaveStats.rejected }}</h3>
         </div>
       </div>
     </div>
-    }
-  </div>
 
-  <div class="card border-0 shadow-sm rounded-4 mb-4">
-    <div class="p-4 border-bottom bg-white rounded-top-4 d-flex justify-content-between align-items-center">
-      <h5 class="mb-0 fw-bold text-dark">My Request History</h5>
-      <span class="badge bg-light text-dark border">{{ myLeaves.length }} Total Requests</span>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+          <h6 class="fw-bold text-dark text-uppercase mb-4">Status Distribution</h6>
+          <div class="position-relative" style="height: 300px;">
+            @if (dataReady) {
+              <canvas #statusChart></canvas>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+          <h6 class="fw-bold text-dark text-uppercase mb-4">Leave Type Breakdown</h6>
+          <div class="position-relative" style="height: 300px;">
+            @if (dataReady) {
+              <canvas #leaveTypeChart></canvas>
+            }
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body p-0 table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-4 py-3">Type</th>
-            <th class="py-3">From - To</th>
-            <th class="py-3 text-center">Days</th>
-            <th class="py-3 text-end pe-4">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (l of myLeaves; track l._id) {
-          <tr>
-            <td class="ps-4">
-              <span class="fw-bold">{{ l['Type of Leave'] || l.Type_of_Leave }}</span>
-            </td>
-            <td>{{ l.From }} - {{ l.To }}</td>
-            <td class="text-center">{{ l['Total Days'] || l.Total_Days }}</td>
-            <td class="text-end pe-4">
-              <span class="badge rounded-pill px-3 py-2"
-                [ngClass]="{
-                  'bg-success': l.Status === 'Approved' || l.Status === 'Final Approved' || l.Status === 'HOD Approved', 
-                  'bg-warning text-dark': l.Status === 'Pending',
-                  'bg-danger': l.Status === 'Rejected'
-                }">
-                {{ l.Status }}
-              </span>
-            </td>
-          </tr>
-          } @empty {
-          <tr>
-            <td colspan="4" class="text-center p-5 text-muted">No records found.</td>
-          </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+
   </div>
-</div>
+</app-staff-sidebar>

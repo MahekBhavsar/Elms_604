@@ -1,0 +1,29 @@
+.main-content {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Inter", sans-serif;
+}
+
+.dash-bg {
+  background-color: #f8fafc;
+  min-height: calc(100vh - 76px);
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+.quota-card,
+.status-card,
+.chart-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.quota-card:hover,
+.status-card:hover,
+.chart-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.75rem 1.5rem rgba(13, 110, 253, 0.08) !important;
+}
+
+.chart-area {
+  height: 320px;
+}

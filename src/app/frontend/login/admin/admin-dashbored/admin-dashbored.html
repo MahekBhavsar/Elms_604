@@ -1,200 +1,93 @@
-<style>
-  .admin-dashboard-container {
-    background-color: #f8f9fa;
-  }
+<app-admin-sidebar>
+  <div class="main-content flex-grow-1 w-100 dash-bg d-flex flex-column h-100 p-4 p-md-5 overflow-auto bg-light">
 
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 280px;
-    background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    overflow-y: auto;
-  }
-
-  .sidebar-link {
-    color: rgba(255, 255, 255, 0.8);
-    transition: all 0.3s;
-    border-radius: 8px;
-    margin-bottom: 5px;
-  }
-
-  .sidebar-link:hover {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
-  }
-
-  .sidebar-link.active {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.2);
-    font-weight: 600;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .main-content {
-    margin-left: 280px;
-    background-image: url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
-    position: relative;
-  }
-
-  .main-content::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(248, 249, 250, 0.85);
-    /* Light overlay for readability */
-  }
-
-  .content-card {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  }
-
-  .logout-btn {
-    transition: all 0.3s;
-  }
-
-  .logout-btn:hover {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-    color: white !important;
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
-  }
-</style>
-
-<div class="d-flex min-vh-100 admin-dashboard-container">
-  <!-- Sidebar -->
-  <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white" style="width: 280px; min-height: 100vh;">
-    <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none px-2">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor"
-        class="bi bi-mortarboard-fill me-3" viewBox="0 0 16 16">
-        <path
-          d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z" />
-        <path
-          d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z" />
-      </svg>
-      <span class="fs-4 fw-bold">Admin Panel</span>
-    </a>
-    <hr class="border-light opacity-25">
-
-    <ul class="nav nav-pills flex-column mb-auto">
-      <li class="nav-item">
-        <a routerLink="/admin-dashboard" routerLinkActive="active"
-          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-            class="bi bi-speedometer2 me-3" viewBox="0 0 16 16">
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z" />
-            <path fill-rule="evenodd"
-              d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 2.54-3.942 2.662-1.839.105-3.126.123-3.605.123-.48 0-1.766-.018-3.605-.123-2.097-.122-3.5-1.409-3.942-2.662A8.001 8.001 0 0 1 0 10zm8-7a7 7 0 0 0-6.603 9.329c.203.575.923 1.79 2.493 1.878C5.584 14.305 6.827 14.32 8 14.32c1.174 0 2.416-.015 4.11-.113 1.57-.088 2.29-1.303 2.493-1.878A7 7 0 1 0 8 3z" />
-          </svg>
-          Dashboard Home
-        </a>
-      </li>
-      <li>
-        <a routerLink="/admin-managed-staff" routerLinkActive="active"
-          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-            class="bi bi-people-fill me-3" viewBox="0 0 16 16">
-            <path
-              d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7Zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.784 6A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216ZM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-          </svg>
-          Manage Staff Members
-        </a>
-      </li>
-      <li>
-        <a routerLink="/admin-leave" routerLinkActive="active"
-          class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-            class="bi bi-calendar-check-fill me-3" viewBox="0 0 16 16">
-            <path
-              d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zm-5.146-5.146-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708z" />
-          </svg>
-          Leave Applications
-        </a>
-      </li>
-      <li>
-  <a routerLink="/admin-leave-type" routerLinkActive="active"
-     class="nav-link sidebar-link d-flex align-items-center px-3 py-2">
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" 
-         class="bi bi-gear-fill me-3" viewBox="0 0 16 16">
-      <path d="M9.405 1.05c-.413-.927-1.735-.927-2.148 0L6.583 2.3a1 1 0 0 1-1.115.632l-1.3-.223c-1.01-.173-1.896.713-1.723 1.723l.223 1.3a1 1 0 0 1-.632 1.115l-1.25.674c-.927.413-.927 1.735 0 2.148l1.25.674a1 1 0 0 1 .632 1.115l-.223 1.3c-.173 1.01.713 1.896 1.723 1.723l1.3-.223a1 1 0 0 1 1.115.632l.674 1.25c.413.927 1.735.927 2.148 0l.674-1.25a1 1 0 0 1 1.115-.632l1.3.223c1.01.173 1.896-.713 1.723-1.723l-.223-1.3a1 1 0 0 1 .632-1.115l1.25-.674c.927-.413.927-1.735 0-2.148l-1.25-.674a1 1 0 0 1-.632-1.115l.223-1.3c.173-1.01-.713-1.896-1.723-1.723l-1.3.223a1 1 0 0 1-1.115-.632L9.405 1.05zM8 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
-    </svg>
-    Configure Leave Quotas
-  </a>
-</li>
-    </ul>
-
-    <hr class="border-light opacity-25 mt-auto">
-    <div class="mt-2">
-      <button (click)="logout()"
-        class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center fw-bold py-2 logout-btn rounded-pill border-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-          class="bi bi-box-arrow-right me-2" viewBox="0 0 16 16">
-          <path fill-rule="evenodd"
-            d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z" />
-          <path fill-rule="evenodd"
-            d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
-        </svg>
-        Logout
-      </button>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="flex-grow-1 main-content w-100">
-    <div class="position-relative z-1 p-4 p-md-5 d-flex flex-column min-vh-100">
-
-      <!-- Top header / Breadcrumb area -->
-      <div class="d-flex justify-content-between align-items-center mb-5">
-        <h4 class="text-primary fw-bold mb-0">Overview</h4>
-        <div class="d-flex align-items-center">
-          <span class="badge bg-primary rounded-pill px-3 py-2 d-flex align-items-center shadow-sm fs-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-              class="bi bi-person-circle me-2" viewBox="0 0 16 16">
-              <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-              <path fill-rule="evenodd"
-                d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
-            </svg>
-            Administrator
-          </span>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold text-dark mb-0 d-flex align-items-center">
+          <i class="bi bi-speedometer2 text-primary me-2"></i> Admin Dashboard
+        </h3>
+        <p class="text-secondary mb-0 mt-1">Hello, {{ user?.name || 'Admin' }}</p>
       </div>
+      <div class="d-none d-md-block">
+        <span class="badge bg-white text-primary shadow-sm px-4 py-2 rounded-pill border border-primary border-opacity-10 fs-6">
+          <i class="bi bi-shield-check me-2"></i> System Online
+        </span>
+      </div>
+    </div>
 
-      <!-- Welcome Card -->
-      <div class="content-card p-4 p-xl-5 mb-4 border-0">
-        <div class="row align-items-center">
-          <div class="col-lg-8">
-            <h1 class="display-5 fw-bold text-dark mb-3">Welcome, Admin</h1>
-            <p class="lead text-secondary mb-0">
-              Use the sidebar to manage staff records, process leave requests, and oversee operations in the Educational
-              Management System.
-            </p>
-          </div>
-          <div class="col-lg-4 text-center d-none d-lg-block">
-            <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" fill="#0d6efd"
-              class="bi bi-building opacity-50" viewBox="0 0 16 16">
-              <path
-                d="M4 2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1ZM4 5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1ZM7.5 5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1Zm2.5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1ZM4.5 8a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1Zm2.5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1Z" />
-              <path
-                d="M2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V1Zm11 0H3v14h3v-2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V15h3V1Z" />
-            </svg>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold text-dark mb-0">My Leave Quotas</h5>
+      <span class="badge bg-primary text-white px-3 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-people-fill me-1"></i> Total Staff: {{ staffStats.totalStaff }}
+      </span>
+    </div>
+
+    <div class="row g-4 mb-5">
+      @for (type of allLeaveTypes; track type._id) {
+      <div class="col-md-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 bg-white border-top border-primary border-4">
+          <div class="text-uppercase fw-bold text-muted small mb-2">{{ type.leave_name }}</div>
+          <h1 class="display-5 fw-bold text-primary mb-0">
+            {{ adminLeaveBalances[type.leave_name] || 0 }}
+          </h1>
+          <div class="mt-3">
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-primary"
+                [style.width]="((adminLeaveBalances[type.leave_name] || 0) / type.total_yearly_limit * 100) + '%'">
+              </div>
+            </div>
+            <small class="text-secondary d-block mt-2">Available: {{ type.total_yearly_limit }} Days</small>
           </div>
         </div>
       </div>
-
+      }
     </div>
+
+    <div class="row g-3 mb-5">
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4">
+          <small class="text-muted fw-bold text-uppercase x-small">HOD Pending</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ stats.pendingLeaves }}</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-info border-4">
+          <small class="text-muted fw-bold text-uppercase x-small">Action Required</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ stats.hodApprovedLeaves }}</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+          <small class="text-muted fw-bold text-uppercase x-small">Approved</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ stats.finalApprovedLeaves }}</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4">
+          <small class="text-muted fw-bold text-uppercase x-small">Rejected</small>
+          <h3 class="fw-bold mb-0 text-dark">{{ stats.rejectedLeaves }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+          <h6 class="fw-bold text-dark text-uppercase mb-4">Leave Application Status</h6>
+          <div class="position-relative" style="height: 300px;">
+            <canvas #leaveChart></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+          <h6 class="fw-bold text-dark text-uppercase mb-4">Staff by Department</h6>
+          <div class="position-relative" style="height: 300px;">
+            <canvas #staffChart></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
-</div>
+</app-admin-sidebar>

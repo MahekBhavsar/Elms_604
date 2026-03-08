@@ -1,27 +1,48 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 
 @Component({
   selector: 'app-admin-managed-staff',
   standalone: true,
-  imports: [RouterLink, CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AdminSidebar],
   templateUrl: './admin-managed-staff.html',
   styleUrl: './admin-managed-staff.css'
 })
 export class AdminManagedStaff implements OnInit {
-  staffList: any[] = [];
+  private rawStaff = signal<any[]>([]);
+  searchTerm = signal<string>('');
+  sortOrder = signal<'asc' | 'desc' | 'none'>('none');
+
+  // Unified Search and Dept Code Sorting
+  filteredStaff = computed(() => {
+    let list = this.rawStaff().filter(s => 
+      s.Name.toLowerCase().includes(this.searchTerm().toLowerCase()) ||
+      s.Email.toLowerCase().includes(this.searchTerm().toLowerCase()) ||
+      s.department?.toLowerCase().includes(this.searchTerm().toLowerCase()) ||
+      s.dept_code?.toString().includes(this.searchTerm())
+    );
+
+    if (this.sortOrder() !== 'none') {
+      list.sort((a, b) => {
+        const codeA = Number(a.dept_code) || 99; // Non-coded staff go to bottom
+        const codeB = Number(b.dept_code) || 99;
+        return this.sortOrder() === 'asc' ? codeA - codeB : codeB - codeA;
+      });
+    }
+    return list;
+  });
+
+  totalStaff = computed(() => this.rawStaff().length);
+
   staffForm: any = {
-    "Name": '',
-    "Email": '',
-    "Password": null,
-    "role": 'Staff',
-    "staffType": 'none',
-    "department": '',
-    "dept_code": 1
+    "Name": '', "Email": '', "Password": null,
+    "role": 'Staff', "staffType": 'none',
+    "department": '', "dept_code": 1
   };
+  
   isEditMode = false;
   currentEditId = '';
 
@@ -31,46 +52,62 @@ export class AdminManagedStaff implements OnInit {
     this.getAllStaff();
   }
 
+  // Map staff types to your specific department code table
+  onStaffTypeChange() {
+    const type = this.staffForm.staffType;
+    if (type === 'Peon') {
+      this.staffForm.department = 'PEONS';
+      this.staffForm.dept_code = 7; // Matches your image mapping
+    } else if (type === 'Teaching') {
+      this.staffForm.department = 'Computer'; // Defaulting to first dept
+      this.staffForm.dept_code = 1;
+    } else {
+      this.staffForm.department = 'OTHERS';
+      this.staffForm.dept_code = 5;
+    }
+  }
+
+  toggleSort() {
+    if (this.sortOrder() === 'none') this.sortOrder.set('asc');
+    else if (this.sortOrder() === 'asc') this.sortOrder.set('desc');
+    else this.sortOrder.set('none');
+  }
+
   getAllStaff() {
     this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
-      next: (res) => this.staffList = res,
+      next: (res) => this.rawStaff.set(res),
       error: (err) => console.error("Error loading staff:", err)
     });
   }
 
   onSubmit() {
-    if (this.isEditMode) {
-      this.http.put(`http://localhost:5000/api/staff/${this.currentEditId}`, this.staffForm).subscribe({
-        next: () => {
-          alert("Staff Updated Successfully!");
-          this.resetForm();
-          this.getAllStaff();
-        },
-        error: (err) => alert("Update Failed: Check Console")
-      });
-    } else {
-      this.http.post('http://localhost:5000/api/staff', this.staffForm).subscribe({
-        next: () => {
-          alert("Staff Added Successfully!");
-          this.resetForm();
-          this.getAllStaff();
-        },
-        error: (err) => alert("Add Failed: Check Console")
-      });
-    }
+    const url = this.isEditMode ? `http://localhost:5000/api/staff/${this.currentEditId}` : 'http://localhost:5000/api/staff';
+    const request = this.isEditMode ? this.http.put(url, this.staffForm) : this.http.post(url, this.staffForm);
+
+    request.subscribe({
+      next: () => {
+        alert(`✅ Staff Member ${this.isEditMode ? 'Updated' : 'Registered'}!`);
+        this.resetForm();
+        this.getAllStaff();
+      },
+      error: () => alert("❌ Operation Failed.")
+    });
   }
 
   onEdit(staff: any) {
     this.isEditMode = true;
     this.currentEditId = staff._id;
-    // We use spread to decouple the form from the table row
     this.staffForm = { ...staff };
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   onDelete(id: string) {
-    if (confirm("Are you sure you want to delete this staff record?")) {
-      this.http.delete(`http://localhost:5000/api/staff/${id}`).subscribe(() => {
-        this.getAllStaff();
+    if (confirm("⚠️ Delete this record?")) {
+      this.http.delete(`http://localhost:5000/api/staff/${id}`).subscribe({
+        next: () => {
+          alert("🗑️ Staff Member Deleted!");
+          this.getAllStaff();
+        }
       });
     }
   }
@@ -78,10 +115,10 @@ export class AdminManagedStaff implements OnInit {
   resetForm() {
     this.isEditMode = false;
     this.currentEditId = '';
-    this.staffForm = { 
-      "Name": '', "Email": '', "Password": null, 
-      "role": 'Staff', "staffType": 'none', 
-      "department": '', "dept_code": 1 
+    this.staffForm = {
+      "Name": '', "Email": '', "Password": null,
+      "role": 'Staff', "staffType": 'none',
+      "department": '', "dept_code": 1
     };
   }
 }
