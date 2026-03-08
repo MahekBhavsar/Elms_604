@@ -6,49 +6,63 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label class="small fw-bold text-muted text-uppercase">Staff Search</label>
-            <input type="text" class="form-control shadow-none" placeholder="Name or ID" (input)="searchStaff.set($any($event.target).value)" />
+            <input type="text" class="form-control shadow-none" placeholder="Name or ID"
+              (input)="searchStaff.set($any($event.target).value)" />
           </div>
           <div class="col-md-4">
             <label class="small fw-bold text-muted text-uppercase">Leave Search</label>
-            <input type="text" class="form-control shadow-none" placeholder="Leave Type (e.g. SL, CL)" (input)="searchLeave.set($any($event.target).value)" />
+            <input type="text" class="form-control shadow-none" placeholder="Leave Type (e.g. SL, CL)"
+              (input)="searchLeave.set($any($event.target).value)" />
           </div>
           <div class="col-md-4">
             <label class="small fw-bold text-muted text-uppercase">Filter by Dept Code</label>
-            <input type="text" class="form-control shadow-none" placeholder="e.g. 1" (input)="deptFilter.set($any($event.target).value)" />
+            <input type="text" class="form-control shadow-none" placeholder="e.g. 1"
+              (input)="deptFilter.set($any($event.target).value)" />
           </div>
         </div>
       </div>
     </div>
 
-    <section class="card border-0 shadow-sm mb-5 rounded-4 overflow-hidden">
-      <div class="card-header bg-white border-bottom border-primary border-opacity-25 px-4 py-3">
-        <h5 class="mb-0 text-primary fw-bold d-flex align-items-center">
-          <i class="bi bi-lightning-charge-fill me-2"></i> Action Required: Admin Decision
+    <section class="card border-0 shadow-sm mb-5 rounded-4 overflow-hidden"
+      style="transition: transform 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;">
+      <div class="card-header border-bottom border-light px-4 py-3"
+        style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+        <h5 class="mb-0 text-white fw-bold d-flex align-items-center">
+          <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center me-3"
+            style="width: 35px; height: 35px;">
+            <i class="bi bi-lightning-charge-fill text-white"></i>
+          </div>
+          Action Required: Admin Decision
         </h5>
       </div>
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="bg-light text-muted small text-uppercase">
             <tr>
-              <th class="ps-4 py-3">Staff Details</th>
-              <th>Request Details</th>
-              <th>Status Info</th>
-              <th class="text-end pe-4">Actions</th>
+              <th class="ps-4 py-3 border-0">Staff Details</th>
+              <th class="border-0">Request Details</th>
+              <th class="border-0">Status Info</th>
+              <th class="text-end pe-4 border-0">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="border-top-0">
             @for (l of getHodApproved(); track l._id) {
-            <tr>
+            <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
+              onmouseout="this.style.backgroundColor='transparent'">
               <td class="ps-4">
                 <div class="d-flex align-items-center">
-                  <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold" style="width: 42px; height: 42px;">
+                  <div
+                    class="text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold shadow-sm"
+                    style="width: 42px; height: 42px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
                     {{ l.Name?.charAt(0) | uppercase }}
                   </div>
                   <div>
                     <div class="fw-bold text-dark d-flex align-items-center">
                       {{ l.Name }}
-                      @if (l.role?.toLowerCase() === 'hod') { <span class="badge bg-warning text-dark ms-2" style="font-size:0.6rem;">HOD</span> }
-                      @if (l.dept_code === 0 || l.dept_code === "0" || !l.dept_code) { <span class="badge bg-info text-white ms-2" style="font-size:0.6rem;">DIRECT</span> }
+                      @if (l.role?.toLowerCase() === 'hod') { <span class="badge bg-warning text-dark ms-2"
+                        style="font-size:0.6rem;">HOD</span> }
+                      @if (l.dept_code === 0 || l.dept_code === "0" || !l.dept_code) { <span
+                        class="badge bg-info text-white ms-2" style="font-size:0.6rem;">DIRECT</span> }
                     </div>
                     <small class="text-muted">ID: {{ l.Emp_CODE }} | Dept: {{ l.Dept_Code || l.dept_code }}</small>
                   </div>
@@ -56,17 +70,21 @@
               </td>
               <td>
                 <div class="mb-1 text-dark fw-bold">
-                  <span class="badge bg-light text-dark border me-1">{{ l['Type of Leave'] || l.Type_of_Leave }}</span>
+                  <span class="badge bg-light text-primary border border-primary border-opacity-25 me-1">{{ l['Type of
+                    Leave'] || l.Type_of_Leave }}</span>
                   {{ l['Total Days'] || l.Total_Days }} Days
                 </div>
                 <small class="text-primary fw-semibold">Balance: {{ l.Remaining_Leaves }} Left</small>
               </td>
               <td>
-                 <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1 small">Awaiting Final Action</span>
+                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1 small">Awaiting Final
+                  Action</span>
               </td>
               <td class="text-end pe-4">
-                <button (click)="processLeave(l._id, 'Approved')" class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold shadow-sm">Approve</button>
-                <button (click)="processLeave(l._id, 'Rejected')" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">Reject</button>
+                <button (click)="processLeave(l._id, 'Approved')"
+                  class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold shadow-sm">Approve</button>
+                <button (click)="processLeave(l._id, 'Rejected')"
+                  class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">Reject</button>
               </td>
             </tr>
             }
@@ -77,26 +95,37 @@
 
     <div class="row g-4">
       <div class="col-xl-6">
-        <section class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-          <div class="card-header bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 text-dark fw-bold">Awaiting HOD Approval</h6>
-            <i class="bi bi-clock-history text-warning"></i>
+        <section class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden"
+          style="transition: transform 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.03) !important;">
+          <div
+            class="card-header bg-light border-bottom border-light px-4 py-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-dark fw-bold d-flex align-items-center">
+              <div
+                class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                style="width: 28px; height: 28px;">
+                <i class="bi bi-clock-history small"></i>
+              </div>
+              Awaiting HOD Approval
+            </h6>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <tbody>
+            <table class="table table-hover align-middle mb-0">
+              <tbody class="border-top-0">
                 @for (l of getPending(); track l._id) {
-                <tr>
-                  <td class="ps-4 py-3">
+                <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
+                  onmouseout="this.style.backgroundColor='transparent'">
+                  <td class="ps-4 py-3 border-light">
                     <div class="fw-bold text-dark">{{ l.Name }}</div>
                     <small class="text-muted">ID: {{ l.Emp_CODE }} | Dept: {{ l.Dept_Code }}</small>
                   </td>
-                  <td>
-                    <div class="fw-bold">{{ l['Total Days'] || l.Total_Days }} Days</div>
-                    <small class="text-muted">{{ l['Type of Leave'] || l.Type_of_Leave }}</small>
+                  <td class="border-light">
+                    <div class="fw-bold text-dark">{{ l['Total Days'] || l.Total_Days }} Days</div>
+                    <small class="text-secondary opacity-75">{{ l['Type of Leave'] || l.Type_of_Leave }}</small>
                   </td>
-                  <td class="text-end pe-4">
-                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill px-3 small">Pending HOD</span>
+                  <td class="text-end pe-4 border-light">
+                    <span
+                      class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-1 small fw-semibold">Pending
+                      HOD</span>
                   </td>
                 </tr>
                 }
@@ -107,10 +136,18 @@
       </div>
 
       <div class="col-xl-6">
-        <section class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-          <div class="card-header bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 text-dark fw-bold">Processed History</h6>
-            <i class="bi bi-check-circle-fill text-success"></i>
+        <section class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden"
+          style="transition: transform 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.03) !important;">
+          <div
+            class="card-header bg-light border-bottom border-light px-4 py-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-dark fw-bold d-flex align-items-center">
+              <div
+                class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                style="width: 28px; height: 28px;">
+                <i class="bi bi-check-circle-fill small"></i>
+              </div>
+              Processed History
+            </h6>
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-hover align-middle mb-0">
@@ -123,11 +160,12 @@
                   </td>
                   <td>
                     <div class="fw-bold">{{ l['Total Days'] || l.Total_Days }} Days</div>
-                    <small class="text-muted">{{ l['Type of Leave'] || l.Type_of_Leave }} | Bal: {{ l.Remaining_Leaves }}</small>
+                    <small class="text-muted">{{ l['Type of Leave'] || l.Type_of_Leave }} | Bal: {{ l.Remaining_Leaves
+                      }}</small>
                   </td>
                   <td class="text-end pe-4">
-                    <span class="badge rounded-pill px-3 fw-bold" 
-                          [ngClass]="l.Status === 'Approved' ? 'bg-success text-white' : 'bg-danger text-white'">
+                    <span class="badge rounded-pill px-3 fw-bold"
+                      [ngClass]="l.Status === 'Approved' ? 'bg-success text-white' : 'bg-danger text-white'">
                       {{ l.Status | uppercase }}
                     </span>
                   </td>

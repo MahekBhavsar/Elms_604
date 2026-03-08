@@ -1,0 +1,68 @@
+/* Custom styles for Staff View Status Page */
+
+.status-hero-card {
+    background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.status-hero-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+    transform: translate(30%, 30%);
+}
+
+.status-table-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-table-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Custom Table Styling */
+.custom-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.custom-table th {
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    background-color: #f8f9fa !important;
+    border-bottom: 2px solid #e9ecef !important;
+}
+
+.table-row-hover {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.table-row-hover:hover {
+    background-color: #f8f9fa !important;
+}
+
+/* Custom Scrollbar for tables */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
