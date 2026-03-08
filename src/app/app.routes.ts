@@ -4,21 +4,34 @@ import { AdminDashbored } from './frontend/login/admin/admin-dashbored/admin-das
 import { StaffDashbored } from './frontend/staff/staff-dashbored/staff-dashbored';
 import { AdminManagedStaff } from './frontend/login/admin/admin-managed-staff/admin-managed-staff';
 import { AdminLeave } from './frontend/login/admin/admin-leave/admin-leave';
+import { AdminLeaveType } from './frontend/login/admin/admin-leave-type/admin-leave-type';
+import { ApplyLeave } from './frontend/staff/apply-leave/apply-leave';
+import { HodLeaveApproved } from './frontend/staff/hod-leave-approved/hod-leave-approved';
+import { StaffViewStatus } from './frontend/staff/staff-view-status/staff-view-status';
+import { Report } from './frontend/login/admin/report/report';
+import { AdminLeaveApplication } from './frontend/login/admin/admin-leave-application/admin-leave-application';
 
 export const routes: Routes = [
-  // 1. Default Route: Redirects to login page on application start
+  // 1. Default Route
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   
-  // 2. Login Route: The main entry point for all users
+  // 2. Auth Route
   { path: 'login', component: Login },
   
-  // 3. Admin Route: Accessed by users with "Admin" role (e.g., Dr. Snehal)
+  // 3. Admin Routes
   { path: 'admin-dashboard', component: AdminDashbored },
-  {path:'admin-managed-staff',component:AdminManagedStaff},
-{path:'admin-leave',component:AdminLeave},
-  // 4. Staff Route: Accessed by HODs and regular staff (e.g., Dr. Rachna)
+  { path: 'admin-managed-staff', component: AdminManagedStaff },
+  { path: 'admin-leave', component: AdminLeave },
+  { path: 'admin-leave-type', component: AdminLeaveType },
+  {path:'admin-report',component:Report},
+  {path:'admin-leave-application',component:AdminLeaveApplication},
+
+  // 4. Staff/HOD Dashboard
   { path: 'staff-dashboard', component: StaffDashbored },
+  { path: 'apply-leave', component: ApplyLeave },
+  { path: 'hod-leave-approved', component: HodLeaveApproved },
+  {path:'staff-view-status',component:StaffViewStatus},
   
-  // 5. Wildcard Route: Redirects any unknown URL back to the login page
+  // 5. Wildcard Redirect
   { path: '**', redirectTo: 'login' }
 ];
