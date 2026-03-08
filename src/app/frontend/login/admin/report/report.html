@@ -1,26 +1,42 @@
 <app-admin-sidebar>
   <div class="main-content flex-grow-1 w-100 bg-light p-4 p-md-5 overflow-auto h-100">
-    
+
     <div class="d-flex justify-content-between align-items-center mb-5">
       <div>
         <h3 class="fw-bold text-dark mb-0 d-flex align-items-center">
-          <i class="bi bi-file-earmark-bar-graph-fill text-primary me-3"></i> System Intelligence Report
+          <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3"
+            style="width: 45px; height: 45px;">
+            <i class="bi bi-file-earmark-bar-graph-fill" style="color: #1e3c72; font-size: 1.5rem;"></i>
+          </div>
+          System Intelligence Report
         </h3>
-        <p class="text-secondary mb-0 mt-1">Real-time auditing across staff records, logs, and configurations.</p>
+        <p class="text-secondary mb-0 mt-2 ms-1">Real-time auditing across staff records, logs, and configurations.</p>
       </div>
-      <button class="btn btn-white border shadow-sm rounded-pill px-4 fw-bold" (click)="resetFilters()">
+      <button class="btn text-white border-0 shadow-sm rounded-pill px-4 py-2 fw-bold" (click)="resetFilters()"
+        style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); transition: transform 0.2s;"
+        onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         <i class="bi bi-arrow-clockwise me-2"></i> Reset Filters
       </button>
     </div>
 
+    <!-- Active tabs require custom styling which we will place in standard style attributes where possible or assume standard bootstrap class rewrites are minimal -->
     <div class="nav nav-pills bg-white p-2 rounded-4 shadow-sm mb-4 gap-2">
-      <button class="nav-link py-3 flex-fill fw-bold rounded-3" [class.active]="activeTab() === 'staff'" (click)="activeTab.set('staff')">
+      <button class="nav-link py-3 flex-fill fw-bold rounded-3"
+        [ngClass]="activeTab() === 'staff' ? 'text-white' : 'text-muted'"
+        [style.background]="activeTab() === 'staff' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
+        (click)="activeTab.set('staff')">
         <i class="bi bi-people-fill me-2"></i>Staff Directory
       </button>
-      <button class="nav-link py-3 flex-fill fw-bold rounded-3" [class.active]="activeTab() === 'logs'" (click)="activeTab.set('logs')">
+      <button class="nav-link py-3 flex-fill fw-bold rounded-3"
+        [ngClass]="activeTab() === 'logs' ? 'text-white' : 'text-muted'"
+        [style.background]="activeTab() === 'logs' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
+        (click)="activeTab.set('logs')">
         <i class="bi bi-calendar2-week-fill me-2"></i>Leave History
       </button>
-      <button class="nav-link py-3 flex-fill fw-bold rounded-3" [class.active]="activeTab() === 'configs'" (click)="activeTab.set('configs')">
+      <button class="nav-link py-3 flex-fill fw-bold rounded-3"
+        [ngClass]="activeTab() === 'configs' ? 'text-white' : 'text-muted'"
+        [style.background]="activeTab() === 'configs' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
+        (click)="activeTab.set('configs')">
         <i class="bi bi-gear-fill me-2"></i>Leave Quotas
       </button>
     </div>
@@ -29,49 +45,59 @@
       <div class="card-body p-4">
         <div class="row g-3">
           <div class="col-md-8">
-            <div class="input-group border rounded-3 bg-light p-1">
-              <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Search by name, ID or leave type..." 
-                     [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)">
+            <div class="input-group border border-2 rounded-3 bg-light p-1"
+              style="border-color: rgba(30, 60, 114, 0.1) !important;">
+              <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"
+                  style="color: #2a5298;"></i></span>
+              <input type="text" class="form-control bg-transparent border-0 shadow-none"
+                placeholder="Search by name, ID or leave type..." [ngModel]="searchTerm()"
+                (ngModelChange)="searchTerm.set($event)">
             </div>
           </div>
           <div class="col-md-4">
-            <div class="input-group border rounded-3 bg-light p-1">
-              <span class="input-group-text bg-transparent border-0"><i class="bi bi-building"></i></span>
-              <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Filter by Dept Code (1-7)" 
-                     [ngModel]="deptSearch()" (ngModelChange)="deptSearch.set($event)">
+            <div class="input-group border border-2 rounded-3 bg-light p-1"
+              style="border-color: rgba(30, 60, 114, 0.1) !important;">
+              <span class="input-group-text bg-transparent border-0"><i class="bi bi-building"
+                  style="color: #2a5298;"></i></span>
+              <input type="text" class="form-control bg-transparent border-0 shadow-none"
+                placeholder="Filter by Dept Code (1-7)" [ngModel]="deptSearch()"
+                (ngModelChange)="deptSearch.set($event)">
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white"
+      style="transition: transform 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;">
       <div class="table-responsive">
-        
+
         @if (activeTab() === 'staff') {
         <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light text-muted small text-uppercase fw-bolder">
-            <tr>
-              <th class="ps-4 py-4">Employee Member</th>
-              <th>Department Info</th>
-              <th>Role</th>
-              <th class="text-end pe-4">Email</th>
+          <thead class="border-bottom" style="background-color: #f8f9fa;">
+            <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
+              <th class="ps-4 py-4 border-0">Employee Member</th>
+              <th class="py-4 border-0">Department Info</th>
+              <th class="py-4 border-0">Role</th>
+              <th class="text-end pe-4 py-4 border-0">Email</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="border-top-0">
             @for (s of filteredStaff(); track s._id) {
-            <tr>
+            <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
+              onmouseout="this.style.backgroundColor='transparent'">
               <td class="ps-4 py-3">
                 <div class="fw-bold text-dark">{{ s.Name }}</div>
                 <small class="text-muted">Code: {{ s['Employee Code'] || s.Employee_Code }}</small>
               </td>
               <td>
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-3 py-2 rounded-3 fw-bold">
+                <span class="badge border fw-bold px-3 py-2 rounded-pill shadow-sm"
+                  style="background: rgba(30, 60, 114, 0.05); color: #1e3c72; border-color: rgba(30, 60, 114, 0.1) !important;">
                   {{ s.department }} ({{ s.dept_code || s.Dept_Code }})
                 </span>
               </td>
-              <td><span class="text-secondary small fw-bold">{{ s.role | uppercase }}</span></td>
+              <td><span class="badge bg-light text-secondary border px-2 py-1 small fw-bold">{{ s.role | uppercase
+                  }}</span></td>
               <td class="text-end pe-4 small text-muted">{{ s.Email }}</td>
             </tr>
             }
@@ -81,25 +107,28 @@
 
         @if (activeTab() === 'logs') {
         <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light text-muted small text-uppercase fw-bolder">
-            <tr>
-              <th class="ps-4 py-4">Staff Name</th>
-              <th>Leave Period</th>
-              <th>Category</th>
-              <th class="text-center">Days</th>
-              <th class="text-end pe-4">Status</th>
+          <thead class="border-bottom" style="background-color: #f8f9fa;">
+            <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
+              <th class="ps-4 py-4 border-0">Staff Name</th>
+              <th class="border-0">Leave Period</th>
+              <th class="border-0">Category</th>
+              <th class="text-center border-0">Days</th>
+              <th class="text-end pe-4 border-0">Status</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="border-top-0">
             @for (l of filteredLogs(); track l._id) {
-            <tr>
+            <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
+              onmouseout="this.style.backgroundColor='transparent'">
               <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
-              <td>{{ l.From | displayDate }} to {{ l.To | displayDate }}</td>
-              <td><span class="badge bg-light text-dark border px-3">{{ l['Type of Leave'] || l.Type_of_Leave }}</span></td>
-              <td class="text-center fw-bold">{{ l.Total_Days || l['Total Days'] }}</td>
+              <td class="text-secondary fw-medium">{{ l.From | displayDate }} - <br> {{ l.To | displayDate }}</td>
+              <td><span class="badge px-3 py-2 border shadow-sm"
+                  style="background: rgba(30, 60, 114, 0.05); color: #1e3c72; border-color: rgba(30, 60, 114, 0.1) !important;">{{
+                  l['Type of Leave'] || l.Type_of_Leave }}</span></td>
+              <td class="text-center fw-bold fs-6" style="color: #1e3c72;">{{ l.Total_Days || l['Total Days'] }}</td>
               <td class="text-end pe-4">
-                <span class="badge rounded-pill px-4 py-2 fw-bold"
-                      [ngClass]="l.Status === 'Approved' ? 'bg-success text-white' : 'bg-warning text-dark'">
+                <span class="badge rounded-pill px-4 py-2 fw-bold shadow-sm"
+                  [ngClass]="l.Status === 'Approved' ? 'bg-success text-white' : 'bg-warning text-dark'">
                   {{ l.Status | uppercase }}
                 </span>
               </td>
@@ -111,21 +140,24 @@
 
         @if (activeTab() === 'configs') {
         <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light text-muted small text-uppercase fw-bolder">
-            <tr>
-              <th class="ps-4 py-4">Leave Name</th>
-              <th>Target Dept Code</th>
-              <th class="text-center">Assigned Dept Name</th>
-              <th class="text-end pe-4">Yearly Quota</th>
+          <thead class="border-bottom" style="background-color: #f8f9fa;">
+            <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
+              <th class="ps-4 py-4 border-0">Leave Name</th>
+              <th class="border-0">Target Dept Code</th>
+              <th class="text-center border-0">Assigned Dept Name</th>
+              <th class="text-end pe-4 border-0">Yearly Quota</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="border-top-0">
             @for (c of filteredConfigs(); track c._id) {
-            <tr>
-              <td class="ps-4 py-3"><span class="badge bg-dark px-3 py-2 fs-6">{{ c.leave_name | uppercase }}</span></td>
-              <td class="fw-bold text-primary fs-5">{{ c.dept_code || 'ALL' }}</td>
-              <td class="text-center text-muted fw-bold">{{ getDeptName()(c.dept_code) }}</td>
-              <td class="text-end pe-4 fw-bold text-dark fs-5">{{ c.total_yearly_limit }} Days</td>
+            <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
+              onmouseout="this.style.backgroundColor='transparent'">
+              <td class="ps-4 py-3"><span class="badge text-white px-3 py-2 shadow-sm rounded-3"
+                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">{{ c.leave_name | uppercase
+                  }}</span></td>
+              <td class="fw-bold fs-5" style="color: #1e3c72;">{{ c.dept_code || 'ALL' }}</td>
+              <td class="text-center text-secondary fw-medium">{{ getDeptName()(c.dept_code) }}</td>
+              <td class="text-end pe-4 fw-bold fs-5" style="color: #1e3c72;">{{ c.total_yearly_limit }} Days</td>
             </tr>
             }
           </tbody>

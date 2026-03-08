@@ -1,96 +1,175 @@
 <app-staff-sidebar>
-<div class="container-fluid py-4 px-lg-5 bg-light min-vh-100">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="p-4 bg-white shadow-sm rounded-4 border-start border-primary border-5">
-                <h2 class="fw-bold text-dark mb-0">Department Approvals</h2>
-                <p class="text-muted mb-0">Managing Staff for Dept Code: <strong>{{ hodData.dept_code }}</strong></p>
-                <small class="text-primary italic">Note: Your own leave applications are sent directly to Admin for review.</small>
+    <div class="container-fluid py-4 px-lg-5 bg-light min-vh-100">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div
+                    class="p-4 text-white shadow-sm rounded-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center hod-hero-card">
+                    <div>
+                        <h2 class="fw-bold mb-1"><i class="bi bi-shield-check me-2"></i>Department Approvals</h2>
+                        <p class="mb-0 opacity-75 fs-5">Managing Staff for Dept Code: <strong>{{ hodData.dept_code
+                                }}</strong></p>
+                    </div>
+                    <div class="mt-3 mt-md-0 text-end d-none d-md-block">
+                        <span class="badge bg-white text-primary rounded-pill px-3 py-2 shadow-sm"><i
+                                class="bi bi-info-circle me-1"></i> Your leaves go to Admin</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approvals Table Section -->
+        <div class="card border-0 shadow-sm rounded-4 mb-5 hod-table-card">
+            <div
+                class="p-4 bg-white rounded-top-4 d-flex align-items-center justify-content-between border-bottom border-light border-2">
+                <div class="d-flex align-items-center">
+                    <div class="icon-container bg-warning bg-opacity-10 text-warning rounded-circle d-flex justify-content-center align-items-center me-3"
+                        style="width: 45px; height: 45px;">
+                        <i class="bi bi-hourglass-split fs-4"></i>
+                    </div>
+                    <h4 class="mb-0 fw-bold text-dark">Awaiting Your Review</h4>
+                </div>
+            </div>
+
+            <div class="card-body p-0 table-responsive custom-scrollbar">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted fw-bold" style="letter-spacing: 0.5px;">
+                            <th class="ps-4 py-3 border-0">Employee Details</th>
+                            <th class="py-3 border-0">Leave Category</th>
+                            <th class="py-3 text-center border-0">Duration</th>
+                            <th class="py-3 text-end pe-4 border-0">Required Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        @for (l of getPending(); track l._id) {
+                        <tr class="table-row-hover">
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fw-bold"
+                                        style="width: 40px; height: 40px;">
+                                        {{ l.Name?.charAt(0) | uppercase }}
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold text-dark mb-0">{{ l.Name }}</h6>
+                                        <small class="text-muted d-block mt-1">ID: {{ l.Emp_CODE }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <span
+                                    class="badge bg-light text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2 fw-semibold shadow-sm">
+                                    {{ l['Type of Leave'] || l.Type_of_Leave }}
+                                </span>
+                            </td>
+                            <td class="text-center py-3">
+                                <div class="fw-bold text-dark fs-6">{{ l['Total Days'] || l.Total_Days }} Days</div>
+                                <small class="text-secondary opacity-75 d-block mt-1"><i
+                                        class="bi bi-calendar2-event me-1"></i>{{ l.From | displayDate }} - {{ l.To |
+                                    displayDate }}</small>
+                            </td>
+                            <td class="text-end pe-4 py-3">
+                                <button
+                                    class="btn btn-sm btn-success rounded-pill px-4 py-2 me-2 fw-bold shadow-sm action-btn approve-btn"
+                                    (click)="processLeave(l._id, 'HOD Approved')">
+                                    <i class="bi bi-check-lg me-1"></i> Approve
+                                </button>
+                                <button
+                                    class="btn btn-sm btn-outline-danger rounded-pill px-4 py-2 fw-bold shadow-sm action-btn reject-btn"
+                                    (click)="processLeave(l._id, 'Rejected')">
+                                    <i class="bi bi-x-lg me-1"></i> Reject
+                                </button>
+                            </td>
+                        </tr>
+                        } @empty {
+                        <tr>
+                            <td colspan="4" class="text-center py-5">
+                                <div class="text-muted d-flex flex-column align-items-center justify-content-center">
+                                    <i class="bi bi-clipboard-check fs-1 mb-3 text-success opacity-50"></i>
+                                    <h5 class="fw-bold text-dark mb-1">All Caught Up!</h5>
+                                    <p class="mb-0">No pending staff requests found for your department.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 history-card">
+                    <div class="p-4 border-bottom bg-white rounded-top-4 d-flex align-items-center">
+                        <div class="icon-container bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex justify-content-center align-items-center me-3"
+                            style="width: 40px; height: 40px;">
+                            <i class="bi bi-clock-history fs-5"></i>
+                        </div>
+                        <h5 class="mb-0 fw-bold text-dark">Recently Processed History</h5>
+                    </div>
+                    <div class="card-body p-0 table-responsive custom-scrollbar" style="max-height: 400px;">
+                        <table class="table align-middle mb-0 small custom-table">
+                            <thead class="bg-light sticky-top">
+                                <tr class="text-uppercase text-muted fw-bold" style="letter-spacing: 0.5px;">
+                                    <th class="ps-4 py-3 border-0">Employee</th>
+                                    <th class="py-3 border-0">Type</th>
+                                    <th class="py-3 text-center border-0">Days</th>
+                                    <th class="py-3 text-end pe-4 border-0">Decision</th>
+                                </tr>
+                            </thead>
+                            <tbody class="border-top-0">
+                                @for (l of getProcessed(); track l._id) {
+                                <tr class="table-row-hover">
+                                    <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
+                                    <td class="py-3 text-secondary">{{ l['Type of Leave'] || l.Type_of_Leave }}</td>
+                                    <td class="text-center py-3 fw-semibold">{{ l['Total Days'] || l.Total_Days }}</td>
+                                    <td class="text-end pe-4 py-3">
+                                        <span class="badge rounded-pill px-3 py-2 fw-bold shadow-sm"
+                                            [ngClass]="{'bg-success bg-opacity-25 text-success border border-success border-opacity-25': l.Status === 'HOD Approved', 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25': l.Status === 'Rejected'}">
+                                            <i class="bi"
+                                                [ngClass]="{'bi-check-circle-fill': l.Status === 'HOD Approved', 'bi-x-circle-fill': l.Status === 'Rejected'}"></i>
+                                            {{ l.Status === 'HOD Approved' ? 'Approved' : 'Rejected' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mt-4 mt-lg-0">
+                <div class="card border-0 shadow-sm rounded-4 info-card h-100 bg-white">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center align-items-center text-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mb-4"
+                            style="width: 80px; height: 80px;">
+                            <i class="bi bi-info-circle text-primary fs-1"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-3">HOD Responsibilities</h5>
+                        <p class="text-muted small mb-0 px-2">
+                            As a Head of Department, it is your responsibility to review and process leave requests from
+                            staff within your department in a timely manner. Approvals should align with company
+                            policies and department operational needs.
+                        </p>
+
+                        <div class="mt-4 pt-4 border-top w-100 text-start">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-success rounded-circle p-2 me-3"><i
+                                        class="bi bi-check"></i></span>
+                                <span class="small fw-semibold text-dark">Approved leaves are logged
+                                    automatically.</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-danger rounded-circle p-2 me-3"><i class="bi bi-x"></i></span>
+                                <span class="small fw-semibold text-dark">Rejected leaves update staff quota
+                                    immediately.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <div class="card border-0 shadow-sm rounded-4 mb-5">
-        <div class="p-4 border-bottom bg-white rounded-top-4 d-flex align-items-center">
-            <i class="bi bi-hourglass-split fs-4 text-warning me-3"></i>
-            <h4 class="mb-0 fw-bold text-dark">Awaiting Your Review</h4>
-        </div>
-        <div class="card-body p-0 table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr class="small text-uppercase text-muted">
-                        <th class="ps-4 py-3">Employee</th>
-                        <th class="py-3">Leave Type</th>
-                        <th class="py-3 text-center">Duration</th>
-                        <th class="py-3 text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (l of getPending(); track l._id) {
-                    <tr>
-                        <td class="ps-4">
-                            <div class="fw-bold text-dark">{{ l.Name }}</div>
-                            <small class="text-muted">ID: {{ l.Emp_CODE }}</small>
-                        </td>
-                        <td>
-                            <span class="badge bg-light text-dark border rounded-pill px-3">
-                                {{ l['Type of Leave'] || l.Type_of_Leave }}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <div class="fw-bold text-dark">{{ l['Total Days'] || l.Total_Days }} Days</div>
-                            <small class="text-muted">{{ l.From | displayDate }} - {{ l.To | displayDate }}</small>
-                        </td>
-                        <td class="text-end pe-4">
-                            <button class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold" 
-                                    (click)="processLeave(l._id, 'HOD Approved')">Approve</button>
-                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" 
-                                    (click)="processLeave(l._id, 'Rejected')">Reject</button>
-                        </td>
-                    </tr>
-                    } @empty {
-                    <tr>
-                        <td colspan="4" class="text-center py-5 text-muted fst-italic">
-                            No pending staff requests found for your department.
-                        </td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-4 border">
-        <div class="p-4 border-bottom bg-white rounded-top-4">
-            <h5 class="mb-0 fw-bold text-secondary">Recently Processed History</h5>
-        </div>
-        <div class="card-body p-0 table-responsive">
-            <table class="table align-middle mb-0 small">
-                <thead class="table-light">
-                    <tr class="text-uppercase text-muted">
-                        <th class="ps-4 py-3">Employee</th>
-                        <th class="py-3">Type</th>
-                        <th class="py-3 text-center">Days</th>
-                        <th class="py-3 text-end pe-4">Decision</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (l of getProcessed(); track l._id) {
-                    <tr>
-                        <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
-                        <td>{{ l['Type of Leave'] || l.Type_of_Leave }}</td>
-                        <td class="text-center">{{ l['Total Days'] || l.Total_Days }}</td>
-                        <td class="text-end pe-4">
-                            <span class="badge rounded-pill px-3 py-2 fw-bold shadow-sm" 
-                                  [ngClass]="{'bg-info text-dark': l.Status === 'HOD Approved', 'bg-danger text-white': l.Status === 'Rejected'}">
-                                {{ l.Status }}
-                            </span>
-                        </td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
 </app-staff-sidebar>
