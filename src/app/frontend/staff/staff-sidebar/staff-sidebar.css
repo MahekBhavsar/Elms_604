@@ -1,0 +1,71 @@
+/* Premium hover states for staff sidebar */
+.nav-pills .nav-link {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-pills .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1 !important;
+}
+
+.transition-all {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-opacity-100:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+}
+
+/* Custom scrollbar for main content */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Navbar Enhancements */
+.glass-header {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+.toggle-btn-hover:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25) !important;
+}
+
+.profile-btn-hover:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dropdown-item-hover {
+    transition: all 0.2s ease;
+}
+
+.dropdown-item-hover:hover {
+    background-color: #fff5f8 !important;
+    color: #dc3545 !important;
+    padding-left: 1.5rem !important;
+}
