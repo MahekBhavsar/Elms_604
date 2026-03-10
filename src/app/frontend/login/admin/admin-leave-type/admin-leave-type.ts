@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core'; // FIXED: Corrected import from @angular/core
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,58 +13,71 @@ import { forkJoin } from 'rxjs';
   styleUrl: './admin-leave-type.css',
 })
 export class AdminLeaveType implements OnInit {
-  // Signals for state management
   leaveTypes = signal<any[]>([]);
   editingId = signal<string | null>(null);
+  
+  // Dynamic Session State
+  activeSession = signal<any>({ sessionName: '', startDate: '', endDate: '' });
+  sessionsList = signal<any[]>([]); 
 
-  // Configuration options for pills
   availableDeptCodes = ['1', '2', '3', '4', '5', '6', '7'];
   availableStaffTypes = ['Teaching', 'Peon', 'Other'];
 
-  // Form Model matching the HTML template
   leaveLimit = {
     leave_name: '',
-    total_yearly_limit: 0, // Used for the "Days" input
+    total_yearly_limit: 0,
     dept_codes: [] as string[],
-    staffTypes: [] as string[]
+    staffTypes: [] as string[],
+    can_carry_forward: false 
   };
-
-  // Grouped data for the table display to avoid repeated "CL" rows
-  groupedLeaveTypes = computed(() => {
-    const flatData = this.leaveTypes();
-    const groups: any[] = [];
-
-    // FIXED: Added type safety to 'item' to resolve TS7006
-    flatData.forEach((item: any) => {
-      const existing = groups.find(g => 
-        g.leave_name === item.leave_name && 
-        g.total_yearly_limit === item.total_yearly_limit
-      );
-
-      if (existing) {
-        if (!existing.all_depts.includes(item.dept_code)) existing.all_depts.push(item.dept_code);
-        if (!existing.all_categories.includes(item.staffType)) existing.all_categories.push(item.staffType);
-      } else {
-        groups.push({
-          ...item,
-          all_depts: [item.dept_code],
-          all_categories: [item.staffType]
-        });
-      }
-    });
-
-    // Map the groups to join the arrays into comma-separated strings for display
-    return groups.map(g => ({
-      ...g,
-      dept_display: g.all_depts.sort().join(', '),
-      category_display: g.all_categories.sort().join(', ')
-    })).sort((a, b) => a.leave_name.localeCompare(b.leave_name));
-  });
 
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
+    this.fetchActiveSession();
+    this.loadAllSavedSessions();
     this.fetchLeaveTypes();
+  }
+
+  // Load the current active session settings (with cache buster)
+  fetchActiveSession() {
+    this.http.get<any>(`http://localhost:5000/api/active-session?t=${Date.now()}`).subscribe(res => {
+      if (res && res.sessionName !== "Not Set") {
+        this.activeSession.set(res);
+      }
+    });
+  }
+
+  // Load all sessions from the database for the dropdown
+  loadAllSavedSessions() {
+    this.http.get<any[]>(`http://localhost:5000/api/sessions/all?t=${Date.now()}`).subscribe(list => {
+      this.sessionsList.set(list);
+    });
+  }
+
+  // Set the UI to a specific saved session
+  onSelectDropdownSession(s: any) {
+    this.activeSession.set({
+      sessionName: s.sessionName,
+      startDate: s.startDate,
+      endDate: s.endDate
+    });
+  }
+
+  // Save or Update a Session and force it as the ACTIVE one
+  saveSession() {
+    if (!this.activeSession().sessionName) {
+      alert("Please enter a Session Name");
+      return;
+    }
+    this.http.post('http://localhost:5000/api/admin/set-session', this.activeSession()).subscribe({
+      next: () => {
+        alert(`✅ ${this.activeSession().sessionName} is now the Active Session!`);
+        this.loadAllSavedSessions(); 
+        this.fetchLeaveTypes();    
+      },
+      error: () => alert("❌ Failed to save session.")
+    });
   }
 
   fetchLeaveTypes() {
@@ -74,16 +87,24 @@ export class AdminLeaveType implements OnInit {
     });
   }
 
+  filteredLeaveTypes = computed(() => {
+    const currentSession = this.activeSession().sessionName;
+    return this.groupedLeaveTypes().filter(g => g.sessionName === currentSession);
+  });
+
   toggleSelection(array: string[], item: string) {
     const index = array.indexOf(item);
     if (index > -1) array.splice(index, 1);
     else array.push(item);
   }
 
-  // FIXED: Renamed saveLeaveConfig to saveYearlyLimit to match HTML
   saveYearlyLimit() {
-    if (!this.leaveLimit.leave_name || this.leaveLimit.total_yearly_limit <= 0) {
-      alert("Please fill all fields.");
+    const name = this.leaveLimit.leave_name.toUpperCase();
+    const isIncrementing = ['VAL', 'AL'].includes(name);
+    const session = this.activeSession().sessionName;
+
+    if (!session || session === 'Not Set') {
+      alert("Please save/select an Academic Session first.");
       return;
     }
 
@@ -91,10 +112,12 @@ export class AdminLeaveType implements OnInit {
     for (const dept of this.leaveLimit.dept_codes) {
       for (const type of this.leaveLimit.staffTypes) {
         const payload = {
-          leave_name: this.leaveLimit.leave_name.toUpperCase(),
+          leave_name: name,
           total_yearly_limit: this.leaveLimit.total_yearly_limit,
           dept_code: dept,
-          staffType: type
+          staffType: type,
+          can_carry_forward: isIncrementing ? true : this.leaveLimit.can_carry_forward,
+          sessionName: session
         };
         requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
       }
@@ -102,13 +125,34 @@ export class AdminLeaveType implements OnInit {
 
     forkJoin(requests).subscribe({
       next: () => {
-        alert("Quota updated successfully!");
+        alert(`Quotas for ${session} updated!`);
         this.fetchLeaveTypes();
         this.resetForm();
-      },
-      error: (err) => console.error("Server error:", err)
+      }
     });
   }
+
+  groupedLeaveTypes = computed(() => {
+    const groups: any[] = [];
+    this.leaveTypes().forEach((item: any) => {
+      const existing = groups.find(g => 
+        g.leave_name === item.leave_name && 
+        g.total_yearly_limit === item.total_yearly_limit &&
+        g.sessionName === item.sessionName
+      );
+      if (existing) {
+        if (!existing.all_depts.includes(item.dept_code)) existing.all_depts.push(item.dept_code);
+        if (!existing.all_categories.includes(item.staffType)) existing.all_categories.push(item.staffType);
+      } else {
+        groups.push({ ...item, all_depts: [item.dept_code], all_categories: [item.staffType] });
+      }
+    });
+    return groups.map(g => ({
+      ...g,
+      dept_display: g.all_depts.sort().join(', '),
+      category_display: g.all_categories.sort().join(', ')
+    }));
+  });
 
   editType(group: any) {
     this.editingId.set(group._id);
@@ -116,12 +160,13 @@ export class AdminLeaveType implements OnInit {
       leave_name: group.leave_name,
       total_yearly_limit: group.total_yearly_limit,
       dept_codes: [...group.all_depts],
-      staffTypes: [...group.all_categories]
+      staffTypes: [...group.all_categories],
+      can_carry_forward: group.can_carry_forward
     };
   }
 
   deleteType(id: string) {
-    if (confirm("Delete this leave configuration?")) {
+    if (confirm("Delete this quota?")) {
       this.http.delete(`http://localhost:5000/api/leave-types/${id}`).subscribe(() => this.fetchLeaveTypes());
     }
   }
@@ -129,10 +174,8 @@ export class AdminLeaveType implements OnInit {
   resetForm() {
     this.editingId.set(null);
     this.leaveLimit = {
-      leave_name: '',
-      total_yearly_limit: 0,
-      dept_codes: [],
-      staffTypes: []
+      leave_name: '', total_yearly_limit: 0,
+      dept_codes: [], staffTypes: [], can_carry_forward: false
     };
   }
 }

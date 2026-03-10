@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, signal, PLATFORM_ID, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,9 +12,9 @@ import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
   styleUrl: './apply-leave.css'
 })
 export class ApplyLeave implements OnInit {
-  // Signals for fine-grained reactivity (Angular 21+)
   staffData = signal<any>({});
   remainingBalance = signal<number>(0);
+  activeSession = signal<string>(''); 
   selectedFile = signal<File | null>(null);
   
   leaveForm = {
@@ -24,7 +24,7 @@ export class ApplyLeave implements OnInit {
     Type_of_Leave: 'CL',
     From: '',
     To: '',
-    Total_Days: signal(0), // Signal for instant UI feedback on days count
+    Total_Days: signal(0),
     Role: ''
   };
 
@@ -42,8 +42,7 @@ export class ApplyLeave implements OnInit {
         
         this.leaveForm.Emp_CODE = user.empCode;
         this.leaveForm.Name = user.name;
-        // Logic: HODs/Admins use their dept_code, others default to 1
-        this.leaveForm.Dept_Code = user.dept_code || 1;
+        this.leaveForm.Dept_Code = user.dept_code;
         this.leaveForm.Role = user.role;
         
         this.fetchBalance();
@@ -52,12 +51,24 @@ export class ApplyLeave implements OnInit {
   }
 
   fetchBalance() {
-    this.http.get<any[]>(`http://localhost:5000/api/staff`).subscribe(staffList => {
-      const me = staffList.find((s: any) => s.Employee_Code === this.leaveForm.Emp_CODE);
-      if (me) {
-        this.remainingBalance.set(me.leaveBalance ?? 30);
-      }
-    });
+    const empCode = this.leaveForm.Emp_CODE;
+    const type = this.leaveForm.Type_of_Leave;
+
+    if (!empCode) return;
+
+    // Calls the new range-aware balance endpoint
+    this.http.get<any>(`http://localhost:5000/api/leaves/balance/${empCode}/${type}`)
+      .subscribe({
+        next: (res) => {
+          this.remainingBalance.set(res.balance);
+          this.activeSession.set(res.sessionName); 
+        },
+        error: (err) => console.error("Error fetching live balance:", err)
+      });
+  }
+
+  onTypeChange() {
+    this.fetchBalance();
   }
 
   onFileSelected(event: any) {
@@ -79,19 +90,17 @@ export class ApplyLeave implements OnInit {
   }
 
   onSubmit() {
-    // Sick Leave Validation
     if (this.leaveForm.Type_of_Leave === 'SL' && !this.selectedFile()) {
       alert("⚠️ Medical document is compulsory for Sick Leave (SL).");
       return;
     }
 
     if (this.leaveForm.Total_Days() > this.remainingBalance()) {
-      alert(`Insufficient Balance! You only have ${this.remainingBalance()} days left.`);
+      alert(`Insufficient Balance! Available: ${this.remainingBalance()} days.`);
       return;
     }
 
     const formData = new FormData();
-    // Append fields including computed signal value
     formData.append('Emp_CODE', String(this.leaveForm.Emp_CODE));
     formData.append('Name', this.leaveForm.Name);
     formData.append('Dept_Code', String(this.leaveForm.Dept_Code));
@@ -107,10 +116,10 @@ export class ApplyLeave implements OnInit {
 
     this.http.post('http://localhost:5000/api/leaves/apply', formData).subscribe({
       next: () => {
-        alert("✅ Leave application submitted successfully!");
+        alert(`✅ Submitted successfully for Session ${this.activeSession()}!`);
         this.resetForm();
       },
-      error: () => alert("❌ Error applying. Please try again.")
+      error: () => alert("❌ Error applying. Ensure Admin has set session dates.")
     });
   }
 

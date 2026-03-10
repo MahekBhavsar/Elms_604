@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, AfterViewInit, Inject, PLATFORM_ID, NgZone, OnDestroy } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { Chart, registerables } from 'chart.js';
+import { forkJoin } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -14,8 +15,11 @@ Chart.register(...registerables);
   templateUrl: './admin-dashbored.html',
   styleUrl: './admin-dashbored.css'
 })
-export class AdminDashbored implements OnInit {
+export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
   user: any = null;
+  activeSession: any = null;
+  quotaCards: any[] = [];
+  
   stats = {
     totalLeaves: 0,
     pendingLeaves: 0,
@@ -29,16 +33,8 @@ export class AdminDashbored implements OnInit {
     departments: {} as Record<string, number>
   };
 
-  allLeaves: any[] = [];
-  allStaff: any[] = [];
-  allLeaveTypes: any[] = [];
-
-  // Institution-wide totals
-  institutionLeaveBalances: { [key: string]: { remaining: number, total: number } } = {};
-  // PERSONAL Admin Balance (Like Staff Dashboard)
-  adminLeaveBalances: { [key: string]: number } = {};
-
-  balancesLoaded = false;
+  dataReady = false;
+  private viewReady = false;
 
   @ViewChild('leaveChart') leaveChartRef!: ElementRef;
   @ViewChild('staffChart') staffChartRef!: ElementRef;
@@ -50,6 +46,7 @@ export class AdminDashbored implements OnInit {
     private router: Router,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
@@ -58,192 +55,161 @@ export class AdminDashbored implements OnInit {
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
         this.user = JSON.parse(savedUser);
+        this.fetchDashboardData();
       }
     }
-    this.fetchData();
   }
 
-  fetchData() {
-    this.http.get<any[]>('http://localhost:5000/api/leaves/admin').subscribe({
-      next: (leaves) => {
-        this.allLeaves = leaves;
-        this.calculateLeaveStats();
-        this.processAllBalances();
-      }
-    });
+  fetchDashboardData() {
+    this.dataReady = false;
+    forkJoin({
+      session: this.http.get<any>('http://localhost:5000/api/active-session'),
+      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types'),
+      leaves: this.http.get<any[]>('http://localhost:5000/api/leaves/admin'),
+      staff: this.http.get<any[]>('http://localhost:5000/api/staff')
+    }).subscribe({
+      next: (res) => {
+        this.activeSession = res.session;
+        const startDate = new Date(res.session.startDate);
+        const endDate = new Date(res.session.endDate);
+        const currentSessionLabel = res.session.sessionName;
 
-    this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
-      next: (staff) => {
-        this.allStaff = staff;
-        this.calculateStaffStats();
-        this.processAllBalances();
-      }
-    });
+        // 1. Calculate General Admin Stats (Total System Overview)
+        this.calculateSystemStats(res.leaves, res.staff, startDate, endDate);
 
-    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
-      next: (types) => {
-        // Filter unique leave types to prevent duplicated quota cards on the dashboard 
-        // when a leave type is assigned to multiple departments/categories
-        const uniqueTypesMap = new Map<string, any>();
-        types.forEach(t => {
-          const uName = (t.leave_name || '').toUpperCase();
-          const limit = Number(t.total_yearly_limit) || 0;
-          if (!uniqueTypesMap.has(uName)) {
-            uniqueTypesMap.set(uName, { ...t, leave_name: uName, total_yearly_limit: limit });
+        // 2. Calculate PERSONAL Admin Quotas (Like Staff Dash)
+        const myCurrentRules = res.rules.filter(r => 
+          String(r.dept_code) === String(this.user.dept_code) && 
+          r.staffType === this.user.staffType &&
+          r.sessionName === currentSessionLabel
+        );
+
+        this.quotaCards = myCurrentRules.map(rule => {
+          const name = rule.leave_name.toUpperCase().trim();
+          const isCarryForward = !!rule.can_carry_forward;
+          const isIncrementing = ['VAL', 'AL'].includes(name);
+
+          const usedInCurrentWindow = res.leaves.filter(l => {
+            const isMine = l.Emp_CODE?.toString() === this.user.empCode?.toString();
+            const d = new Date(l.From || l.From_Date);
+            return isMine && this.getLeaveTypeName(l) === name && this.isApproved(l.Status) && (d >= startDate && d <= endDate);
+          }).reduce((sum, l) => sum + this.getDays(l), 0);
+
+          let remaining = 0;
+          let displayLimit = rule.total_yearly_limit;
+
+          if (isIncrementing) {
+            remaining = usedInCurrentWindow;
+          } else if (isCarryForward) {
+            const currentYearStart = parseInt(currentSessionLabel.split('-')[0]);
+            const pastBalance = res.rules
+              .filter(r => {
+                const rYear = parseInt(r.sessionName.split('-')[0]);
+                return r.leave_name.toUpperCase().trim() === name && 
+                       String(r.dept_code) === String(this.user.dept_code) && 
+                       r.staffType === this.user.staffType && rYear < currentYearStart;
+              })
+              .reduce((balance, pastRule) => {
+                const pastUsed = res.leaves.filter(l => 
+                  l.Emp_CODE?.toString() === this.user.empCode?.toString() &&
+                  this.getLeaveTypeName(l) === name && this.isApproved(l.Status) && 
+                  (l.sessionName === pastRule.sessionName)
+                ).reduce((s, l) => s + this.getDays(l), 0);
+                return balance + Math.max(0, pastRule.total_yearly_limit - pastUsed);
+              }, 0);
+
+            remaining = Math.max(0, (pastBalance + rule.total_yearly_limit) - usedInCurrentWindow);
+            displayLimit = pastBalance + rule.total_yearly_limit;
           } else {
-            const existing = uniqueTypesMap.get(uName);
-            if (limit > existing.total_yearly_limit) { existing.total_yearly_limit = limit; }
+            remaining = Math.max(0, rule.total_yearly_limit - usedInCurrentWindow);
           }
+
+          return {
+            name,
+            limit: displayLimit,
+            remaining,
+            percent: isIncrementing ? 100 : (remaining / (displayLimit || 1)) * 100,
+            isIncrementing,
+            isCarryForward
+          };
         });
 
-        this.allLeaveTypes = Array.from(uniqueTypesMap.values());
-        this.processAllBalances();
+        this.dataReady = true;
+        this.cdr.detectChanges();
+        this.tryRenderCharts();
       }
     });
   }
 
-  processAllBalances() {
-    if (!this.allLeaves.length || !this.allStaff.length || !this.allLeaveTypes.length) return;
-
-    this.allLeaveTypes.forEach(type => {
-      const typeName = type.leave_name || '';
-
-      // 1. Calculate INSTITUTION wide balance
-      const totalInstQuota = (Number(type.total_yearly_limit) || 0) * this.allStaff.length;
-      const instUsed = this.allLeaves.filter(l => {
-        const lType = (l['Type of Leave'] || l.Type_of_Leave || '').toLowerCase();
-        return lType === typeName.toLowerCase() && ['Approved', 'Final Approved', 'HOD Approved'].includes(l.Status);
-      }).reduce((acc, curr) => acc + (Number(curr['Total Days']) || Number(curr.Total_Days) || 0), 0);
-
-      this.institutionLeaveBalances[typeName] = {
-        remaining: Math.max(0, totalInstQuota - instUsed),
-        total: totalInstQuota
-      };
-
-      // 2. Calculate PERSONAL Admin balance (Using same data)
-      if (this.user?.empCode) {
-        const myUsed = this.allLeaves.filter(l => {
-          const isMine = l.Emp_CODE?.toString() === this.user.empCode.toString();
-          const lType = (l['Type of Leave'] || l.Type_of_Leave || '').toLowerCase();
-          return isMine && lType === typeName.toLowerCase() && ['Approved', 'Final Approved', 'HOD Approved'].includes(l.Status);
-        }).reduce((acc, curr) => acc + (Number(curr['Total Days']) || Number(curr.Total_Days) || 0), 0);
-
-        this.adminLeaveBalances[typeName] = Math.max(0, (type.total_yearly_limit || 0) - myUsed);
-      }
-    });
-
-    this.balancesLoaded = true;
-    this.cdr.detectChanges();
-  }
-
-  calculateLeaveStats() {
-    this.stats = {
-      totalLeaves: this.allLeaves.length,
-      pendingLeaves: this.allLeaves.filter(l => l.Status === 'Pending').length,
-      hodApprovedLeaves: this.allLeaves.filter(l => l.Status === 'HOD Approved').length,
-      finalApprovedLeaves: this.allLeaves.filter(l => l.Status === 'Approved' || l.Status === 'Final Approved').length,
-      rejectedLeaves: this.allLeaves.filter(l => l.Status === 'Rejected').length
-    };
-    setTimeout(() => this.renderLeaveChart(), 0);
-  }
-
-  calculateStaffStats() {
-    this.staffStats.totalStaff = this.allStaff.length;
+  calculateSystemStats(leaves: any[], staff: any[], start: Date, end: Date) {
+    this.staffStats.totalStaff = staff.length;
     const depts: Record<string, number> = {};
-    this.allStaff.forEach(s => {
+    staff.forEach(s => {
       const d = s.department || s.dept_code || 'Unknown Dept';
       depts[d] = (depts[d] || 0) + 1;
     });
     this.staffStats.departments = depts;
-    setTimeout(() => this.renderStaffChart(), 0);
+
+    const sessionLeaves = leaves.filter(l => {
+      const d = new Date(l.From || l.From_Date);
+      return d >= start && d <= end;
+    });
+
+    this.stats = {
+      totalLeaves: sessionLeaves.length,
+      pendingLeaves: sessionLeaves.filter(l => l.Status === 'Pending').length,
+      hodApprovedLeaves: sessionLeaves.filter(l => l.Status === 'HOD Approved').length,
+      finalApprovedLeaves: sessionLeaves.filter(l => l.Status === 'Approved' || l.Status === 'Final Approved').length,
+      rejectedLeaves: sessionLeaves.filter(l => l.Status === 'Rejected').length
+    };
   }
 
-  // --- Chart Render Methods ---
+  // Helpers
+  getLeaveTypeName(l: any) { 
+    const n = l['Type of Leave'] || l.Type_of_Leave || l.leave_name || l.Type || '';
+    return n.toString().trim().toUpperCase(); 
+  }
+  getDays(l: any) { return Number(l['Total Days'] || l.Total_Days || 0); }
+  isApproved(s: string) { return ['approved', 'final approved', 'hod approved'].includes(s?.toLowerCase().trim()); }
+
+  private tryRenderCharts() {
+    if (!isPlatformBrowser(this.platformId) || !this.dataReady || !this.viewReady) return;
+    this.ngZone.runOutsideAngular(() => {
+      setTimeout(() => {
+        if (this.leaveChartRef) this.renderLeaveChart();
+        if (this.staffChartRef) this.renderStaffChart();
+      }, 100);
+    });
+  }
+
   renderLeaveChart() {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (!this.leaveChartRef) return;
-
-    if (this.leaveChart) {
-      this.leaveChart.destroy();
-    }
-
-    const ctx = this.leaveChartRef.nativeElement.getContext('2d');
-    this.leaveChart = new Chart(ctx, {
+    if (this.leaveChart) this.leaveChart.destroy();
+    this.leaveChart = new Chart(this.leaveChartRef.nativeElement.getContext('2d'), {
       type: 'pie',
       data: {
-        labels: ['Pending', 'HOD Approved', 'Final Approved', 'Rejected'],
+        labels: ['Pending', 'HOD Approved', 'Approved', 'Rejected'],
         datasets: [{
-          data: [
-            this.stats.pendingLeaves,
-            this.stats.hodApprovedLeaves,
-            this.stats.finalApprovedLeaves,
-            this.stats.rejectedLeaves
-          ],
+          data: [this.stats.pendingLeaves, this.stats.hodApprovedLeaves, this.stats.finalApprovedLeaves, this.stats.rejectedLeaves],
           backgroundColor: ['#ffc107', '#17a2b8', '#198754', '#dc3545'],
-          borderWidth: 0,
+          borderWidth: 2, borderColor: '#ffffff'
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-          animateScale: true,
-          animateRotate: true,
-          duration: 1500,
-          easing: 'easeOutQuart'
-        },
-        plugins: {
-          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
   }
 
   renderStaffChart() {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (!this.staffChartRef) return;
-
-    if (this.staffChart) {
-      this.staffChart.destroy();
-    }
-
-    const ctx = this.staffChartRef.nativeElement.getContext('2d');
-    const labels = Object.keys(this.staffStats.departments);
-    const data = Object.values(this.staffStats.departments);
-
-    this.staffChart = new Chart(ctx, {
+    if (this.staffChart) this.staffChart.destroy();
+    this.staffChart = new Chart(this.staffChartRef.nativeElement.getContext('2d'), {
       type: 'bar',
       data: {
-        labels: labels,
-        datasets: [{
-          label: 'Staff Count',
-          data: data,
-          backgroundColor: '#0d6efd',
-          borderRadius: 4,
-        }]
+        labels: Object.keys(this.staffStats.departments),
+        datasets: [{ label: 'Staff Count', data: Object.values(this.staffStats.departments), backgroundColor: '#0d6efd', borderRadius: 8 }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-          duration: 1500,
-          easing: 'easeInOutQuart'
-        },
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 }
-          }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
   }
 
-  logout() {
-    localStorage.removeItem('user');
-    this.router.navigate(['/login']);
-  }
+  ngAfterViewInit() { this.viewReady = true; this.tryRenderCharts(); }
+  ngOnDestroy() { if (this.leaveChart) this.leaveChart.destroy(); if (this.staffChart) this.staffChart.destroy(); }
 }

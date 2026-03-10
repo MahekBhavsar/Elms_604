@@ -6,7 +6,7 @@ import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { Chart, registerables } from 'chart.js';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -19,13 +19,9 @@ Chart.register(...registerables);
 })
 export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
   user: any = null;
-  leaveTypes: any[] = [];
-  myLeaves: any[] = [];
-  allLeaves: any[] = [];
-  leaveBalances: { [key: string]: number } = {};
-  quotaCards: Array<{ name: string; limit: number; remaining: number; percent: number }> = [];
+  activeSession: any = null;
+  quotaCards: any[] = [];
   leaveStats = { approved: 0, pending: 0, rejected: 0 };
-  
   dataReady = false;
   private viewReady = false;
 
@@ -47,169 +43,179 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
         this.user = JSON.parse(savedUser);
-        this.fetchData();
+        this.fetchDashboardData();
       }
     }
   }
 
-  ngAfterViewInit() {
-    this.viewReady = true;
-    // Attempt render in case data arrived before view was ready
-    this.tryRenderCharts();
-  }
+  fetchDashboardData() {
+    this.dataReady = false;
+    forkJoin({
+      session: this.http.get<any>('http://localhost:5000/api/active-session'),
+      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types'),
+      history: this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`)
+    }).subscribe({
+      next: (res) => {
+        this.activeSession = res.session;
+        const startDate = new Date(res.session.startDate);
+        const endDate = new Date(res.session.endDate);
+        const currentSessionLabel = res.session.sessionName;
 
-  ngOnDestroy() {
-    if (this.statusChart) this.statusChart.destroy();
-    if (this.leaveTypeChart) this.leaveTypeChart.destroy();
-  }
+        const myCurrentRules = res.rules.filter(r => 
+          String(r.dept_code) === String(this.user.dept_code) && 
+          r.staffType === this.user.staffType &&
+          r.sessionName === currentSessionLabel
+        );
 
-  fetchData() {
-    const leaveTypesReq = this.http.get<any[]>('http://localhost:5000/api/leave-types');
-    const leavesReq = this.user?.empCode
-      ? this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`)
-      : of([]);
+        this.quotaCards = myCurrentRules.map(rule => {
+          const name = rule.leave_name.toUpperCase().trim();
+          const isCarryForward = !!rule.can_carry_forward;
+          const isIncrementing = ['VAL', 'AL'].includes(name);
 
-    forkJoin([leaveTypesReq, leavesReq]).subscribe({
-      next: ([types, leaves]) => {
-        const uniqueTypesMap = new Map<string, any>();
-        (types || []).forEach(type => {
-          const leaveName = this.getLeaveTypeName(type);
-          const limit = this.getYearlyLimit(type);
-          if (!leaveName) return;
-          
-          if (!uniqueTypesMap.has(leaveName)) {
-            uniqueTypesMap.set(leaveName, { ...type, leave_name: leaveName, total_yearly_limit: limit });
-          } else {
-            const existing = uniqueTypesMap.get(leaveName);
-            if (limit > existing.total_yearly_limit) {
-              existing.total_yearly_limit = limit;
-            }
+          const usedInCurrentWindow = res.history.filter(l => {
+            const d = new Date(l.From || l.From_Date);
+            return this.getLeaveTypeName(l) === name && this.isApproved(l.Status) && (d >= startDate && d <= endDate);
+          }).reduce((sum, l) => sum + this.getDays(l), 0);
+
+          let remaining = 0;
+          let displayLimit = rule.total_yearly_limit;
+
+          if (isIncrementing) {
+            remaining = usedInCurrentWindow;
+          } 
+          else if (isCarryForward) {
+            const currentYearStart = parseInt(currentSessionLabel.split('-')[0]);
+            const pastBalance = res.rules
+              .filter(r => {
+                const rYear = parseInt(r.sessionName.split('-')[0]);
+                return r.leave_name.toUpperCase().trim() === name && 
+                       String(r.dept_code) === String(this.user.dept_code) && 
+                       r.staffType === this.user.staffType && rYear < currentYearStart;
+              })
+              .reduce((balance, pastRule) => {
+                const pastUsed = res.history.filter(l => 
+                  this.getLeaveTypeName(l) === name && this.isApproved(l.Status) && 
+                  (l.sessionName === pastRule.sessionName || this.isDateInWindow(l.From, pastRule.startDate, pastRule.endDate))
+                ).reduce((s, l) => s + this.getDays(l), 0);
+                return balance + Math.max(0, pastRule.total_yearly_limit - pastUsed);
+              }, 0);
+
+            remaining = Math.max(0, (pastBalance + rule.total_yearly_limit) - usedInCurrentWindow);
+            displayLimit = pastBalance + rule.total_yearly_limit;
+          } 
+          else {
+            remaining = Math.max(0, rule.total_yearly_limit - usedInCurrentWindow);
           }
+
+          return {
+            name,
+            limit: displayLimit,
+            remaining,
+            percent: isIncrementing ? 100 : (remaining / (displayLimit || 1)) * 100,
+            isIncrementing,
+            isCarryForward
+          };
         });
 
-        this.leaveTypes = Array.from(uniqueTypesMap.values());
-        this.allLeaves = leaves || [];
-        this.myLeaves = [...this.allLeaves];
-        
-        this.calculateBalances();
-        this.calculateLeaveStats();
-        this.buildQuotaCards();
-        
+        const sessionLeaves = res.history.filter(l => {
+          const d = new Date(l.From || l.From_Date);
+          return d >= startDate && d <= endDate;
+        });
+
+        this.leaveStats = {
+          approved: sessionLeaves.filter(l => this.isApproved(l.Status)).length,
+          pending: sessionLeaves.filter(l => l.Status?.toLowerCase().trim() === 'pending').length,
+          rejected: sessionLeaves.filter(l => l.Status?.toLowerCase().trim() === 'rejected').length
+        };
+
         this.dataReady = true;
-        this.cdr.detectChanges();
+        this.cdr.detectChanges(); // Update DOM to render canvas elements
         this.tryRenderCharts();
-      },
-      error: (err) => console.error("Error loading dashboard data:", err)
+      }
     });
   }
 
-  calculateBalances() {
-    this.leaveTypes.forEach(type => {
-      const typeName = this.getLeaveTypeName(type).toLowerCase();
-      const myUsed = this.allLeaves.filter(l => {
-        const isMine = l.Emp_CODE?.toString() === this.user?.empCode?.toString();
-        const lType = this.getLeaveTypeName(l).toLowerCase();
-        const status = this.normalizeStatus(l.Status);
-        return isMine && lType === typeName && ['approved', 'final approved', 'hod approved'].includes(status);
-      }).reduce((acc, curr) => acc + (Number(curr['Total Days']) || Number(curr.Total_Days) || 0), 0);
-
-      const limit = this.getYearlyLimit(type);
-      this.leaveBalances[type.leave_name] = Math.max(0, limit - myUsed);
-    });
+  getLeaveTypeName(l: any) { 
+    const n = l['Type of Leave'] || l.Type_of_Leave || l.leave_name || l.Type || '';
+    return n.toString().trim().toUpperCase(); 
   }
-
-  buildQuotaCards() {
-    this.quotaCards = this.leaveTypes.map(type => {
-      const name = this.getLeaveTypeName(type);
-      const limit = this.getYearlyLimit(type);
-      const remaining = Number(this.leaveBalances[name] ?? limit) || 0;
-      const percent = limit > 0 ? (remaining / limit) * 100 : 0;
-      return { name, limit, remaining, percent };
-    });
+  getDays(l: any) { return Number(l['Total Days'] || l.Total_Days || 0); }
+  isApproved(s: string) { return ['approved', 'final approved', 'hod approved'].includes(s?.toLowerCase().trim()); }
+  isDateInWindow(date: any, start: any, end: any) {
+    const d = new Date(date);
+    return d >= new Date(start) && d <= new Date(end);
   }
-
-  calculateLeaveStats() {
-    this.leaveStats = {
-      approved: this.myLeaves.filter(l => ['approved', 'final approved', 'hod approved'].includes(this.normalizeStatus(l.Status))).length,
-      pending: this.myLeaves.filter(l => this.normalizeStatus(l.Status) === 'pending').length,
-      rejected: this.myLeaves.filter(l => this.normalizeStatus(l.Status) === 'rejected').length
-    };
-  }
-
-  getTotalStats(): number {
-    return this.leaveStats.approved + this.leaveStats.pending + this.leaveStats.rejected;
-  }
-
-  getLeaveTypeName(item: any): string {
-    return String(item?.leave_name || item?.['Type of Leave'] || item?.Type_of_Leave || '').trim().toUpperCase();
-  }
-
-  getYearlyLimit(item: any): number {
-    return Number(item?.total_yearly_limit ?? item?.total_yearly ?? item?.yearly_limit ?? 0) || 0;
-  }
-
-  normalizeStatus(value: any): string {
-    return String(value || '').trim().toLowerCase();
-  }
+  getTotalStats() { return this.leaveStats.approved + this.leaveStats.pending + this.leaveStats.rejected; }
 
   private tryRenderCharts() {
     if (!isPlatformBrowser(this.platformId) || !this.dataReady || !this.viewReady) return;
-
-    // Use NgZone to run Chart.js outside of Angular for better refresh performance
     this.ngZone.runOutsideAngular(() => {
-      setTimeout(() => {
-        this.renderStatusChart();
-        this.renderLeaveTypeChart();
-      }, 0);
+      setTimeout(() => { 
+        if (this.statusChartRef) this.renderStatusChart(); 
+        if (this.leaveTypeChartRef) this.renderLeaveTypeChart(); 
+      }, 100);
     });
   }
 
   renderStatusChart() {
-    if (!this.statusChartRef) return;
-    if (this.statusChart) this.statusChart.destroy();
-
     const ctx = this.statusChartRef.nativeElement.getContext('2d');
+    if (this.statusChart) this.statusChart.destroy();
     this.statusChart = new Chart(ctx, {
-      type: 'pie',
+      type: 'doughnut',
       data: {
         labels: ['Approved', 'Pending', 'Rejected'],
         datasets: [{
           data: [this.leaveStats.approved, this.leaveStats.pending, this.leaveStats.rejected],
           backgroundColor: ['#198754', '#ffc107', '#dc3545'],
-          borderWidth: 0
+          borderWidth: 2,
+          borderColor: '#ffffff'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
+        cutout: '75%',
+        plugins: { legend: { display: false } }
       }
     });
   }
 
   renderLeaveTypeChart() {
-    if (!this.leaveTypeChartRef) return;
-    if (this.leaveTypeChart) this.leaveTypeChart.destroy();
-
-    const labels = this.quotaCards.map(c => c.name);
-    const remaining = this.quotaCards.map(c => c.remaining);
-    const used = this.quotaCards.map(c => Math.max(0, c.limit - c.remaining));
-
     const ctx = this.leaveTypeChartRef.nativeElement.getContext('2d');
+    if (this.leaveTypeChart) this.leaveTypeChart.destroy();
+    const labels = this.quotaCards.map(c => c.name);
+    const takenData = this.quotaCards.map(c => c.isIncrementing ? c.remaining : Math.max(0, c.limit - c.remaining));
+
     this.leaveTypeChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
-        datasets: [
-          { label: 'Used', data: used, backgroundColor: '#0d6efd', borderRadius: 6 },
-          { label: 'Remaining', data: remaining, backgroundColor: '#20c997', borderRadius: 6 }
-        ]
+        datasets: [{
+          label: 'Days Taken',
+          data: takenData,
+          backgroundColor: '#007bff',
+          borderRadius: 8
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        scales: { 
+          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          x: { grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
       }
     });
+  }
+
+  ngAfterViewInit() { 
+    this.viewReady = true; 
+    this.tryRenderCharts(); 
+  }
+
+  ngOnDestroy() { 
+    if (this.statusChart) this.statusChart.destroy(); 
+    if (this.leaveTypeChart) this.leaveTypeChart.destroy(); 
   }
 }

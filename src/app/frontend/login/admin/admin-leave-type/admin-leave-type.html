@@ -1,9 +1,65 @@
 <app-admin-sidebar>
   <div class="flex-grow-1 min-vh-100 bg-light p-4 p-md-5">
-    <div class="row align-items-center mb-5">
+    
+    <div class="row align-items-center mb-4">
       <div class="col-md-6">
-        <h3 class="fw-bold text-dark mb-0">Leave Quota Configurations</h3>
-        <p class="text-muted small mb-0">Manage annual limits across multiple departments.</p>
+        <h3 class="fw-bold text-dark mb-0">System Configurations</h3>
+        <p class="text-muted small">Manage Academic Sessions & Leave Quotas Dynamically.</p>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-5 bg-white">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold text-primary mb-0"><i class="bi bi-calendar-range me-2"></i>Active Academic Session</h5>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-dark dropdown-toggle fw-bold shadow-none" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-folder2-open me-2"></i>
+                    {{ activeSession().sessionName || 'Load Saved Session' }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li class="px-3 py-1 small text-muted text-uppercase fw-bold border-bottom">Select Saved Year</li>
+                    @for (s of sessionsList(); track s.sessionName) {
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center pointer" 
+                               (click)="onSelectDropdownSession(s)">
+                                {{ s.sessionName }}
+                                @if(s.sessionName === activeSession().sessionName) {
+                                    <span class="badge bg-success ms-2 small" style="font-size: 0.65rem;">ACTIVE</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                    @if (sessionsList().length === 0) {
+                        <li class="px-3 py-2 small text-danger">No sessions found in database</li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted">Session Name</label>
+            <input type="text" [(ngModel)]="activeSession().sessionName" class="form-control bg-light border-0" placeholder="e.g. 2025-2026">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted">Start Date</label>
+            <input type="date" [(ngModel)]="activeSession().startDate" class="form-control bg-light border-0">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted">End Date</label>
+            <input type="date" [(ngModel)]="activeSession().endDate" class="form-control bg-light border-0">
+          </div>
+          <div class="col-md-3">
+            <button (click)="saveSession()" class="btn btn-primary w-100 py-2 fw-bold rounded-3 shadow-sm">
+              <i class="bi bi-check-circle me-2"></i>Save & Set Active
+            </button>
+          </div>
+        </div>
+        <div class="mt-3 small text-danger italic">
+          <i class="bi bi-info-circle me-1"></i> Current View: <strong>{{ activeSession().sessionName || 'None' }}</strong>
+        </div>
       </div>
     </div>
 
@@ -11,19 +67,21 @@
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">
-            <h5 class="fw-bold mb-4 text-primary">Configuration</h5>
-            
+            <h5 class="fw-bold mb-4 text-primary">Quota Configuration</h5>
             <form (ngSubmit)="saveYearlyLimit()">
               <div class="mb-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Leave Name</label>
-                <input type="text" [(ngModel)]="leaveLimit.leave_name" name="leave_name" 
-                       class="form-control bg-light border-0 py-2 shadow-none" placeholder="e.g. CL" required>
+                <input type="text" [(ngModel)]="leaveLimit.leave_name" name="leave_name" class="form-control bg-light border-0 py-2 shadow-none" placeholder="e.g. CL, VAL, AL" required>
               </div>
 
               <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Annual Limit (Days)</label>
-                <input type="number" [(ngModel)]="leaveLimit.total_yearly_limit" name="total_yearly_limit" 
-                       class="form-control bg-light border-0 py-2 shadow-none" required>
+                <label class="form-label small fw-bold text-muted text-uppercase">Annual Limit</label>
+                <input type="number" [(ngModel)]="leaveLimit.total_yearly_limit" name="total_yearly_limit" class="form-control bg-light border-0 py-2 shadow-none" required>
+              </div>
+
+              <div class="mb-3 form-check form-switch p-3 bg-light rounded-3 ms-0" *ngIf="!['VAL', 'AL'].includes(leaveLimit.leave_name.toUpperCase())">
+                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="cfSwitch" [(ngModel)]="leaveLimit.can_carry_forward" name="cf">
+                <label class="form-check-label small fw-bold text-dark" for="cfSwitch">Enable Carry Forward (SL/EL)</label>
               </div>
 
               <div class="mb-4">
@@ -31,7 +89,7 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (dept of availableDeptCodes; track dept) {
                     <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
-                      [ngClass]="leaveLimit.dept_codes.includes(dept) ? 'btn-primary border-primary' : 'btn-white text-muted'"
+                      [ngClass]="leaveLimit.dept_codes.includes(dept) ? 'btn-primary' : 'btn-white text-muted'"
                       (click)="toggleSelection(leaveLimit.dept_codes, dept)">{{ dept }}</button>
                   }
                 </div>
@@ -42,19 +100,15 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (st of availableStaffTypes; track st) {
                     <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
-                      [ngClass]="leaveLimit.staffTypes.includes(st) ? 'btn-primary border-primary' : 'btn-white text-muted'"
+                      [ngClass]="leaveLimit.staffTypes.includes(st) ? 'btn-primary' : 'btn-white text-muted'"
                       (click)="toggleSelection(leaveLimit.staffTypes, st)">{{ st }}</button>
                   }
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm">
-                {{ editingId() ? 'Update Configuration' : 'Save Bulk Quota' }}
+              <button type="submit" class="btn btn-dark w-100 py-3 fw-bold rounded-3 shadow-sm">
+                Save for {{ activeSession().sessionName }}
               </button>
-              
-              @if (editingId()) {
-                <button (click)="resetForm()" type="button" class="btn btn-link w-100 mt-2 text-muted small text-decoration-none">Cancel Edit</button>
-              }
             </form>
           </div>
         </div>
@@ -63,18 +117,17 @@
       <div class="col-lg-8">
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-nowrap">
+            <table class="table table-hover align-middle mb-0">
               <thead class="bg-light border-bottom">
                 <tr class="small text-muted text-uppercase">
-                  <th class="ps-4 py-3">Leave Type</th>
-                  <th>Categories</th>
-                  <th class="text-center">Dept Codes</th>
-                  <th class="text-center">Limit</th>
+                  <th class="ps-4 py-3">Type</th>
+                  <th>Staff / Categories</th>
+                  <th class="text-center">Rule / Limit</th>
                   <th class="text-end pe-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                @for (group of groupedLeaveTypes(); track group.leave_name + group.total_yearly_limit) {
+                @for (group of filteredLeaveTypes(); track group._id) {
                 <tr>
                   <td class="ps-4">
                     <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 rounded-3">
@@ -82,12 +135,16 @@
                     </span>
                   </td>
                   <td>
-                    <span class="text-dark fw-medium small">{{ group.category_display }}</span>
+                    <div class="small fw-medium text-dark">{{ group.category_display }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">Depts: {{ group.dept_display }}</div>
                   </td>
                   <td class="text-center">
-                    <span class="badge bg-light text-dark border px-2 shadow-none fw-normal">{{ group.dept_display }}</span>
+                    @if (['VAL', 'AL'].includes(group.leave_name.toUpperCase())) {
+                        <span class="badge bg-info text-dark shadow-sm fw-bold">Incrementing</span>
+                    } @else {
+                        <span class="fw-bold text-dark">{{ group.total_yearly_limit }} Days Limit</span>
+                    }
                   </td>
-                  <td class="text-center fw-bold text-dark">{{ group.total_yearly_limit }} Days</td>
                   <td class="text-end pe-4">
                     <button class="btn btn-light btn-sm rounded-circle me-1 border shadow-none" (click)="editType(group)">
                       <i class="bi bi-pencil-square text-primary"></i>
@@ -98,7 +155,11 @@
                   </td>
                 </tr>
                 } @empty {
-                  <tr><td colspan="5" class="text-center p-5 text-muted small italic">No leave quotas defined yet.</td></tr>
+                  <tr>
+                    <td colspan="4" class="text-center p-5 text-muted italic">
+                      No configurations found for: {{ activeSession().sessionName || 'Not Set' }}
+                    </td>
+                  </tr>
                 }
               </tbody>
             </table>

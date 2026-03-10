@@ -1,279 +1,353 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const multer = require('multer'); // Added
-const path = require('path'); // Added
-const fs = require('fs'); // Added
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// --- File Storage Setup ---
 const uploadDir = './uploads';
 if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir); }
-// Serve the uploads folder so files can be viewed via URL
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+    destination: (req, file, cb) => cb(null, 'uploads/'),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage: storage });
-// Database Connection
+
+// --- Database Connection ---
 mongoose.connect('mongodb://127.0.0.1:27017/employeeDB')
-  .then(() => console.log("Connected to MongoDB - employeeDB"))
-  .catch(err => console.error("Database Connection Error:", err));
+    .then(() => console.log("Connected to MongoDB - employeeDB"))
+    .catch(err => console.error("Database Connection Error:", err));
 
 // --- Schemas ---
 
-// User Schema matches 'users' collection
-const userSchema = new mongoose.Schema({
-  "Employee Code": Number,
-  "Name": String,
-  "Email": { type: String, required: true },
-  "Password": { type: Number, required: true },
-  "role": String,
-  "department": String,
-  "leaveBalance": { type: Number, default: 30 },
-  "dept_code":String
-}, { collection: 'users', versionKey: false });
+// 1. Session Settings
+// Update your Session Schema to include timestamps
+const sessionSchema = new mongoose.Schema({
+    sessionName: { type: String, required: true },
+    startDate: { type: String, required: true },
+    endDate: { type: String, required: true }
+}, { timestamps: true }); // <--- CRITICAL: Adds createdAt and updatedAt automatically
 
+const Session = mongoose.model('Session', sessionSchema, 'active_sessions');
+// Update the GET route to fetch the LATEST updated session
+
+// 2. Users
+const userSchema = new mongoose.Schema({
+    "Employee Code": Number,
+    "Name": String,
+    "Email": { type: String, required: true },
+    "Password": { type: Number, required: true },
+    "role": String,
+    "department": String,
+    "dept_code": String,
+    "staffType": { type: String, default: 'Teaching' }
+}, { collection: 'users', versionKey: false });
 const User = mongoose.model('User', userSchema);
 
-// Leave Type Schema matches 'leave_types' collection
-// Updated Leave Type Schema
+// 3. Leave Types (Integrated Session-Wise Logic)
 const leaveTypeSchema = new mongoose.Schema({
-  leave_name: String,         // "CL", "SL", "VL"
-  total_yearly_limit: Number, // e.g., 12
-  dept_code: String,          // Matches "1", "2", "7", etc.
-  staffType: String           // "Teaching", "Peon", "Other"
+    leave_name: String,
+    total_yearly_limit: Number,
+    dept_code: String,
+    staffType: String,
+    can_carry_forward: { type: Boolean, default: false },
+    sessionName: String // Links quota to a specific year
 }, { collection: 'leave_types', versionKey: false });
 const LeaveType = mongoose.model('LeaveType', leaveTypeSchema);
 
-// Leave Application Schema matches 'leave_applications' collection
+// 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
-  Emp_CODE: Number,
-  Name: String,
-  Dept_Code: Number,
-  "Type of Leave": String,
-  From: String,
-  To: String,
-  "Total Days": Number,
-  Status: { type: String, default: 'Pending' },
-  HOD_Approved: { type: Boolean, default: false },
-  Reject_Reason: String,
-  document: String // This will store the filename/path
+    Emp_CODE: Number,
+    Name: String,
+    Dept_Code: Number,
+    "Type of Leave": String,
+    From: String,
+    To: String,
+    "Total Days": Number,
+    sessionName: String, 
+    Status: { type: String, default: 'Pending' },
+    HOD_Approved: { type: Boolean, default: false },
+    Reject_Reason: String,
+    document: String
 }, { collection: 'leave_applications', versionKey: false });
-
 const Leave = mongoose.model('Leave', leaveSchema);
-// Add this route to your Express server
-// POST: Create or Update a leave type (Upsert logic)
-// POST: Create or Update a leave type (Perfected Upsert logic)
-// POST: Create or Update a leave type (Perfected Upsert logic)
-app.post('/api/leave-types/set', async (req, res) => {
-  try {
-    // Destructure everything from the body
-    const { leave_name, total_yearly_limit, dept_code, staffType } = req.body;
 
-    // FIND by the unique combination of these 3 fields
-    // UPDATE the limit
-    const updatedType = await LeaveType.findOneAndUpdate(
-      { 
-        leave_name: leave_name, 
-        dept_code: dept_code, 
-        staffType: staffType 
-      },
-      { total_yearly_limit: Number(total_yearly_limit) }, // Use total_yearly_limit from frontend
-      { upsert: true, returnDocument: 'after' }
-    );
+// --- ROUTES ---
 
-    res.json({ success: true, data: updatedType });
-  } catch (err) {
-    console.error("Save Error:", err);
-    res.status(500).json({ success: false, error: "Database save failed" });
-  }
+// 1. ADMIN SESSION CONTROL
+app.post('/api/admin/set-session', async (req, res) => {
+    try {
+        const { sessionName, startDate, endDate } = req.body;
+        
+        // This ensures the single "Active" record is updated
+        await Session.findOneAndUpdate(
+            {}, // Empty filter updates the first/only record
+            { sessionName, startDate, endDate },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).send(err);
+    }
 });
-// DELETE: Remove a specific leave type
-app.delete('/api/leave-types/:id', async (req, res) => {
-  try {
-    await LeaveType.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: "Delete failed" });
-  }
+// GET: All Saved Sessions for your Dropdown
+app.get('/api/sessions/all', async (req, res) => {
+    try {
+        const sessions = await Session.find().sort({ sessionName: -1 });
+        res.json(sessions);
+    } catch (err) { res.status(500).json({ error: "Fetch sessions failed" }); }
 });
-// Add this route to your server.js
+
+// GET: The Single "Current" Active Session (First record or specialized flag)
+app.get('/api/active-session', async (req, res) => {
+    try {
+        // Sort by updatedAt descending to get the one you last clicked "Save & Set Active"
+        const session = await Session.findOne().sort({ updatedAt: -1 });
+        res.json(session || { sessionName: "Not Set" });
+    } catch (err) { res.status(500).send(err); }
+});
+app.get('/api/active-session', async (req, res) => {
+    try {
+        const session = await Session.findOne();
+        res.json(session || { sessionName: "Not Set", startDate: "", endDate: "" });
+    } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
+});
+
+app.get('/api/sessions/list', async (req, res) => {
+    try {
+        // 1. Get existing session labels
+        const historical = await Leave.distinct("sessionName");
+        
+        // 2. Scan dates for years not yet labeled
+        const dates = await Leave.distinct("From");
+        const yearsFromDates = dates.map(d => {
+            const year = new Date(d).getFullYear();
+            const month = new Date(d).getMonth() + 1;
+            // If month is Jan-May, it belongs to (Year-1)-Year session
+            return month <= 5 ? `${year-1}-${year}` : `${year}-${year+1}`;
+        });
+
+        const active = await Session.findOne();
+        
+        let all = [...historical, ...yearsFromDates];
+        if (active) all.push(active.sessionName);
+
+        // Filter out nulls, remove duplicates, sort
+        const unique = [...new Set(all)].filter(s => s && s !== "Not Set").sort().reverse();
+        res.json(unique);
+    } catch (err) { res.status(500).json(err); }
+});
+// 2. LIVE BALANCE CALCULATOR (Supports Incrementing VAL/AL & Deduction CL/SL)
+app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
+    try {
+        const { empCode, type } = req.params;
+        const leaveTypeUpper = type.toUpperCase();
+        
+        // 1. Get the current active session (from Admin)
+        const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+        if (!activeSession) return res.json({ balance: 0 });
+        
+        const currentSessionName = activeSession.sessionName;
+        const sessionStart = new Date(activeSession.startDate);
+        const sessionEnd = new Date(activeSession.endDate);
+
+        const emp = await User.findOne({ "Employee Code": Number(empCode) });
+        if (!emp) return res.json({ balance: 0 });
+
+        // 2. Get ALL sessions sorted chronologically to handle SL Carry Forward
+        const allSessions = await Session.find().sort({ startDate: 1 });
+        
+        // Helper: Get used days for a specific session (Matching by Label OR Date Range)
+        const getUsedForSessionWindow = async (sessionObj) => {
+            const start = new Date(sessionObj.startDate);
+            const end = new Date(sessionObj.endDate);
+            const label = sessionObj.sessionName;
+
+            const leaves = await Leave.find({
+                Emp_CODE: Number(empCode),
+                Status: 'Approved',
+                $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+            }).lean();
+
+            return leaves.reduce((sum, l) => {
+                const leaveDate = new Date(l.From);
+                // Match if: has correct session label OR date falls within start/end dates
+                const isMatch = l.sessionName === label || (leaveDate >= start && leaveDate <= end);
+                return isMatch ? sum + (Number(l["Total Days"] || l.Total_Days) || 0) : sum;
+            }, 0);
+        };
+
+        // Helper: Get quota rule for a session
+        const getRule = async (sessionName) => {
+            return await LeaveType.findOne({ 
+                leave_name: leaveTypeUpper, 
+                dept_code: emp.dept_code, 
+                staffType: emp.staffType,
+                sessionName: sessionName
+            });
+        };
+
+        // --- CALCULATION ---
+
+        // CASE A: SL (Carry Forward Logic)
+        if (leaveTypeUpper === 'SL') {
+            let rollingBalance = 0;
+            for (let sess of allSessions) {
+                const rule = await getRule(sess.sessionName);
+                if (!rule) continue;
+                
+                const limit = Number(rule.total_yearly_limit);
+                const used = await getUsedForSessionWindow(sess);
+                
+                rollingBalance = (rollingBalance + limit) - used;
+                if (sess.sessionName === currentSessionName) break;
+            }
+            return res.json({ balance: Math.max(0, rollingBalance), isIncrementing: false });
+        }
+
+        // CASE B: VAL / AL (Incrementing - Total History)
+        if (['VAL', 'AL'].includes(leaveTypeUpper)) {
+            const history = await Leave.find({
+                Emp_CODE: Number(empCode),
+                Status: 'Approved',
+                $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+            }).lean();
+            const total = history.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+            return res.json({ balance: total, isIncrementing: true });
+        }
+
+        // CASE C: CL / DL / ML (Yearly Reset - Current Window Only)
+        const currentRule = await getRule(currentSessionName);
+        if (!currentRule) return res.json({ balance: 0 });
+        
+        const usedThisYear = await getUsedForSessionWindow(activeSession);
+        const limit = Number(currentRule.total_yearly_limit);
+        
+        res.json({ balance: Math.max(0, limit - usedThisYear), isIncrementing: false });
+
+    } catch (err) {
+        res.status(500).send("Balance Calculation Error");
+    }
+});
+// Helper function to detect session from date strings like "6/18/2025"
+function isDateInSession(dateStr, sessionLabel) {
+    if (!dateStr || !sessionLabel) return false;
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const startYear = parseInt(sessionLabel.split('-')[0]);
+    
+    // Academic year: June (6) to March (3) of next year
+    return (year === startYear && month >= 6) || (year === startYear + 1 && month <= 3);
+}
+// 3. APPLY LEAVE
 app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
-  try {
-    const newLeave = new Leave({
-      Emp_CODE: Number(req.body.Emp_CODE),
-      Name: req.body.Name,
-      Dept_Code: Number(req.body.Dept_Code),
-      "Type of Leave": req.body.Type_of_Leave,
-      From: req.body.From,
-      To: req.body.To,
-      "Total Days": Number(req.body.Total_Days),
-      document: req.file ? req.file.filename : null // Save filename if uploaded
-    });
+    try {
+        const activeSession = await Session.findOne();
+        if (!activeSession) return res.status(400).json({ error: "Set session dates first" });
 
-    await newLeave.save();
-    res.json({ success: true, data: newLeave });
-  } catch (err) {
-    console.error("Apply Error:", err);
-    res.status(500).json({ success: false, error: "Submission failed" });
-  }
+        const newLeave = new Leave({
+            Emp_CODE: Number(req.body.Emp_CODE),
+            Name: req.body.Name,
+            Dept_Code: Number(req.body.Dept_Code),
+            "Type of Leave": req.body.Type_of_Leave.toUpperCase(),
+            From: req.body.From,
+            To: req.body.To,
+            "Total Days": Number(req.body.Total_Days),
+            sessionName: activeSession.sessionName,
+            document: req.file ? req.file.filename : null,
+            Status: 'Approved' 
+        });
+
+        await newLeave.save();
+        res.json({ success: true, data: newLeave });
+    } catch (err) { res.status(500).json({ success: false, error: "Submission failed" }); }
 });
 
-// Login, Process Decision, Admin List, and Staff CRUD routes remain the same...
-// (Ensure the Admin endpoint includes the 'document' field in the response)
+// 4. LEAVE TYPES MANAGEMENT (Session-Wise Setting)
+app.post('/api/leave-types/set', async (req, res) => {
+    try {
+        const { leave_name, total_yearly_limit, dept_code, staffType, can_carry_forward, sessionName } = req.body;
+        
+        const query = { 
+            leave_name: leave_name.toUpperCase(), 
+            dept_code, 
+            staffType, 
+            sessionName 
+        };
 
-// POST: Process Leave Decision with Reason
+        const updatedType = await LeaveType.findOneAndUpdate(
+            query,
+            { total_yearly_limit: Number(total_yearly_limit), can_carry_forward },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true, data: updatedType });
+    } catch (err) { res.status(500).json({ success: false, error: "Database save failed" }); }
+});
+
+app.get('/api/leave-types', async (req, res) => { res.json(await LeaveType.find({})); });
+
+app.delete('/api/leave-types/:id', async (req, res) => {
+    await LeaveType.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+});
+
+// 5. PROCESS DECISION
 app.post('/api/leaves/process/:id', async (req, res) => {
-  try {
-    const { status, reason } = req.body; // Receive status and reason
+    const { status, reason } = req.body;
     const updateData = { Status: status };
-    
-    if (status === 'Rejected' && reason) {
-      updateData.Reject_Reason = reason; // Add reason to database
-    }
-
-    const updatedLeave = await Leave.findByIdAndUpdate(
-      req.params.id, 
-      updateData, 
-      { returnDocument: 'after' }
-    );
-    
-    res.json({ success: true, data: updatedLeave });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to process decision" });
-  }
+    if (status === 'Rejected' && reason) updateData.Reject_Reason = reason;
+    const updated = await Leave.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    res.json({ success: true, data: updated });
 });
 
-// GET: Fetch all leave types
-app.get('/api/leave-types', async (req, res) => {
-  try {
-    const types = await LeaveType.find({});
-    res.json(types);
-  } catch (err) {
-    res.status(500).json({ error: "Fetch failed" });
-  }
-});
-
-// GET all leave types (Ensure this exists and is working)
-app.get('/api/leave-types', async (req, res) => {
-  try {
-    const types = await LeaveType.find({});
-    res.json(types);
-  } catch (err) {
-    res.status(500).json({ error: "Fetch failed" });
-  }
-});
-
-// --- Routes ---
-
-// Login Route
-// Updated Login Route in server.js
+// 6. LOGIN & STAFF MANAGEMENT
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    // Find user matching Email and Password
-    const user = await User.findOne({ "Email": email, "Password": Number(password) });
-    
-    if (user) {
-      res.json({
-        success: true,
-        name: user["Name"],
-        empCode: user["Employee Code"],
-        role: user["role"],
-        dept: user["department"],
-        // CRITICAL FIX: Include dept_code so HOD can filter their department
-        dept_code: user["dept_code"], 
-        leaveBalance: user.leaveBalance
-      });
-    } else {
-      res.status(401).json({ success: false, message: "Invalid Credentials" });
-    }
-  } catch (err) { 
-    res.status(500).json({ success: false }); 
-  }
+    try {
+        const user = await User.findOne({ "Email": req.body.email, "Password": Number(req.body.password) });
+        if (user) {
+            res.json({
+                success: true, name: user["Name"], empCode: user["Employee Code"],
+                role: user["role"], dept: user["department"], dept_code: user["dept_code"],
+                staffType: user["staffType"] || 'Teaching'
+            });
+        } else { res.status(401).json({ success: false }); }
+    } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// Fetch Yearly Limits (Fixes 404 for /api/leave-types)
-app.get('/api/leave-types', async (req, res) => {
-  try {
-    const types = await LeaveType.find({});
-    res.json(types);
-  } catch (err) { res.status(500).json({ error: "Failed to fetch types" }); }
-});
-
-// Fetch staff history (Fixes 404 for /api/leaves/staff/:empCode)
 app.get('/api/leaves/staff/:empCode', async (req, res) => {
-  try {
-    const empCode = Number(req.params.empCode); // Convert string param to Number
-    const leaves = await Leave.find({ Emp_CODE: empCode }).sort({ _id: -1 });
+    const leaves = await Leave.find({ Emp_CODE: Number(req.params.empCode) }).sort({ From: -1 });
     res.json(leaves);
-  } catch (err) { res.status(500).json({ error: "Fetch history failed" }); }
 });
 
-// Admin endpoint with enriched remaining balances
-app.get('/api/leaves/admin', async (req, res) => {
-  try {
-    const leaves = await Leave.find({}).sort({ _id: -1 }).lean();
-    const leaveTypes = await LeaveType.find({}).lean();
+app.get('/api/leaves/admin', async (req, res) => { res.json(await Leave.find({}).sort({ From: -1 }).lean()); });
 
-    const usedMap = {};
-    leaves.forEach(l => {
-      if (l.Status === 'Approved') {
-        const typeStr = (l["Type of Leave"] || "").toLowerCase();
-        const key = `${l.Emp_CODE}_${typeStr}`;
-        usedMap[key] = (usedMap[key] || 0) + (Number(l["Total Days"]) || 0);
-      }
-    });
-
-    const enriched = leaves.map(l => {
-      const typeStr = (l["Type of Leave"] || "").toLowerCase();
-      const lType = leaveTypes.find(t => (t.leave_name || "").toLowerCase() === typeStr);
-      const limit = lType ? lType.total_yearly_limit : 0;
-      const used = usedMap[`${l.Emp_CODE}_${typeStr}`] || 0;
-
-      return {
-        ...l,
-        Remaining_Leaves: limit - used
-      };
-    });
-    res.json(enriched);
-  } catch (err) { res.status(500).json({ error: "Admin fetch failed" }); }
-});
-
-// Staff Management (CRUD)
-app.get('/api/staff', async (req, res) => {
-  try {
-    const staff = await User.find({});
-    res.json(staff);
-  } catch (err) { res.status(500).json({ error: "Failed to fetch staff" }); }
-});
+app.get('/api/staff', async (req, res) => { res.json(await User.find({})); });
 
 app.post('/api/staff', async (req, res) => {
-  try {
-    const latestUser = await User.findOne().sort({ "Employee Code": -1 });
-    const nextCode = latestUser && latestUser["Employee Code"] ? latestUser["Employee Code"] + 1 : 101;
+    const latest = await User.findOne().sort({ "Employee Code": -1 });
+    const nextCode = latest ? latest["Employee Code"] + 1 : 101;
     const newUser = new User({ ...req.body, "Employee Code": nextCode });
     await newUser.save();
     res.json(newUser);
-  } catch (err) { res.status(500).json({ error: "Create staff failed" }); }
 });
 
 app.put('/api/staff/:id', async (req, res) => {
-  try {
-    const updated = await User.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
+    const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updated);
-  } catch (err) { res.status(500).json({ error: "Update staff failed" }); }
 });
 
 app.delete('/api/staff/:id', async (req, res) => {
-  try {
     await User.findByIdAndDelete(req.params.id);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: "Delete staff failed" }); }
 });
 
 const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
