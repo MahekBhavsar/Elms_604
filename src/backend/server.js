@@ -63,7 +63,9 @@ const leaveTypeSchema = new mongoose.Schema({
 const LeaveType = mongoose.model('LeaveType', leaveTypeSchema);
 
 // 4. Leave Applications
+// 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
+    sr_no: String,        // <--- ADD THIS LINE
     Emp_CODE: Number,
     Name: String,
     Dept_Code: Number,
@@ -250,27 +252,38 @@ function isDateInSession(dateStr, sessionLabel) {
 // 3. APPLY LEAVE
 app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
     try {
-        const activeSession = await Session.findOne();
-        if (!activeSession) return res.status(400).json({ error: "Set session dates first" });
+        const { Type_of_Leave, Total_Days } = req.body;
+        
+        // --- SL DOCUMENT VALIDATION ---
+        if (Type_of_Leave?.toUpperCase() === 'SL' && Number(Total_Days) > 3 && !req.file) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "Medical document is required for Sick Leave exceeding 3 days." 
+            });
+        }
 
+        const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+        
         const newLeave = new Leave({
+            sr_no: req.body.sr_no, // Saves manual Sr No from UI
             Emp_CODE: Number(req.body.Emp_CODE),
             Name: req.body.Name,
             Dept_Code: Number(req.body.Dept_Code),
-            "Type of Leave": req.body.Type_of_Leave.toUpperCase(),
+            "Type of Leave": Type_of_Leave.toUpperCase(),
             From: req.body.From,
             To: req.body.To,
-            "Total Days": Number(req.body.Total_Days),
-            sessionName: activeSession.sessionName,
+            "Total Days": Number(Total_Days),
+            sessionName: activeSession?.sessionName || "2025-26",
             document: req.file ? req.file.filename : null,
-            Status: 'Approved'
+            Status: 'Pending' 
         });
 
         await newLeave.save();
         res.json({ success: true, data: newLeave });
-    } catch (err) { res.status(500).json({ success: false, error: "Submission failed" }); }
+    } catch (err) { 
+        res.status(500).json({ success: false, error: "Submission failed" }); 
+    }
 });
-
 // 4. LEAVE TYPES MANAGEMENT (Session-Wise Setting)
 app.post('/api/leave-types/set', async (req, res) => {
     try {

@@ -6,24 +6,28 @@ import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 
 @Component({
   selector: 'app-admin-leave-application',
-  imports: [CommonModule, FormsModule,AdminSidebar],
+  standalone: true,
+  imports: [CommonModule, FormsModule, AdminSidebar],
   templateUrl: './admin-leave-application.html',
   styleUrl: './admin-leave-application.css',
 })
 export class AdminLeaveApplication implements OnInit {
-  // Signals for fine-grained reactivity (Angular 21+)
   staffData = signal<any>({});
   remainingBalance = signal<number>(0);
   selectedFile = signal<File | null>(null);
   
+  // Signal to store leave types fetched from the database
+  leaveTypes = signal<any[]>([]);
+  
   leaveForm = {
+    sr_no: '', // Added Sr No
     Emp_CODE: null,
     Name: '',
     Dept_Code: null,
-    Type_of_Leave: 'CL',
+    Type_of_Leave: '', 
     From: '',
     To: '',
-    Total_Days: signal(0), // Signal for instant UI feedback on days count
+    Total_Days: signal(0),
     Role: ''
   };
 
@@ -41,22 +45,36 @@ export class AdminLeaveApplication implements OnInit {
         
         this.leaveForm.Emp_CODE = user.empCode;
         this.leaveForm.Name = user.name;
-        // Logic: HODs/Admins use their dept_code, others default to 1
         this.leaveForm.Dept_Code = user.dept_code || 1;
         this.leaveForm.Role = user.role;
         
         this.fetchBalance();
+        this.fetchLeaveTypes(); // Fetch dynamic names
       }
     }
   }
 
-  fetchBalance() {
-    this.http.get<any[]>(`http://localhost:5000/api/staff`).subscribe(staffList => {
-      const me = staffList.find((s: any) => s.Employee_Code === this.leaveForm.Emp_CODE);
-      if (me) {
-        this.remainingBalance.set(me.leaveBalance ?? 30);
-      }
+  fetchLeaveTypes() {
+    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
+      next: (data) => {
+        // Get unique leave names from the collection
+        const uniqueNames = [...new Set(data.map(item => item.leave_name))];
+        this.leaveTypes.set(uniqueNames);
+        // Set a default value if types exist
+        if (uniqueNames.length > 0) this.leaveForm.Type_of_Leave = uniqueNames[0];
+      },
+      error: (err) => console.error("Error fetching leave types", err)
     });
+  }
+
+  fetchBalance() {
+    // Logic to fetch balance based on Emp_Code and Type_of_Leave
+    if (!this.leaveForm.Emp_CODE || !this.leaveForm.Type_of_Leave) return;
+
+    this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.leaveForm.Emp_CODE}/${this.leaveForm.Type_of_Leave}`)
+      .subscribe(res => {
+        this.remainingBalance.set(res.balance || 0);
+      });
   }
 
   onFileSelected(event: any) {
@@ -78,26 +96,35 @@ export class AdminLeaveApplication implements OnInit {
   }
 
   onSubmit() {
-    // Sick Leave Validation
-    if (this.leaveForm.Type_of_Leave === 'SL' && !this.selectedFile()) {
-      alert("⚠️ Medical document is compulsory for Sick Leave (SL).");
+    const totalDays = this.leaveForm.Total_Days();
+
+    // 1. Validation: Sr No
+    if (!this.leaveForm.sr_no) {
+      alert("⚠️ Please enter a Serial Number (Sr. No.)");
       return;
     }
 
-    if (this.leaveForm.Total_Days() > this.remainingBalance()) {
+    // 2. Validation: SL Document (Compulsory ONLY if > 3 days)
+    if (this.leaveForm.Type_of_Leave === 'SL' && totalDays > 3 && !this.selectedFile()) {
+      alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
+      return;
+    }
+
+    // 3. Validation: Balance
+    if (totalDays > this.remainingBalance()) {
       alert(`Insufficient Balance! You only have ${this.remainingBalance()} days left.`);
       return;
     }
 
     const formData = new FormData();
-    // Append fields including computed signal value
+    formData.append('sr_no', this.leaveForm.sr_no);
     formData.append('Emp_CODE', String(this.leaveForm.Emp_CODE));
     formData.append('Name', this.leaveForm.Name);
     formData.append('Dept_Code', String(this.leaveForm.Dept_Code));
     formData.append('Type_of_Leave', this.leaveForm.Type_of_Leave);
     formData.append('From', this.leaveForm.From);
     formData.append('To', this.leaveForm.To);
-    formData.append('Total_Days', String(this.leaveForm.Total_Days()));
+    formData.append('Total_Days', String(totalDays));
     formData.append('Role', this.leaveForm.Role);
 
     if (this.selectedFile()) {
@@ -114,6 +141,7 @@ export class AdminLeaveApplication implements OnInit {
   }
 
   resetForm() {
+    this.leaveForm.sr_no = '';
     this.leaveForm.From = '';
     this.leaveForm.To = '';
     this.leaveForm.Total_Days.set(0);

@@ -22,6 +22,10 @@ export class Report implements OnInit {
   activeTab = signal<'staff' | 'logs' | 'configs'>('staff');
   deptSearch = signal<string>(''); // Dynamic 1-7 Filter
   searchTerm = signal<string>('');
+  
+  // NEW: Date Range Signals
+  fromDate = signal<string>('');
+  toDate = signal<string>('');
 
   constructor(private http: HttpClient) {}
 
@@ -54,13 +58,22 @@ export class Report implements OnInit {
     });
   });
 
-  /** 2. Leave Application Logs */
+  /** 2. Leave Application Logs (ADDED DATE LOGIC HERE) */
   filteredLogs = computed(() => {
     return this.allLeaves().filter(l => {
       const rowDept = (l.Dept_Code || l.dept_code || '').toString();
       const matchDept = !this.deptSearch() || rowDept === this.deptSearch();
       const matchName = !this.searchTerm() || l.Name.toLowerCase().includes(this.searchTerm().toLowerCase());
-      return matchDept && matchName;
+      
+      // Date Filtering Logic
+      const leaveDate = new Date(l.From).getTime();
+      const startLimit = this.fromDate() ? new Date(this.fromDate()).getTime() : null;
+      const endLimit = this.toDate() ? new Date(this.toDate()).getTime() : null;
+
+      const matchFrom = !startLimit || leaveDate >= startLimit;
+      const matchTo = !endLimit || leaveDate <= endLimit;
+
+      return matchDept && matchName && matchFrom && matchTo;
     });
   });
 
@@ -77,5 +90,7 @@ export class Report implements OnInit {
   resetFilters() {
     this.deptSearch.set('');
     this.searchTerm.set('');
+    this.fromDate.set(''); // Reset Date
+    this.toDate.set('');   // Reset Date
   }
 }

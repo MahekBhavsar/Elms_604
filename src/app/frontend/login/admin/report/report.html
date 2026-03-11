@@ -19,7 +19,6 @@
       </button>
     </div>
 
-    <!-- Active tabs require custom styling which we will place in standard style attributes where possible or assume standard bootstrap class rewrites are minimal -->
     <div class="nav nav-pills bg-white p-2 rounded-4 shadow-sm mb-4 gap-2">
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'staff' ? 'text-white' : 'text-muted'"
@@ -65,6 +64,27 @@
             </div>
           </div>
         </div>
+
+        @if (activeTab() === 'logs') {
+        <div class="row g-3 mt-2">
+          <div class="col-md-6">
+            <div class="input-group border border-2 rounded-3 bg-light p-1"
+              style="border-color: rgba(30, 60, 114, 0.1) !important;">
+              <span class="input-group-text bg-transparent border-0 small fw-bold text-muted">FROM:</span>
+              <input type="date" class="form-control bg-transparent border-0 shadow-none" 
+                [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="input-group border border-2 rounded-3 bg-light p-1"
+              style="border-color: rgba(30, 60, 114, 0.1) !important;">
+              <span class="input-group-text bg-transparent border-0 small fw-bold text-muted">TO:</span>
+              <input type="date" class="form-control bg-transparent border-0 shadow-none" 
+                [ngModel]="toDate()" (ngModelChange)="toDate.set($event)">
+            </div>
+          </div>
+        </div>
+        }
       </div>
     </div>
 

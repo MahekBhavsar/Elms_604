@@ -16,12 +16,15 @@ export class ApplyLeave implements OnInit {
   remainingBalance = signal<number>(0);
   activeSession = signal<string>(''); 
   selectedFile = signal<File | null>(null);
+  // NEW: Dynamic Leave Types
+  leaveTypes = signal<any[]>([]);
   
   leaveForm = {
+    sr_no: '', 
     Emp_CODE: null,
     Name: '',
     Dept_Code: null,
-    Type_of_Leave: 'CL',
+    Type_of_Leave: '',
     From: '',
     To: '',
     Total_Days: signal(0),
@@ -45,30 +48,37 @@ export class ApplyLeave implements OnInit {
         this.leaveForm.Dept_Code = user.dept_code;
         this.leaveForm.Role = user.role;
         
-        this.fetchBalance();
+        this.fetchLeaveTypes();
       }
     }
+  }
+
+  fetchLeaveTypes() {
+    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
+      next: (data) => {
+        // Filter unique names for the dropdown
+        const unique = [...new Set(data.map(item => item.leave_name))];
+        this.leaveTypes.set(unique);
+        if (unique.length > 0) {
+          this.leaveForm.Type_of_Leave = unique[0];
+          this.fetchBalance();
+        }
+      }
+    });
   }
 
   fetchBalance() {
     const empCode = this.leaveForm.Emp_CODE;
     const type = this.leaveForm.Type_of_Leave;
+    if (!empCode || !type) return;
 
-    if (!empCode) return;
-
-    // Calls the new range-aware balance endpoint
     this.http.get<any>(`http://localhost:5000/api/leaves/balance/${empCode}/${type}`)
       .subscribe({
         next: (res) => {
           this.remainingBalance.set(res.balance);
           this.activeSession.set(res.sessionName); 
-        },
-        error: (err) => console.error("Error fetching live balance:", err)
+        }
       });
-  }
-
-  onTypeChange() {
-    this.fetchBalance();
   }
 
   onFileSelected(event: any) {
@@ -83,31 +93,39 @@ export class ApplyLeave implements OnInit {
         this.leaveForm.Total_Days.set(0);
         return;
       }
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      const days = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       this.leaveForm.Total_Days.set(days);
     }
   }
 
   onSubmit() {
-    if (this.leaveForm.Type_of_Leave === 'SL' && !this.selectedFile()) {
-      alert("⚠️ Medical document is compulsory for Sick Leave (SL).");
+    const days = this.leaveForm.Total_Days();
+
+    if (!this.leaveForm.sr_no) {
+      alert("⚠️ Serial Number is required.");
       return;
     }
 
-    if (this.leaveForm.Total_Days() > this.remainingBalance()) {
+    // UPDATED SL LOGIC: Compulsory ONLY if days > 3
+    if (this.leaveForm.Type_of_Leave === 'SL' && days > 3 && !this.selectedFile()) {
+      alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
+      return;
+    }
+
+    if (days > this.remainingBalance()) {
       alert(`Insufficient Balance! Available: ${this.remainingBalance()} days.`);
       return;
     }
 
     const formData = new FormData();
+    formData.append('sr_no', this.leaveForm.sr_no);
     formData.append('Emp_CODE', String(this.leaveForm.Emp_CODE));
     formData.append('Name', this.leaveForm.Name);
     formData.append('Dept_Code', String(this.leaveForm.Dept_Code));
     formData.append('Type_of_Leave', this.leaveForm.Type_of_Leave);
     formData.append('From', this.leaveForm.From);
     formData.append('To', this.leaveForm.To);
-    formData.append('Total_Days', String(this.leaveForm.Total_Days()));
+    formData.append('Total_Days', String(days));
     formData.append('Role', this.leaveForm.Role);
 
     if (this.selectedFile()) {
@@ -116,14 +134,15 @@ export class ApplyLeave implements OnInit {
 
     this.http.post('http://localhost:5000/api/leaves/apply', formData).subscribe({
       next: () => {
-        alert(`✅ Submitted successfully for Session ${this.activeSession()}!`);
+        alert(`✅ Application Submitted successfully!`);
         this.resetForm();
       },
-      error: () => alert("❌ Error applying. Ensure Admin has set session dates.")
+      error: (err) => alert(err.error?.error || "Submission failed.")
     });
   }
 
   resetForm() {
+    this.leaveForm.sr_no = '';
     this.leaveForm.From = '';
     this.leaveForm.To = '';
     this.leaveForm.Total_Days.set(0);

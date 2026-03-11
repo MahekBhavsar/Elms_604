@@ -7,82 +7,83 @@
           <div class="card-body p-0">
             <div class="d-flex align-items-center bg-primary text-white p-4">
               <div class="me-4 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style="width: 65px; height: 65px;">
-                <i class="bi bi-person-check-fill fs-2"></i>
+                <i class="bi bi-person-badge fs-2"></i>
               </div>
               <div>
-                <h6 class="mb-0 text-white-50">Portal: {{ staffData().role }} Application</h6>
+                <h6 class="mb-0 text-white-50">{{ staffData().role }} Portal</h6>
                 <h4 class="fw-bold mb-0">{{ staffData().name }}</h4> 
                 <div class="d-flex align-items-center gap-2">
-                   <small class="opacity-75">Available Balance: {{ remainingBalance() }} Days</small>
+                   <small class="opacity-75">Balance: <strong>{{ remainingBalance() }} Days</strong></small>
                    <span class="badge bg-white text-primary px-2 py-1" style="font-size: 0.7rem;">Session: {{ activeSession() }}</span>
                 </div>
               </div>
               <div class="ms-auto text-end">
                 <h1 class="display-4 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
-                <small class="text-uppercase fw-bold">Days Selected</small>
+                <small class="text-uppercase fw-bold">Days</small>
               </div>
             </div>
           </div>
         </div>
 
         <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white">
-          <div class="d-flex align-items-center mb-4">
-            <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
-              <i class="bi bi-file-earmark-plus text-primary fs-3"></i>
-            </div>
-            <h3 class="text-dark fw-bold mb-0">Apply for Leave</h3>
-          </div>
-          
           <form (ngSubmit)="onSubmit()">
             <div class="row g-4">
-              <div class="col-md-12">
-                <label class="form-label small fw-bold text-muted text-uppercase">Reason for Leave</label>
+              
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Serial No. / Sr. No.</label>
+                <input type="text" class="form-control bg-light border-0 py-3 shadow-none" 
+                       [(ngModel)]="leaveForm.sr_no" name="sr_no" 
+                       placeholder="Enter Application Sr. No." required>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Type of Leave</label>
                 <select class="form-select bg-light border-0 py-3 shadow-none" 
                         [(ngModel)]="leaveForm.Type_of_Leave" 
                         name="type" 
-                        (change)="onTypeChange()">
-                  <option value="CL">Casual Leave (CL)</option>
-                  <option value="SL">Sick Leave (SL)</option>
-                  <option value="SAT">Saturday Leave (SAT)</option>
-                  <option value="VAL">Vacation Leave (VAL)</option>
-                  <option value="EL">Earned Leave (EL)</option>
+                        (change)="fetchBalance()">
+                  @for (name of leaveTypes(); track name) {
+                    <option [value]="name">{{ name }}</option>
+                  }
                 </select>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Start Date</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">From Date</label>
                 <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.From" name="from" (change)="calculateDays()" required>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">End Date</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">To Date</label>
                 <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.To" name="to" (change)="calculateDays()" required>
               </div>
 
               <div class="col-md-12">
-                <div class="p-3 border rounded-3 bg-light bg-opacity-50">
+                <div class="p-3 border rounded-3" 
+                     [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light': true}">
                   <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
-                    <span>Upload Supporting Document</span>
+                    <span>Supporting Document</span>
                     @if (leaveForm.Type_of_Leave === 'SL') {
-                      <span class="badge bg-danger">Medical Proof Required</span>
+                      @if (leaveForm.Total_Days() > 3) {
+                        <span class="badge bg-danger">Medical Proof Compulsory</span>
+                      } @else {
+                        <span class="badge bg-secondary">Proof Optional (<=3 days)</span>
+                      }
                     }
                   </label>
                   <input type="file" class="form-control bg-white py-2" (change)="onFileSelected($event)" name="document">
-                  <div class="mt-2 small text-muted">
-                    <i class="bi bi-info-circle me-1"></i> 
-                    Submitting for Academic Year: <strong>{{ activeSession() }}</strong>
-                  </div>
                 </div>
               </div>
 
               <div class="col-12 mt-5">
                 <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg">
-                  <i class="bi bi-check2-circle me-2"></i> Confirm and Submit Request
+                  Submit Leave Request
                 </button>
               </div>
             </div>
           </form>
         </div>
+
       </div>
     </div>
   </div>
