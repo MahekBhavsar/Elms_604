@@ -59,10 +59,13 @@
                   <div>
                     <div class="fw-bold text-dark d-flex align-items-center">
                       {{ l.Name }}
-                      @if (l.role?.toLowerCase() === 'hod') { <span class="badge bg-warning text-dark ms-2"
+                      @if ((l.Role || l.role)?.toLowerCase() === 'hod') { <span class="badge bg-warning text-dark ms-2"
                         style="font-size:0.6rem;">HOD</span> }
-                      @if (l.dept_code === 0 || l.dept_code === "0" || !l.dept_code) { <span
-                        class="badge bg-info text-white ms-2" style="font-size:0.6rem;">DIRECT</span> }
+                      @if ((l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === 0 || (l.Dept_Code !== undefined ?
+                      l.Dept_Code : l.dept_code) === "0" || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) ===
+                      null || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === undefined || (l.Dept_Code !==
+                      undefined ? l.Dept_Code : l.dept_code) === '') { <span class="badge bg-info text-white ms-2"
+                        style="font-size:0.6rem;">DIRECT</span> }
                     </div>
                     <small class="text-muted">ID: {{ l.Emp_CODE }} | Dept: {{ l.Dept_Code || l.dept_code }}</small>
                   </div>
@@ -123,9 +126,15 @@
                     <small class="text-secondary opacity-75">{{ l['Type of Leave'] || l.Type_of_Leave }}</small>
                   </td>
                   <td class="text-end pe-4 border-light">
-                    <span
-                      class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-1 small fw-semibold">Pending
-                      HOD</span>
+                    <div class="d-flex justify-content-end align-items-center">
+                      <span
+                        class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-1 small fw-semibold me-2">Pending
+                        HOD</span>
+                      <button (click)="processLeave(l._id, 'Approved')"
+                        class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold shadow-sm">Approve</button>
+                      <button (click)="processLeave(l._id, 'Rejected')"
+                        class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">Reject</button>
+                    </div>
                   </td>
                 </tr>
                 }

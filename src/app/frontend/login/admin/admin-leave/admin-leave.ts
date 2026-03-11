@@ -18,18 +18,45 @@ export class AdminLeave implements OnInit {
   searchLeave = signal('');
   deptFilter = signal('');
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   ngOnInit() {
-    this.fetchLeaves();
+    this.fetchStaffAndLeaves();
   }
 
-  fetchLeaves() {
+  fetchStaffAndLeaves() {
+    // 1. Fetch Staff List first
+    this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
+      next: (staffData) => {
+        // Create a quick lookup map of EmpCode -> Role
+        const roleMap = new Map<number, string>();
+        staffData.forEach(staff => {
+          roleMap.set(staff['Employee Code'], staff.role || staff.Role || 'Staff');
+        });
+
+        // 2. Fetch Leaves
+        this.fetchLeaves(roleMap);
+      },
+      error: (err) => console.error("Error fetching staff list for roles:", err)
+    });
+  }
+
+  fetchLeaves(roleMap: Map<number, string>) {
     this.http.get<any[]>('http://localhost:5000/api/leaves/admin').subscribe({
       next: (data) => {
         // Sort by Dept_Code initially for better organization
         const sorted = data.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0));
-        this.allLeaves.set(sorted);
+
+        // Attach the real role from the users collection
+        const leavesWithRealRoles = sorted.map(leave => {
+          return {
+            ...leave,
+            // If the database happens to have it, use it, else fallback to our live lookup
+            role: leave.role || leave.Role || roleMap.get(leave.Emp_CODE) || 'Staff'
+          };
+        });
+
+        this.allLeaves.set(leavesWithRealRoles);
       },
       error: (err) => console.error("Error fetching admin leaves:", err)
     });
@@ -44,7 +71,7 @@ export class AdminLeave implements OnInit {
     return this.allLeaves().filter(l => {
       const nameMatch = !staff || l.Name?.toLowerCase().includes(staff) || l.Emp_CODE?.toString().includes(staff);
       const leaveMatch = !leave || (l['Type of Leave'] || l.Type_of_Leave || '').toLowerCase().includes(leave);
-      
+
       // Fix: Handle dept_code string/number variations from DB
       const rowDept = (l.Dept_Code || l.dept_code || '').toString();
       const deptMatch = !dept || rowDept === dept;
@@ -59,12 +86,14 @@ export class AdminLeave implements OnInit {
   getPending = computed(() => {
     return this.filteredLeaves().filter(l => {
       const isPending = l.Status === 'Pending';
-      const roleLower = l.role?.toLowerCase();
-      // Exclusion logic: HOD requests and Direct Staff bypass this list
-      const isNotHod = roleLower !== 'hod';
-      const isNotDirectStaff = l.dept_code !== 0 && l.dept_code !== "0" && l.dept_code !== null && l.dept_code !== undefined;
+      // True if the leave skips HOD approval (HODs, Admins, dept 0, or no dept)
+      const roleStr = l.Role || l.role || '';
+      const roleLower = roleStr.toLowerCase();
+      const rowDept = l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code;
+      const isDirectToAdmin = roleLower === 'hod' || roleLower === 'admin' || rowDept === 0 || rowDept === "0" || rowDept === null || rowDept === undefined || rowDept === '';
 
-      return isPending && isNotHod && isNotDirectStaff;
+      // Pending AND is NOT direct to Admin
+      return isPending && !isDirectToAdmin;
     });
   });
 
@@ -75,17 +104,14 @@ export class AdminLeave implements OnInit {
     return this.filteredLeaves().filter(l => {
       if (l.Status === 'HOD Approved') return true;
 
-      const roleLower = l.role?.toLowerCase();
-      // Inclusion logic: HODs and Direct Staff go straight to Admin
-      const isDirectAction = l.Status === 'Pending' && (
-        roleLower === 'hod' ||
-        roleLower === 'admin' ||
-        l.dept_code === 0 ||
-        l.dept_code === "0" ||
-        !l.dept_code
-      );
+      const isPending = l.Status === 'Pending';
+      // EXACT SAME LOGIC as getPending, guaranteeing mutual exclusion
+      const roleStr = l.Role || l.role || '';
+      const roleLower = roleStr.toLowerCase();
+      const rowDept = l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code;
+      const isDirectToAdmin = roleLower === 'hod' || roleLower === 'admin' || rowDept === 0 || rowDept === "0" || rowDept === null || rowDept === undefined || rowDept === '';
 
-      return isDirectAction;
+      return isPending && isDirectToAdmin;
     });
   });
 
@@ -115,7 +141,7 @@ export class AdminLeave implements OnInit {
       }).subscribe({
         next: () => {
           alert(`Leave ${decision} successfully`);
-          this.fetchLeaves();
+          this.fetchStaffAndLeaves();
         },
         error: (err) => alert("Failed to process decision.")
       });
