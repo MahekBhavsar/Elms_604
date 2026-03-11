@@ -1,0 +1,93 @@
+@if (isAdmin()) {
+    <app-admin-sidebar>
+        <ng-container *ngTemplateOutlet="profileContent"></ng-container>
+    </app-admin-sidebar>
+} @else {
+    <app-staff-sidebar>
+        <ng-container *ngTemplateOutlet="profileContent"></ng-container>
+    </app-staff-sidebar>
+}
+
+<ng-template #profileContent>
+    <div class="container-fluid py-4 bg-light min-vh-100">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="card shadow-sm border-0 rounded-4 mt-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h4 class="mb-0 fw-bold text-primary d-flex align-items-center">
+                            <i class="bi bi-person-gear fs-3 me-2"></i> Update Profile
+                        </h4>
+                        <p class="text-muted small mt-1">Manage your account email and password credentials.</p>
+                    </div>
+
+                    <div class="card-body p-4">
+                        @if (successMessage()) {
+                            <div class="alert alert-success d-flex align-items-center animate__animated animate__fadeIn" role="alert">
+                                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                                <div>{{ successMessage() }}</div>
+                            </div>
+                        }
+
+                        @if (errorMessage()) {
+                            <div class="alert alert-danger d-flex align-items-center animate__animated animate__fadeIn" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                <div>{{ errorMessage() }}</div>
+                            </div>
+                        }
+
+                        @if (loading() && !email()) {
+                            <div class="text-center my-4 py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading profile data...</p>
+                            </div>
+                        } @else {
+                            <form (ngSubmit)="updateProfile()">
+                                <div class="mb-4">
+                                    <label for="email" class="form-label fw-semibold text-secondary">Email Address</label>
+                                    <div class="input-group shadow-sm rounded-3">
+                                        <span class="input-group-text bg-white border-end-0 text-muted">
+                                            <i class="bi bi-envelope"></i>
+                                        </span>
+                                        <input type="email" class="form-control border-start-0 py-2" id="email"
+                                            [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" required
+                                            placeholder="Enter new email">
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="password" class="form-label fw-semibold text-secondary">Password</label>
+                                    <div class="input-group shadow-sm rounded-3">
+                                        <span class="input-group-text bg-white border-end-0 text-muted">
+                                            <i class="bi bi-lock"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-start-0 py-2"
+                                            id="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" required
+                                            placeholder="Enter new password (numeric)">
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <i class="bi bi-info-circle me-1"></i> As per system config, password must be a numeric value.
+                                    </div>
+                                </div>
+
+                                <div class="d-grid mt-5">
+                                    <button type="submit"
+                                        class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm d-flex justify-content-center align-items-center transition-all"
+                                        [disabled]="loading()">
+                                        @if (loading()) {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            Saving Changes...
+                                        } @else {
+                                            <i class="bi bi-save2 me-2"></i> Save Changes
+                                        }
+                                    </button>
+                                </div>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</ng-template>

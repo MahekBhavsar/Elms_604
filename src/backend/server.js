@@ -71,7 +71,7 @@ const leaveSchema = new mongoose.Schema({
     From: String,
     To: String,
     "Total Days": Number,
-    sessionName: String, 
+    sessionName: String,
     Status: { type: String, default: 'Pending' },
     HOD_Approved: { type: Boolean, default: false },
     Reject_Reason: String,
@@ -85,7 +85,7 @@ const Leave = mongoose.model('Leave', leaveSchema);
 app.post('/api/admin/set-session', async (req, res) => {
     try {
         const { sessionName, startDate, endDate } = req.body;
-        
+
         // This ensures the single "Active" record is updated
         await Session.findOneAndUpdate(
             {}, // Empty filter updates the first/only record
@@ -124,18 +124,18 @@ app.get('/api/sessions/list', async (req, res) => {
     try {
         // 1. Get existing session labels
         const historical = await Leave.distinct("sessionName");
-        
+
         // 2. Scan dates for years not yet labeled
         const dates = await Leave.distinct("From");
         const yearsFromDates = dates.map(d => {
             const year = new Date(d).getFullYear();
             const month = new Date(d).getMonth() + 1;
             // If month is Jan-May, it belongs to (Year-1)-Year session
-            return month <= 5 ? `${year-1}-${year}` : `${year}-${year+1}`;
+            return month <= 5 ? `${year - 1}-${year}` : `${year}-${year + 1}`;
         });
 
         const active = await Session.findOne();
-        
+
         let all = [...historical, ...yearsFromDates];
         if (active) all.push(active.sessionName);
 
@@ -149,11 +149,11 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
     try {
         const { empCode, type } = req.params;
         const leaveTypeUpper = type.toUpperCase();
-        
+
         // 1. Get the current active session (from Admin)
         const activeSession = await Session.findOne().sort({ updatedAt: -1 });
         if (!activeSession) return res.json({ balance: 0 });
-        
+
         const currentSessionName = activeSession.sessionName;
         const sessionStart = new Date(activeSession.startDate);
         const sessionEnd = new Date(activeSession.endDate);
@@ -163,7 +163,7 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
         // 2. Get ALL sessions sorted chronologically to handle SL Carry Forward
         const allSessions = await Session.find().sort({ startDate: 1 });
-        
+
         // Helper: Get used days for a specific session (Matching by Label OR Date Range)
         const getUsedForSessionWindow = async (sessionObj) => {
             const start = new Date(sessionObj.startDate);
@@ -186,9 +186,9 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
         // Helper: Get quota rule for a session
         const getRule = async (sessionName) => {
-            return await LeaveType.findOne({ 
-                leave_name: leaveTypeUpper, 
-                dept_code: emp.dept_code, 
+            return await LeaveType.findOne({
+                leave_name: leaveTypeUpper,
+                dept_code: emp.dept_code,
                 staffType: emp.staffType,
                 sessionName: sessionName
             });
@@ -202,10 +202,10 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
             for (let sess of allSessions) {
                 const rule = await getRule(sess.sessionName);
                 if (!rule) continue;
-                
+
                 const limit = Number(rule.total_yearly_limit);
                 const used = await getUsedForSessionWindow(sess);
-                
+
                 rollingBalance = (rollingBalance + limit) - used;
                 if (sess.sessionName === currentSessionName) break;
             }
@@ -226,10 +226,10 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
         // CASE C: CL / DL / ML (Yearly Reset - Current Window Only)
         const currentRule = await getRule(currentSessionName);
         if (!currentRule) return res.json({ balance: 0 });
-        
+
         const usedThisYear = await getUsedForSessionWindow(activeSession);
         const limit = Number(currentRule.total_yearly_limit);
-        
+
         res.json({ balance: Math.max(0, limit - usedThisYear), isIncrementing: false });
 
     } catch (err) {
@@ -243,7 +243,7 @@ function isDateInSession(dateStr, sessionLabel) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const startYear = parseInt(sessionLabel.split('-')[0]);
-    
+
     // Academic year: June (6) to March (3) of next year
     return (year === startYear && month >= 6) || (year === startYear + 1 && month <= 3);
 }
@@ -263,7 +263,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             "Total Days": Number(req.body.Total_Days),
             sessionName: activeSession.sessionName,
             document: req.file ? req.file.filename : null,
-            Status: 'Approved' 
+            Status: 'Approved'
         });
 
         await newLeave.save();
@@ -275,12 +275,12 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
 app.post('/api/leave-types/set', async (req, res) => {
     try {
         const { leave_name, total_yearly_limit, dept_code, staffType, can_carry_forward, sessionName } = req.body;
-        
-        const query = { 
-            leave_name: leave_name.toUpperCase(), 
-            dept_code, 
-            staffType, 
-            sessionName 
+
+        const query = {
+            leave_name: leave_name.toUpperCase(),
+            dept_code,
+            staffType,
+            sessionName
         };
 
         const updatedType = await LeaveType.findOneAndUpdate(
@@ -347,6 +347,27 @@ app.put('/api/staff/:id', async (req, res) => {
 app.delete('/api/staff/:id', async (req, res) => {
     await User.findByIdAndDelete(req.params.id);
     res.json({ success: true });
+});
+
+// 7. PROFILE UPDATE
+app.get('/api/profile/:empCode', async (req, res) => {
+    try {
+        const user = await User.findOne({ "Employee Code": Number(req.params.empCode) });
+        if (user) res.json(user);
+        else res.status(404).json({ error: "User not found" });
+    } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
+});
+
+app.put('/api/profile/:empCode', async (req, res) => {
+    try {
+        const { Email, Password } = req.body;
+        const updated = await User.findOneAndUpdate(
+            { "Employee Code": Number(req.params.empCode) },
+            { Email: Email, Password: Number(Password) },
+            { new: true }
+        );
+        res.json({ success: true, data: updated });
+    } catch (err) { res.status(500).json({ success: false, error: "Update failed" }); }
 });
 
 const PORT = 5000;

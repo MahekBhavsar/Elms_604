@@ -10,28 +10,32 @@ import { HodLeaveApproved } from './frontend/staff/hod-leave-approved/hod-leave-
 import { StaffViewStatus } from './frontend/staff/staff-view-status/staff-view-status';
 import { Report } from './frontend/login/admin/report/report';
 import { AdminLeaveApplication } from './frontend/login/admin/admin-leave-application/admin-leave-application';
+import { ProfileUpdate } from './profile-update/profile-update';
 
 export const routes: Routes = [
   // 1. Default Route
   { path: '', redirectTo: 'login', pathMatch: 'full' },
-  
+
   // 2. Auth Route
   { path: 'login', component: Login },
-  
+
   // 3. Admin Routes
   { path: 'admin-dashboard', component: AdminDashbored },
   { path: 'admin-managed-staff', component: AdminManagedStaff },
   { path: 'admin-leave', component: AdminLeave },
   { path: 'admin-leave-type', component: AdminLeaveType },
-  {path:'admin-report',component:Report},
-  {path:'admin-leave-application',component:AdminLeaveApplication},
+  { path: 'admin-report', component: Report },
+  { path: 'admin-leave-application', component: AdminLeaveApplication },
 
   // 4. Staff/HOD Dashboard
   { path: 'staff-dashboard', component: StaffDashbored },
   { path: 'apply-leave', component: ApplyLeave },
   { path: 'hod-leave-approved', component: HodLeaveApproved },
-  {path:'staff-view-status',component:StaffViewStatus},
-  
-  // 5. Wildcard Redirect
+  { path: 'staff-view-status', component: StaffViewStatus },
+
+  // 5. Shared Profile Update
+  { path: 'profile-update', component: ProfileUpdate },
+
+  // 6. Wildcard Redirect
   { path: '**', redirectTo: 'login' }
 ];

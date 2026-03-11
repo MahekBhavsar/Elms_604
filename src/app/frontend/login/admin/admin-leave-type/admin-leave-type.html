@@ -67,7 +67,6 @@
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">
-<<<<<<< HEAD
             <h5 class="fw-bold mb-4 text-primary">Quota Configuration</h5>
             <form (ngSubmit)="saveYearlyLimit()">
               <div class="mb-3">
@@ -83,42 +82,15 @@
               <div class="mb-3 form-check form-switch p-3 bg-light rounded-3 ms-0" *ngIf="!['VAL', 'AL'].includes(leaveLimit.leave_name.toUpperCase())">
                 <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="cfSwitch" [(ngModel)]="leaveLimit.can_carry_forward" name="cf">
                 <label class="form-check-label small fw-bold text-dark" for="cfSwitch">Enable Carry Forward (SL/EL)</label>
-=======
-            <h5 class="fw-bold mb-4 d-flex align-items-center" style="color: #1e3c72;">
-              <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3"
-                style="width: 35px; height: 35px;">
-                <i class="bi bi-gear-fill"></i>
-              </div>
-              Configuration
-            </h5>
-
-            <form (ngSubmit)="saveYearlyLimit()">
-              <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Leave Name</label>
-                <input type="text" [(ngModel)]="leaveLimit.leave_name" name="leave_name"
-                  class="form-control bg-light border-0 py-2 shadow-none" placeholder="e.g. CL" required>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Annual Limit (Days)</label>
-                <input type="number" [(ngModel)]="leaveLimit.total_yearly_limit" name="total_yearly_limit"
-                  class="form-control bg-light border-0 py-2 shadow-none" required>
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
               </div>
 
               <div class="mb-4">
                 <label class="form-label small fw-bold text-muted text-uppercase d-block mb-2">Dept Codes</label>
                 <div class="d-flex flex-wrap gap-2">
                   @for (dept of availableDeptCodes; track dept) {
-<<<<<<< HEAD
                     <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
                       [ngClass]="leaveLimit.dept_codes.includes(dept) ? 'btn-primary' : 'btn-white text-muted'"
                       (click)="toggleSelection(leaveLimit.dept_codes, dept)">{{ dept }}</button>
-=======
-                  <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
-                    [ngClass]="leaveLimit.dept_codes.includes(dept) ? 'btn-primary border-primary' : 'btn-white text-muted'"
-                    (click)="toggleSelection(leaveLimit.dept_codes, dept)">{{ dept }}</button>
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   }
                 </div>
               </div>
@@ -127,35 +99,16 @@
                 <label class="form-label small fw-bold text-muted text-uppercase d-block mb-2">Staff Categories</label>
                 <div class="d-flex flex-wrap gap-2">
                   @for (st of availableStaffTypes; track st) {
-<<<<<<< HEAD
                     <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
                       [ngClass]="leaveLimit.staffTypes.includes(st) ? 'btn-primary' : 'btn-white text-muted'"
                       (click)="toggleSelection(leaveLimit.staffTypes, st)">{{ st }}</button>
-=======
-                  <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none btn-outline-primary"
-                    [ngClass]="leaveLimit.staffTypes.includes(st) ? 'text-white' : 'btn-white text-muted'"
-                    [style.background]="leaveLimit.staffTypes.includes(st) ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : ''"
-                    (click)="toggleSelection(leaveLimit.staffTypes, st)">{{ st }}</button>
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   }
                 </div>
               </div>
 
-<<<<<<< HEAD
               <button type="submit" class="btn btn-dark w-100 py-3 fw-bold rounded-3 shadow-sm">
                 Save for {{ activeSession().sessionName }}
               </button>
-=======
-              <button type="submit" class="btn text-white w-100 py-3 fw-bold rounded-3 shadow-sm btn-primary-hover"
-                style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); transition: transform 0.2s;">
-                {{ editingId() ? 'Update Configuration' : 'Save Bulk Quota' }}
-              </button>
-
-              @if (editingId()) {
-              <button (click)="resetForm()" type="button"
-                class="btn btn-link w-100 mt-2 text-muted small text-decoration-none">Cancel Edit</button>
-              }
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
             </form>
           </div>
         </div>
@@ -165,7 +118,6 @@
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white"
           style="transition: transform 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;">
           <div class="table-responsive">
-<<<<<<< HEAD
             <table class="table table-hover align-middle mb-0">
               <thead class="bg-light border-bottom">
                 <tr class="small text-muted text-uppercase">
@@ -178,22 +130,6 @@
               <tbody>
                 @for (group of filteredLeaveTypes(); track group._id) {
                 <tr>
-=======
-            <table class="table table-hover align-middle mb-0 text-nowrap">
-              <thead class="border-bottom" style="background-color: #f8f9fa;">
-                <tr class="small text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">
-                  <th class="ps-4 py-4 border-0">Leave Type</th>
-                  <th class="py-4 border-0">Categories</th>
-                  <th class="text-center py-4 border-0">Dept Codes</th>
-                  <th class="text-center py-4 border-0">Limit</th>
-                  <th class="text-end pe-4 py-4 border-0">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="border-top-0">
-                @for (group of groupedLeaveTypes(); track group.leave_name + group.total_yearly_limit) {
-                <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
-                  onmouseout="this.style.backgroundColor='transparent'">
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   <td class="ps-4">
                     <span class="badge text-white fw-bold px-3 py-2 rounded-3 shadow-sm"
                       style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
@@ -205,21 +141,12 @@
                     <div class="text-muted" style="font-size: 0.7rem;">Depts: {{ group.dept_display }}</div>
                   </td>
                   <td class="text-center">
-<<<<<<< HEAD
                     @if (['VAL', 'AL'].includes(group.leave_name.toUpperCase())) {
                         <span class="badge bg-info text-dark shadow-sm fw-bold">Incrementing</span>
                     } @else {
                         <span class="fw-bold text-dark">{{ group.total_yearly_limit }} Days Limit</span>
                     }
                   </td>
-=======
-                    <span
-                      class="badge bg-light text-primary border border-primary border-opacity-25 px-2 shadow-none fw-semibold rounded-pill py-1">{{
-                      group.dept_display
-                      }}</span>
-                  </td>
-                  <td class="text-center fw-bold fs-6" style="color: #1e3c72;">{{ group.total_yearly_limit }} Days</td>
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   <td class="text-end pe-4">
                     <button class="btn btn-light btn-sm rounded-circle me-1 border shadow-none action-btn"
                       (click)="editType(group)" style="transition: all 0.2s;">
@@ -232,17 +159,11 @@
                   </td>
                 </tr>
                 } @empty {
-<<<<<<< HEAD
                   <tr>
                     <td colspan="4" class="text-center p-5 text-muted italic">
                       No configurations found for: {{ activeSession().sessionName || 'Not Set' }}
                     </td>
                   </tr>
-=======
-                <tr>
-                  <td colspan="5" class="text-center p-5 text-muted small italic">No leave quotas defined yet.</td>
-                </tr>
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                 }
               </tbody>
             </table>

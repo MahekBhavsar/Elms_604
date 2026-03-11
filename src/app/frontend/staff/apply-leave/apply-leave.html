@@ -1,5 +1,4 @@
 <app-staff-sidebar>
-<<<<<<< HEAD
   <div class="container py-5">
     <div class="row justify-content-center">
       <div class="col-lg-8">
@@ -22,33 +21,10 @@
                 <h1 class="display-4 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
                 <small class="text-uppercase fw-bold">Days Selected</small>
               </div>
-=======
-  <div class="container py-3">
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-
-        <div class="card shadow-sm border-0 mb-3 overflow-hidden rounded-4">
-          <div class="card-body p-0">
-            <div class="d-flex align-items-center bg-primary text-white p-4">
-              <div class="me-4 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
-                style="width: 60px; height: 60px;">
-                <i class="bi bi-person-check-fill fs-3"></i>
-              </div>
-              <div>
-                <h6 class="mb-0 text-white-50">Portal: {{ staffData().role }} Application</h6>
-                <h4 class="fw-bold mb-0">{{ staffData().name }}</h4>
-                <small class="opacity-75">Available Balance: {{ remainingBalance() }} Days</small>
-              </div>
-              <div class="ms-auto text-end">
-                <h1 class="display-5 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
-                <small class="text-uppercase fw-bold">Days Selected</small>
-              </div>
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
             </div>
           </div>
         </div>
 
-<<<<<<< HEAD
         <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white">
           <div class="d-flex align-items-center mb-4">
             <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
@@ -65,35 +41,15 @@
                         [(ngModel)]="leaveForm.Type_of_Leave" 
                         name="type" 
                         (change)="onTypeChange()">
-=======
-        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
-          <div class="d-flex align-items-center mb-3">
-            <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
-              <i class="bi bi-file-earmark-plus text-primary fs-4"></i>
-            </div>
-            <h3 class="text-dark fw-bold mb-0 fs-4">Apply for Leave</h3>
-          </div>
-
-          <form (ngSubmit)="onSubmit()">
-            <div class="row g-3">
-              <div class="col-md-12">
-                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Reason for Leave</label>
-                <select class="form-select bg-light border-0 py-2 shadow-none" [(ngModel)]="leaveForm.Type_of_Leave"
-                  name="type">
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   <option value="CL">Casual Leave (CL)</option>
                   <option value="SL">Sick Leave (SL)</option>
                   <option value="SAT">Saturday Leave (SAT)</option>
                   <option value="VAL">Vacation Leave (VAL)</option>
-<<<<<<< HEAD
                   <option value="EL">Earned Leave (EL)</option>
-=======
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                 </select>
               </div>
 
               <div class="col-md-6">
-<<<<<<< HEAD
                 <label class="form-label small fw-bold text-muted text-uppercase">Start Date</label>
                 <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.From" name="from" (change)="calculateDays()" required>
               </div>
@@ -115,43 +71,12 @@
                   <div class="mt-2 small text-muted">
                     <i class="bi bi-info-circle me-1"></i> 
                     Submitting for Academic Year: <strong>{{ activeSession() }}</strong>
-=======
-                <label class="form-label small fw-bold text-muted text-uppercase mb-1">Start Date</label>
-                <input type="date" class="form-control bg-light border-0 py-2 shadow-none" [(ngModel)]="leaveForm.From"
-                  name="from" (change)="calculateDays()" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase mb-1">End Date</label>
-                <input type="date" class="form-control bg-light border-0 py-2 shadow-none" [(ngModel)]="leaveForm.To"
-                  name="to" (change)="calculateDays()" required>
-              </div>
-
-              <div class="col-md-12 mt-2">
-                <div class="p-3 border rounded-3 bg-light bg-opacity-50">
-                  <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between mb-2">
-                    <span>Upload Supporting Document</span>
-                    @if (leaveForm.Type_of_Leave === 'SL') {
-                    <span class="badge bg-danger">Medical Proof Required</span>
-                    }
-                  </label>
-                  <input type="file" class="form-control bg-white py-2" (change)="onFileSelected($event)"
-                    name="document">
-                  <div class="mt-2 text-muted" style="font-size: 0.8rem;">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Please upload images or PDF files (e.g., Medical certificates, invitations, etc.)
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   </div>
                 </div>
               </div>
 
-<<<<<<< HEAD
               <div class="col-12 mt-5">
                 <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg">
-=======
-              <div class="col-12 mt-4">
-                <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold shadow-sm">
->>>>>>> 222839dd0c4728c3ac357ae21b12b292b99c80f5
                   <i class="bi bi-check2-circle me-2"></i> Confirm and Submit Request
                 </button>
               </div>
