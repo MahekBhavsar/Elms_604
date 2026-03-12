@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
-
+import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-admin-leave-application',
   standalone: true,
@@ -16,11 +16,10 @@ export class AdminLeaveApplication implements OnInit {
   remainingBalance = signal<number>(0);
   selectedFile = signal<File | null>(null);
   
-  // Signal to store leave types fetched from the database
   leaveTypes = signal<any[]>([]);
   
   leaveForm = {
-    sr_no: '', // Added Sr No
+    sr_no: '', 
     Emp_CODE: null,
     Name: '',
     Dept_Code: null,
@@ -48,32 +47,51 @@ export class AdminLeaveApplication implements OnInit {
         this.leaveForm.Dept_Code = user.dept_code || 1;
         this.leaveForm.Role = user.role;
         
-        this.fetchBalance();
-        this.fetchLeaveTypes(); // Fetch dynamic names
+        this.fetchLeaveTypes(); 
       }
     }
   }
 
   fetchLeaveTypes() {
-    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
-      next: (data) => {
-        // Get unique leave names from the collection
-        const uniqueNames = [...new Set(data.map(item => item.leave_name))];
+    forkJoin({
+      session: this.http.get<any>('http://localhost:5000/api/active-session'),
+      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
+    }).subscribe({
+      next: (res) => {
+        const currentSessionLabel = res.session.sessionName;
+        const applicableRules = res.rules.filter(r =>
+          String(r.dept_code) === String(this.staffData().dept_code) &&
+          r.staffType === (this.staffData().staffType || 'Teaching') &&
+          r.sessionName === currentSessionLabel
+        );
+
+        const uniqueNames = [...new Set(applicableRules.map(item => item.leave_name))];
         this.leaveTypes.set(uniqueNames);
-        // Set a default value if types exist
-        if (uniqueNames.length > 0) this.leaveForm.Type_of_Leave = uniqueNames[0];
+        if (uniqueNames.length > 0) {
+          this.leaveForm.Type_of_Leave = uniqueNames[0];
+          this.fetchBalance(); 
+        }
       },
       error: (err) => console.error("Error fetching leave types", err)
     });
   }
 
   fetchBalance() {
-    // Logic to fetch balance based on Emp_Code and Type_of_Leave
     if (!this.leaveForm.Emp_CODE || !this.leaveForm.Type_of_Leave) return;
 
     this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.leaveForm.Emp_CODE}/${this.leaveForm.Type_of_Leave}`)
-      .subscribe(res => {
-        this.remainingBalance.set(res.balance || 0);
+      .subscribe({
+        next: (res) => {
+          // SUM: Carry Forward + Current Session (e.g., 12 + 12 = 24)
+          const carryForward = Number(res.carry_forward || 0);
+          const currentSession = Number(res.current_balance || res.balance || 0);
+          
+          this.remainingBalance.set(carryForward + currentSession);
+        },
+        error: (err) => {
+          console.error("Error fetching balance", err);
+          this.remainingBalance.set(0);
+        }
       });
   }
 
@@ -98,21 +116,18 @@ export class AdminLeaveApplication implements OnInit {
   onSubmit() {
     const totalDays = this.leaveForm.Total_Days();
 
-    // 1. Validation: Sr No
     if (!this.leaveForm.sr_no) {
       alert("⚠️ Please enter a Serial Number (Sr. No.)");
       return;
     }
 
-    // 2. Validation: SL Document (Compulsory ONLY if > 3 days)
     if (this.leaveForm.Type_of_Leave === 'SL' && totalDays > 3 && !this.selectedFile()) {
       alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
       return;
     }
 
-    // 3. Validation: Balance
     if (totalDays > this.remainingBalance()) {
-      alert(`Insufficient Balance! You only have ${this.remainingBalance()} days left.`);
+      alert(`Insufficient Balance! You only have ${this.remainingBalance()} days available.`);
       return;
     }
 

@@ -66,7 +66,8 @@
               </div>
 
               <div class="col-md-12">
-                <div class="p-3 border rounded-3" [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light': true}">
+                <div class="p-3 border rounded-3" 
+                  [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light border-0': true}">
                   <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
                     <span>Upload Supporting Document</span>
                     @if (leaveForm.Type_of_Leave === 'SL') {
@@ -77,7 +78,7 @@
                       }
                     }
                   </label>
-                  <input type="file" class="form-control bg-white py-2" (change)="onFileSelected($event)" name="document">
+                  <input type="file" class="form-control bg-white py-2 shadow-none" (change)="onFileSelected($event)" name="document">
                   <div class="mt-2 small text-muted">
                     <i class="bi bi-info-circle me-1"></i>
                     Allowed: PDF, JPG, PNG. Mandatory for SL > 3 days.
@@ -86,8 +87,8 @@
               </div>
 
               <div class="col-12 mt-5">
-                <button type="submit" class="btn text-white w-100 py-3 rounded-pill fw-bold shadow-lg submit-btn-hover"
-                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); transition: transform 0.2s;">
+                <button type="submit" class="btn text-white w-100 py-3 rounded-pill fw-bold shadow-lg"
+                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
                   <i class="bi bi-check2-circle me-2"></i> Confirm and Submit Request
                 </button>
               </div>

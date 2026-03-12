@@ -174,7 +174,7 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
             const leaves = await Leave.find({
                 Emp_CODE: Number(empCode),
-                Status: 'Approved',
+                Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
                 $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
             }).lean();
 
@@ -188,49 +188,68 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
         // Helper: Get quota rule for a session
         const getRule = async (sessionName) => {
-            return await LeaveType.findOne({
-                leave_name: leaveTypeUpper,
-                dept_code: emp.dept_code,
-                staffType: emp.staffType,
+            const rules = await LeaveType.find({
+                staffType: emp.staffType || 'Teaching',
                 sessionName: sessionName
-            });
+            }).lean();
+            return rules.find(r => 
+                String(r.dept_code) === String(emp.dept_code) &&
+                r.leave_name && r.leave_name.toUpperCase().trim() === leaveTypeUpper.trim()
+            );
         };
 
         // --- CALCULATION ---
-
-        // CASE A: SL (Carry Forward Logic)
-        if (leaveTypeUpper === 'SL') {
-            let rollingBalance = 0;
-            for (let sess of allSessions) {
-                const rule = await getRule(sess.sessionName);
-                if (!rule) continue;
-
-                const limit = Number(rule.total_yearly_limit);
-                const used = await getUsedForSessionWindow(sess);
-
-                rollingBalance = (rollingBalance + limit) - used;
-                if (sess.sessionName === currentSessionName) break;
-            }
-            return res.json({ balance: Math.max(0, rollingBalance), isIncrementing: false });
-        }
 
         // CASE B: VAL / AL (Incrementing - Total History)
         if (['VAL', 'AL'].includes(leaveTypeUpper)) {
             const history = await Leave.find({
                 Emp_CODE: Number(empCode),
-                Status: 'Approved',
+                Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
                 $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
             }).lean();
             const total = history.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
             return res.json({ balance: total, isIncrementing: true });
         }
 
-        // CASE C: CL / DL / ML (Yearly Reset - Current Window Only)
-        const currentRule = await getRule(currentSessionName);
+        // CASE C & A: Carry Forward or Yearly Reset
+        const rules = await LeaveType.find({ staffType: emp.staffType || 'Teaching' }).lean();
+        const userRules = rules.filter(r => 
+            String(r.dept_code) === String(emp.dept_code) && 
+            r.leave_name && r.leave_name.toUpperCase().trim() === leaveTypeUpper
+        );
+        const currentRule = userRules.find(r => r.sessionName === currentSessionName);
         if (!currentRule) return res.json({ balance: 0 });
 
+        let limit = Number(currentRule.total_yearly_limit);
         const usedThisYear = await getUsedForSessionWindow(activeSession);
-        const limit = Number(currentRule.total_yearly_limit);
+
+        if (currentRule.can_carry_forward) {
+            const currentYearStart = parseInt(currentSessionName.split('-')[0]);
+            const pastRules = userRules.filter(r => parseInt(r.sessionName.split('-')[0]) < currentYearStart);
+            
+            let pastBalance = 0;
+            for (let pastRule of pastRules) {
+                const pastSessionObj = allSessions.find(s => s.sessionName === pastRule.sessionName);
+                let pastUsed = 0;
+                
+                // If the past session has actual start/endDate recorded, use it for robust matching
+                if (pastSessionObj) {
+                    pastUsed = await getUsedForSessionWindow(pastSessionObj);
+                } else {
+                    // Otherwise rely strictly on the sessionName label saved on the Leave document
+                    const leaves = await Leave.find({
+                        Emp_CODE: Number(empCode),
+                        Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
+                        $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }],
+                        sessionName: pastRule.sessionName
+                    }).lean();
+                    pastUsed = leaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+                }
+                
+                pastBalance += Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
+            }
+            limit += pastBalance;
+        }
 
         res.json({ balance: Math.max(0, limit - usedThisYear), isIncrementing: false });
 

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
-
+import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-apply-leave',
   standalone: true,
@@ -52,9 +52,19 @@ export class ApplyLeave implements OnInit {
   }
 
   fetchLeaveTypes() {
-    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
-      next: (data) => {
-        const unique = [...new Set(data.map(item => item.leave_name))];
+    forkJoin({
+      session: this.http.get<any>('http://localhost:5000/api/active-session'),
+      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
+    }).subscribe({
+      next: (res) => {
+        const currentSessionLabel = res.session.sessionName;
+        const applicableRules = res.rules.filter(r =>
+          String(r.dept_code) === String(this.staffData().dept_code) &&
+          r.staffType === (this.staffData().staffType || 'Teaching') &&
+          r.sessionName === currentSessionLabel
+        );
+
+        const unique = [...new Set(applicableRules.map(item => item.leave_name))];
         this.leaveTypes.set(unique);
         if (unique.length > 0) {
           this.leaveForm.Type_of_Leave = unique[0];
