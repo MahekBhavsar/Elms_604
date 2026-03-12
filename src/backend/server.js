@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema({
     "Password": { type: Number, required: true },
     "role": String,
     "department": String,
-    "dept_code": String,
+    "dept_code": Number,
     "staffType": { type: String, default: 'Teaching' }
 }, { collection: 'users', versionKey: false });
 const User = mongoose.model('User', userSchema);
@@ -55,7 +55,7 @@ const User = mongoose.model('User', userSchema);
 const leaveTypeSchema = new mongoose.Schema({
     leave_name: String,
     total_yearly_limit: Number,
-    dept_code: String,
+    dept_code: Number,
     staffType: String,
     can_carry_forward: { type: Boolean, default: false },
     sessionName: String // Links quota to a specific year
@@ -188,8 +188,15 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
         // Helper: Get quota rule for a session
         const getRule = async (sessionName) => {
+<<<<<<< HEAD
             const rules = await LeaveType.find({
                 staffType: emp.staffType || 'Teaching',
+=======
+            return await LeaveType.findOne({
+                leave_name: leaveTypeUpper,
+                dept_code: emp.dept_code,
+                staffType: emp.staffType || 'Teaching', // FIX: default to Teaching if undefined matching login
+>>>>>>> 29e78c4579f61a613090ea4eb32a17d9353da7c7
                 sessionName: sessionName
             }).lean();
             return rules.find(r => 
@@ -200,6 +207,14 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
         // --- CALCULATION ---
 
+<<<<<<< HEAD
+=======
+        // CASE A: SL (Carry Forward Logic)
+        // Per user requirements, carry-forward leaves should no longer automatically swell the dynamic limit.
+        // It should match the base database rule just like regular leaves.
+        // Thus, we skip explicit compounding history parsing for SL and let it drop down to CASE C.
+
+>>>>>>> 29e78c4579f61a613090ea4eb32a17d9353da7c7
         // CASE B: VAL / AL (Incrementing - Total History)
         if (['VAL', 'AL'].includes(leaveTypeUpper)) {
             const history = await Leave.find({

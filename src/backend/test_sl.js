@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+<<<<<<< HEAD
 mongoose.connect('mongodb://127.0.0.1:27017/employeeDB').then(async() => {
     const LeaveType = mongoose.model('L', new mongoose.Schema({}, {strict:false}), 'leave_types');
     const Leave = mongoose.model('LV', new mongoose.Schema({}, {strict:false}), 'leave_applications');
@@ -30,4 +31,20 @@ mongoose.connect('mongodb://127.0.0.1:27017/employeeDB').then(async() => {
     limit += pastBalance;
     console.log({finalLimit: limit, pastBalance});
     mongoose.disconnect();
+=======
+
+mongoose.connect('mongodb://127.0.0.1:27017/employeeDB').then(async () => {
+    const db = mongoose.connection.db;
+
+    const emp = await db.collection('users').findOne({"Employee Code": 104});
+    
+    const rules = await db.collection('leave_types').find({
+        leave_name: 'SL',
+        dept_code: emp.dept_code,
+        staffType: emp.staffType || 'Teaching'
+    }).toArray();
+
+    console.log("Found rules for SL:", rules);
+    process.exit(0);
+>>>>>>> 29e78c4579f61a613090ea4eb32a17d9353da7c7
 });
