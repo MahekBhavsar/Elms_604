@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema({
     "Password": { type: Number, required: true },
     "role": String,
     "department": String,
-    "dept_code": String,
+    "dept_code": Number,
     "staffType": { type: String, default: 'Teaching' }
 }, { collection: 'users', versionKey: false });
 const User = mongoose.model('User', userSchema);
@@ -55,7 +55,7 @@ const User = mongoose.model('User', userSchema);
 const leaveTypeSchema = new mongoose.Schema({
     leave_name: String,
     total_yearly_limit: Number,
-    dept_code: String,
+    dept_code: Number,
     staffType: String,
     can_carry_forward: { type: Boolean, default: false },
     sessionName: String // Links quota to a specific year
@@ -174,7 +174,7 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
 
             const leaves = await Leave.find({
                 Emp_CODE: Number(empCode),
-                Status: 'Approved',
+                Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
                 $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
             }).lean();
 
@@ -191,7 +191,7 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
             return await LeaveType.findOne({
                 leave_name: leaveTypeUpper,
                 dept_code: emp.dept_code,
-                staffType: emp.staffType,
+                staffType: emp.staffType || 'Teaching', // FIX: default to Teaching if undefined matching login
                 sessionName: sessionName
             });
         };
@@ -199,26 +199,15 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
         // --- CALCULATION ---
 
         // CASE A: SL (Carry Forward Logic)
-        if (leaveTypeUpper === 'SL') {
-            let rollingBalance = 0;
-            for (let sess of allSessions) {
-                const rule = await getRule(sess.sessionName);
-                if (!rule) continue;
-
-                const limit = Number(rule.total_yearly_limit);
-                const used = await getUsedForSessionWindow(sess);
-
-                rollingBalance = (rollingBalance + limit) - used;
-                if (sess.sessionName === currentSessionName) break;
-            }
-            return res.json({ balance: Math.max(0, rollingBalance), isIncrementing: false });
-        }
+        // Per user requirements, carry-forward leaves should no longer automatically swell the dynamic limit.
+        // It should match the base database rule just like regular leaves.
+        // Thus, we skip explicit compounding history parsing for SL and let it drop down to CASE C.
 
         // CASE B: VAL / AL (Incrementing - Total History)
         if (['VAL', 'AL'].includes(leaveTypeUpper)) {
             const history = await Leave.find({
                 Emp_CODE: Number(empCode),
-                Status: 'Approved',
+                Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
                 $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
             }).lean();
             const total = history.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
