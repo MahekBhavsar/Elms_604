@@ -13,10 +13,10 @@ import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 })
 export class ApplyLeave implements OnInit {
   staffData = signal<any>({});
-  remainingBalance = signal<number>(0);
+  displayValue = signal<number>(0); // Holds either Balance or Total Taken
+  isIncrementing = signal<boolean>(false); // True for VAL/AL
   activeSession = signal<string>(''); 
   selectedFile = signal<File | null>(null);
-  // NEW: Dynamic Leave Types
   leaveTypes = signal<any[]>([]);
   
   leaveForm = {
@@ -42,12 +42,10 @@ export class ApplyLeave implements OnInit {
       if (savedUser) {
         const user = JSON.parse(savedUser);
         this.staffData.set(user);
-        
         this.leaveForm.Emp_CODE = user.empCode;
         this.leaveForm.Name = user.name;
         this.leaveForm.Dept_Code = user.dept_code;
         this.leaveForm.Role = user.role;
-        
         this.fetchLeaveTypes();
       }
     }
@@ -56,7 +54,6 @@ export class ApplyLeave implements OnInit {
   fetchLeaveTypes() {
     this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
       next: (data) => {
-        // Filter unique names for the dropdown
         const unique = [...new Set(data.map(item => item.leave_name))];
         this.leaveTypes.set(unique);
         if (unique.length > 0) {
@@ -75,8 +72,10 @@ export class ApplyLeave implements OnInit {
     this.http.get<any>(`http://localhost:5000/api/leaves/balance/${empCode}/${type}`)
       .subscribe({
         next: (res) => {
-          this.remainingBalance.set(res.balance);
-          this.activeSession.set(res.sessionName); 
+          // res.balance will be 'Total Used' for VAL/AL and 'Remaining' for others
+          this.displayValue.set(res.balance);
+          this.isIncrementing.set(res.isIncrementing); 
+          this.activeSession.set(res.sessionName || 'Active'); 
         }
       });
   }
@@ -106,14 +105,15 @@ export class ApplyLeave implements OnInit {
       return;
     }
 
-    // UPDATED SL LOGIC: Compulsory ONLY if days > 3
+    // Medical proof check for SL > 3 days
     if (this.leaveForm.Type_of_Leave === 'SL' && days > 3 && !this.selectedFile()) {
       alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
       return;
     }
 
-    if (days > this.remainingBalance()) {
-      alert(`Insufficient Balance! Available: ${this.remainingBalance()} days.`);
+    // Only block submission if it's NOT an incrementing type (like CL/SL)
+    if (!this.isIncrementing() && days > this.displayValue()) {
+      alert(`Insufficient Balance! Available: ${this.displayValue()} days.`);
       return;
     }
 

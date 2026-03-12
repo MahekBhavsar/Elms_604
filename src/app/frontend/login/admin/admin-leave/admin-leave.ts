@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-admin-leave',
@@ -13,7 +15,6 @@ import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 export class AdminLeave implements OnInit {
   private allLeaves = signal<any[]>([]);
 
-  // Search & Filter Signals
   searchStaff = signal('');
   searchLeave = signal('');
   deptFilter = signal('');
@@ -25,44 +26,46 @@ export class AdminLeave implements OnInit {
   }
 
   fetchStaffAndLeaves() {
-    // 1. Fetch Staff List first
     this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
       next: (staffData) => {
-        // Create a quick lookup map of EmpCode -> Role
         const roleMap = new Map<number, string>();
         staffData.forEach(staff => {
           roleMap.set(staff['Employee Code'], staff.role || staff.Role || 'Staff');
         });
-
-        // 2. Fetch Leaves
         this.fetchLeaves(roleMap);
       },
-      error: (err) => console.error("Error fetching staff list for roles:", err)
+      error: (err) => console.error("Error fetching staff:", err)
     });
   }
 
   fetchLeaves(roleMap: Map<number, string>) {
     this.http.get<any[]>('http://localhost:5000/api/leaves/admin').subscribe({
       next: (data) => {
-        // Sort by Dept_Code initially for better organization
-        const sorted = data.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0));
+        if (data.length === 0) {
+          this.allLeaves.set([]);
+          return;
+        }
 
-        // Attach the real role from the users collection
-        const leavesWithRealRoles = sorted.map(leave => {
-          return {
+        // Create balance requests for every single leave item
+        const balanceRequests = data.map(leave => 
+          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${leave.Emp_CODE}/${leave['Type of Leave'] || leave.Type_of_Leave}`)
+          .pipe(catchError(() => of({ balance: 0, isIncrementing: false })))
+        );
+
+        forkJoin(balanceRequests).subscribe(balances => {
+          const enrichedLeaves = data.map((leave, index) => ({
             ...leave,
-            // If the database happens to have it, use it, else fallback to our live lookup
-            role: leave.role || leave.Role || roleMap.get(leave.Emp_CODE) || 'Staff'
-          };
+            role: leave.role || leave.Role || roleMap.get(leave.Emp_CODE) || 'Staff',
+            liveBalance: balances[index].balance,
+            isIncrementing: balances[index].isIncrementing
+          }));
+          
+          this.allLeaves.set(enrichedLeaves.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0)));
         });
-
-        this.allLeaves.set(leavesWithRealRoles);
-      },
-      error: (err) => console.error("Error fetching admin leaves:", err)
+      }
     });
   }
 
-  /** PERFECTED UNIFIED FILTER - Handles Search and Dept Code logic */
   private filteredLeaves = computed(() => {
     const staff = this.searchStaff().toLowerCase();
     const leave = this.searchLeave().toLowerCase();
@@ -71,80 +74,48 @@ export class AdminLeave implements OnInit {
     return this.allLeaves().filter(l => {
       const nameMatch = !staff || l.Name?.toLowerCase().includes(staff) || l.Emp_CODE?.toString().includes(staff);
       const leaveMatch = !leave || (l['Type of Leave'] || l.Type_of_Leave || '').toLowerCase().includes(leave);
-
-      // Fix: Handle dept_code string/number variations from DB
       const rowDept = (l.Dept_Code || l.dept_code || '').toString();
-      const deptMatch = !dept || rowDept === dept;
-
-      return nameMatch && leaveMatch && deptMatch;
+      return nameMatch && leaveMatch && (!dept || rowDept === dept);
     });
   });
 
-  /** 1. Awaiting HOD Approval (STRICT EXCLUSION) 
-   * Uses filteredLeaves() to respect search bar while excluding HODs and Direct Staff
-   */
   getPending = computed(() => {
     return this.filteredLeaves().filter(l => {
-      const isPending = l.Status === 'Pending';
-      // True if the leave skips HOD approval (HODs, Admins, dept 0, or no dept)
-      const roleStr = l.Role || l.role || '';
-      const roleLower = roleStr.toLowerCase();
-      const rowDept = l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code;
-      const isDirectToAdmin = roleLower === 'hod' || roleLower === 'admin' || rowDept === 0 || rowDept === "0" || rowDept === null || rowDept === undefined || rowDept === '';
-
-      // Pending AND is NOT direct to Admin
-      return isPending && !isDirectToAdmin;
+      const roleLower = (l.role || '').toLowerCase();
+      const rowDept = l.Dept_Code ?? l.dept_code;
+      const isDirect = roleLower === 'hod' || roleLower === 'admin' || [0, "0", null, undefined, ''].includes(rowDept);
+      return l.Status === 'Pending' && !isDirect;
     });
   });
 
-  /** 2. Action Required: Admin Decision (STRICT INCLUSION)
-   * Uses filteredLeaves() to respect search bar
-   */
   getHodApproved = computed(() => {
     return this.filteredLeaves().filter(l => {
       if (l.Status === 'HOD Approved') return true;
-
-      const isPending = l.Status === 'Pending';
-      // EXACT SAME LOGIC as getPending, guaranteeing mutual exclusion
-      const roleStr = l.Role || l.role || '';
-      const roleLower = roleStr.toLowerCase();
-      const rowDept = l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code;
-      const isDirectToAdmin = roleLower === 'hod' || roleLower === 'admin' || rowDept === 0 || rowDept === "0" || rowDept === null || rowDept === undefined || rowDept === '';
-
-      return isPending && isDirectToAdmin;
+      const roleLower = (l.role || '').toLowerCase();
+      const rowDept = l.Dept_Code ?? l.dept_code;
+      const isDirect = roleLower === 'hod' || roleLower === 'admin' || [0, "0", null, undefined, ''].includes(rowDept);
+      return l.Status === 'Pending' && isDirect;
     });
   });
 
-  /** 3. Processed History (Computed) 
-   * Uses filteredLeaves() to respect search bar
-   */
   getFinalProcessed = computed(() => {
-    return this.filteredLeaves().filter(l => l.Status === 'Approved' || l.Status === 'Rejected');
+    return this.filteredLeaves().filter(l => ['Approved', 'Rejected'].includes(l.Status));
   });
 
   processLeave(id: string, decision: 'Approved' | 'Rejected') {
     let remark = '';
     if (decision === 'Rejected') {
-      const input = prompt("Please enter the reason for rejection:");
-      if (input === null) return;
-      if (!input.trim()) {
-        alert("A rejection reason is required.");
-        return;
-      }
+      const input = prompt("Enter rejection reason:");
+      if (input === null || !input.trim()) return;
       remark = input.trim();
     }
 
-    if (confirm(`Are you sure you want to ${decision} this request?`)) {
-      this.http.post(`http://localhost:5000/api/leaves/process/${id}`, {
-        status: decision,
-        reason: remark
-      }).subscribe({
-        next: () => {
+    if (confirm(`Confirm ${decision}?`)) {
+      this.http.post(`http://localhost:5000/api/leaves/process/${id}`, { status: decision, reason: remark })
+        .subscribe(() => {
           alert(`Leave ${decision} successfully`);
           this.fetchStaffAndLeaves();
-        },
-        error: (err) => alert("Failed to process decision.")
-      });
+        });
     }
   }
 }

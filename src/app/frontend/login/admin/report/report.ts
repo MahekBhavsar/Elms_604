@@ -8,7 +8,7 @@ import { DisplayDatePipe } from '../../../../shared/pipes/display-date.pipe';
 @Component({
   selector: 'app-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminSidebar, UpperCasePipe, DatePipe, DisplayDatePipe],
+  imports: [CommonModule, FormsModule, AdminSidebar, DisplayDatePipe],
   templateUrl: './report.html',
   styleUrl: './report.css'
 })

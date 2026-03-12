@@ -13,13 +13,16 @@
                 <h6 class="mb-0 text-white-50">{{ staffData().role }} Portal</h6>
                 <h4 class="fw-bold mb-0">{{ staffData().name }}</h4> 
                 <div class="d-flex align-items-center gap-2">
-                   <small class="opacity-75">Balance: <strong>{{ remainingBalance() }} Days</strong></small>
+                   <small class="opacity-75">
+                    {{ isIncrementing() ? 'Total Taken:' : 'Remaining Balance:' }} 
+                    <strong>{{ displayValue() }} Days</strong>
+                   </small>
                    <span class="badge bg-white text-primary px-2 py-1" style="font-size: 0.7rem;">Session: {{ activeSession() }}</span>
                 </div>
               </div>
               <div class="ms-auto text-end">
                 <h1 class="display-4 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
-                <small class="text-uppercase fw-bold">Days</small>
+                <small class="text-uppercase fw-bold">Requesting</small>
               </div>
             </div>
           </div>
