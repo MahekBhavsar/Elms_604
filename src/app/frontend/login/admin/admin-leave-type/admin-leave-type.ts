@@ -21,13 +21,11 @@ export class AdminLeaveType implements OnInit {
   sessionsList = signal<any[]>([]); 
 
   availableDeptCodes = ['1', '2', '3', '4', '5', '6', '7'];
-  availableStaffTypes = ['Teaching', 'Peon', 'Other'];
 
   leaveLimit = {
     leave_name: '',
     total_yearly_limit: 0,
     dept_codes: [] as string[],
-    staffTypes: [] as string[],
     can_carry_forward: false 
   };
 
@@ -110,17 +108,15 @@ export class AdminLeaveType implements OnInit {
 
     const requests = [];
     for (const dept of this.leaveLimit.dept_codes) {
-      for (const type of this.leaveLimit.staffTypes) {
-        const payload = {
-          leave_name: name,
-          total_yearly_limit: this.leaveLimit.total_yearly_limit,
-          dept_code: dept,
-          staffType: type,
-          can_carry_forward: isIncrementing ? true : this.leaveLimit.can_carry_forward,
-          sessionName: session
-        };
-        requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
-      }
+      const payload = {
+        leave_name: name,
+        total_yearly_limit: this.leaveLimit.total_yearly_limit,
+        dept_code: dept,
+        staffType: 'All', // Default since it's no longer categorized
+        can_carry_forward: isIncrementing ? true : this.leaveLimit.can_carry_forward,
+        sessionName: session
+      };
+      requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
     }
 
     forkJoin(requests).subscribe({
@@ -142,15 +138,13 @@ export class AdminLeaveType implements OnInit {
       );
       if (existing) {
         if (!existing.all_depts.includes(item.dept_code)) existing.all_depts.push(item.dept_code);
-        if (!existing.all_categories.includes(item.staffType)) existing.all_categories.push(item.staffType);
       } else {
-        groups.push({ ...item, all_depts: [item.dept_code], all_categories: [item.staffType] });
+        groups.push({ ...item, all_depts: [item.dept_code] });
       }
     });
     return groups.map(g => ({
       ...g,
-      dept_display: g.all_depts.sort().join(', '),
-      category_display: g.all_categories.sort().join(', ')
+      dept_display: g.all_depts.sort().join(', ')
     }));
   });
 
@@ -160,7 +154,6 @@ export class AdminLeaveType implements OnInit {
       leave_name: group.leave_name,
       total_yearly_limit: group.total_yearly_limit,
       dept_codes: [...group.all_depts],
-      staffTypes: [...group.all_categories],
       can_carry_forward: group.can_carry_forward
     };
   }
@@ -175,7 +168,7 @@ export class AdminLeaveType implements OnInit {
     this.editingId.set(null);
     this.leaveLimit = {
       leave_name: '', total_yearly_limit: 0,
-      dept_codes: [], staffTypes: [], can_carry_forward: false
+      dept_codes: [], can_carry_forward: false
     };
   }
 }

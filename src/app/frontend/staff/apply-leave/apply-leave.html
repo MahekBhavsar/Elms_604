@@ -7,48 +7,65 @@
           <div class="card-body p-0">
             <div class="d-flex align-items-center bg-primary text-white p-4">
               <div class="me-4 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style="width: 65px; height: 65px;">
-                <i class="bi bi-person-badge fs-2"></i>
+                <i class="bi bi-person-workspace fs-2"></i>
               </div>
               <div>
-                <h6 class="mb-0 text-white-50">{{ staffData().role }} Portal</h6>
+                <h6 class="mb-0 text-white-50">{{ staffData().department }} | {{ staffData().staffType }}</h6>
                 <h4 class="fw-bold mb-0">{{ staffData().name }}</h4> 
-                <div class="d-flex align-items-center gap-2">
-                   <small class="opacity-75">
-                    {{ isIncrementing() ? 'Total Taken:' : 'Remaining Balance:' }} 
-                    <strong>{{ displayValue() }} Days</strong>
-                   </small>
-                   <span class="badge bg-white text-primary px-2 py-1" style="font-size: 0.7rem;">Session: {{ activeSession() }}</span>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                   <span class="badge bg-white text-primary">Session: {{ activeSession() }}</span>
+                   <small class="opacity-75">Code: {{ staffData().empCode }}</small>
                 </div>
               </div>
               <div class="ms-auto text-end">
-                <h1 class="display-4 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
-                <small class="text-uppercase fw-bold">Requesting</small>
+                <div class="bg-white bg-opacity-10 p-2 rounded-3">
+                    <h1 class="display-6 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
+                    <small class="text-uppercase fw-bold" style="font-size: 0.6rem;">Days Requested</small>
+                </div>
               </div>
+            </div>
+            
+            <div class="px-4 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <span class="small text-muted fw-bold">
+                    <i class="bi bi-info-circle me-1"></i>
+                    {{ leaveForm.Type_of_Leave }} Status:
+                </span>
+                <span [ngClass]="isIncrementing() ? 'text-primary' : 'text-success'" class="fw-bold">
+                    {{ displayValue() }} {{ isIncrementing() ? 'Days Taken' : 'Days Available' }}
+                </span>
             </div>
           </div>
         </div>
 
         <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white">
+          <h5 class="mb-4 fw-bold text-dark"><i class="bi bi-pencil-square me-2"></i>Apply New Leave</h5>
+          
           <form (ngSubmit)="onSubmit()">
             <div class="row g-4">
               
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Serial No. / Sr. No.</label>
-                <input type="text" class="form-control bg-light border-0 py-3 shadow-none" 
-                       [(ngModel)]="leaveForm.sr_no" name="sr_no" 
-                       placeholder="Enter Application Sr. No." required>
+                <label class="form-label small fw-bold text-muted text-uppercase">Application Sr. No.</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-hash"></i></span>
+                    <input type="text" class="form-control bg-light border-0 py-3 shadow-none" 
+                           [(ngModel)]="leaveForm.sr_no" name="sr_no" 
+                           placeholder="Ex: 2024/001" required>
+                </div>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Type of Leave</label>
-                <select class="form-select bg-light border-0 py-3 shadow-none" 
-                        [(ngModel)]="leaveForm.Type_of_Leave" 
-                        name="type" 
-                        (change)="fetchBalance()">
-                  @for (name of leaveTypes(); track name) {
-                    <option [value]="name">{{ name }}</option>
-                  }
-                </select>
+                <label class="form-label small fw-bold text-muted text-uppercase">Leave Type</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-calendar-event"></i></span>
+                    <select class="form-select bg-light border-0 py-3 shadow-none" 
+                            [(ngModel)]="leaveForm.Type_of_Leave" 
+                            name="type" 
+                            (change)="fetchBalance()">
+                      @for (name of leaveTypes(); track name) {
+                        <option [value]="name">{{ name }}</option>
+                      }
+                    </select>
+                </div>
               </div>
 
               <div class="col-md-6">
@@ -62,25 +79,28 @@
               </div>
 
               <div class="col-md-12">
-                <div class="p-3 border rounded-3" 
-                     [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light': true}">
-                  <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
-                    <span>Supporting Document</span>
+                <div class="p-3 border rounded-3 transition-all" 
+                     [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light border-0': leaveForm.Type_of_Leave !== 'SL' || leaveForm.Total_Days() <= 3}">
+                  <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-paperclip me-1"></i> Supporting Document</span>
                     @if (leaveForm.Type_of_Leave === 'SL') {
                       @if (leaveForm.Total_Days() > 3) {
-                        <span class="badge bg-danger">Medical Proof Compulsory</span>
+                        <span class="badge rounded-pill bg-danger animate__animated animate__pulse animate__infinite">Required: Medical Certificate</span>
                       } @else {
-                        <span class="badge bg-secondary">Proof Optional (<=3 days)</span>
+                        <span class="badge rounded-pill bg-secondary text-white">Optional for ≤ 3 days</span>
                       }
                     }
                   </label>
-                  <input type="file" class="form-control bg-white py-2" (change)="onFileSelected($event)" name="document">
+                  <input type="file" class="form-control bg-white py-2 shadow-sm" (change)="onFileSelected($event)" name="document">
+                  <div class="form-text mt-2 small">Upload PDF or Image (Max 2MB).</div>
                 </div>
               </div>
 
-              <div class="col-12 mt-5">
-                <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg">
-                  Submit Leave Request
+              <div class="col-12 mt-4">
+                <button type="submit" 
+                        [disabled]="!leaveForm.sr_no || leaveForm.Total_Days() === 0"
+                        class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg transform-hover">
+                  <i class="bi bi-send-fill me-2"></i> Submit Application
                 </button>
               </div>
             </div>

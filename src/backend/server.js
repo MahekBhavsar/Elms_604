@@ -150,72 +150,22 @@ app.get('/api/sessions/list', async (req, res) => {
 app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
     try {
         const { empCode, type } = req.params;
-        const leaveTypeUpper = type.toUpperCase();
+        const leaveTypeUpper = type.toUpperCase().trim();
 
-        // 1. Get the current active session (from Admin)
+        // 1. Get the current active session
         const activeSession = await Session.findOne().sort({ updatedAt: -1 });
-        if (!activeSession) return res.json({ balance: 0 });
+        if (!activeSession) return res.json({ balance: 0, error: "No active session set by admin" });
 
         const currentSessionName = activeSession.sessionName;
-        const sessionStart = new Date(activeSession.startDate);
-        const sessionEnd = new Date(activeSession.endDate);
 
+        // 2. Fetch User and ensure we have their dept_code as a String for safe comparison
         const emp = await User.findOne({ "Employee Code": Number(empCode) });
-        if (!emp) return res.json({ balance: 0 });
+        if (!emp) return res.json({ balance: 0, error: "User not found" });
+        
+        const userDept = String(emp.dept_code || '');
+        const userStaffType = emp.staffType || 'Teaching';
 
-        // 2. Get ALL sessions sorted chronologically to handle SL Carry Forward
-        const allSessions = await Session.find().sort({ startDate: 1 });
-
-        // Helper: Get used days for a specific session (Matching by Label OR Date Range)
-        const getUsedForSessionWindow = async (sessionObj) => {
-            const start = new Date(sessionObj.startDate);
-            const end = new Date(sessionObj.endDate);
-            const label = sessionObj.sessionName;
-
-            const leaves = await Leave.find({
-                Emp_CODE: Number(empCode),
-                Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
-                $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
-            }).lean();
-
-            return leaves.reduce((sum, l) => {
-                const leaveDate = new Date(l.From);
-                // Match if: has correct session label OR date falls within start/end dates
-                const isMatch = l.sessionName === label || (leaveDate >= start && leaveDate <= end);
-                return isMatch ? sum + (Number(l["Total Days"] || l.Total_Days) || 0) : sum;
-            }, 0);
-        };
-
-        // Helper: Get quota rule for a session
-        const getRule = async (sessionName) => {
-<<<<<<< HEAD
-            const rules = await LeaveType.find({
-                staffType: emp.staffType || 'Teaching',
-=======
-            return await LeaveType.findOne({
-                leave_name: leaveTypeUpper,
-                dept_code: emp.dept_code,
-                staffType: emp.staffType || 'Teaching', // FIX: default to Teaching if undefined matching login
->>>>>>> 29e78c4579f61a613090ea4eb32a17d9353da7c7
-                sessionName: sessionName
-            }).lean();
-            return rules.find(r => 
-                String(r.dept_code) === String(emp.dept_code) &&
-                r.leave_name && r.leave_name.toUpperCase().trim() === leaveTypeUpper.trim()
-            );
-        };
-
-        // --- CALCULATION ---
-
-<<<<<<< HEAD
-=======
-        // CASE A: SL (Carry Forward Logic)
-        // Per user requirements, carry-forward leaves should no longer automatically swell the dynamic limit.
-        // It should match the base database rule just like regular leaves.
-        // Thus, we skip explicit compounding history parsing for SL and let it drop down to CASE C.
-
->>>>>>> 29e78c4579f61a613090ea4eb32a17d9353da7c7
-        // CASE B: VAL / AL (Incrementing - Total History)
+        // 3. CASE A: VAL / AL (Incrementing - Total History across all sessions)
         if (['VAL', 'AL'].includes(leaveTypeUpper)) {
             const history = await Leave.find({
                 Emp_CODE: Number(empCode),
@@ -223,53 +173,92 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
                 $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
             }).lean();
             const total = history.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-            return res.json({ balance: total, isIncrementing: true });
+            return res.json({ balance: total, isIncrementing: true, sessionName: currentSessionName });
         }
 
-        // CASE C & A: Carry Forward or Yearly Reset
-        const rules = await LeaveType.find({ staffType: emp.staffType || 'Teaching' }).lean();
-        const userRules = rules.filter(r => 
-            String(r.dept_code) === String(emp.dept_code) && 
-            r.leave_name && r.leave_name.toUpperCase().trim() === leaveTypeUpper
+        // 4. Fetch ALL rules for this user's leave type to handle Current + Carry Forward
+        const allRulesForType = await LeaveType.find({ 
+            leave_name: leaveTypeUpper 
+        }).lean();
+
+        // Filter rules matching user's specific dept OR universal '0'
+        const userRules = allRulesForType.filter(r => 
+            String(r.dept_code) === userDept || String(r.dept_code) === '0'
         );
+
+        // Find the rule for the CURRENT session
         const currentRule = userRules.find(r => r.sessionName === currentSessionName);
-        if (!currentRule) return res.json({ balance: 0 });
-
-        let limit = Number(currentRule.total_yearly_limit);
-        const usedThisYear = await getUsedForSessionWindow(activeSession);
-
-        if (currentRule.can_carry_forward) {
-            const currentYearStart = parseInt(currentSessionName.split('-')[0]);
-            const pastRules = userRules.filter(r => parseInt(r.sessionName.split('-')[0]) < currentYearStart);
-            
-            let pastBalance = 0;
-            for (let pastRule of pastRules) {
-                const pastSessionObj = allSessions.find(s => s.sessionName === pastRule.sessionName);
-                let pastUsed = 0;
-                
-                // If the past session has actual start/endDate recorded, use it for robust matching
-                if (pastSessionObj) {
-                    pastUsed = await getUsedForSessionWindow(pastSessionObj);
-                } else {
-                    // Otherwise rely strictly on the sessionName label saved on the Leave document
-                    const leaves = await Leave.find({
-                        Emp_CODE: Number(empCode),
-                        Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
-                        $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }],
-                        sessionName: pastRule.sessionName
-                    }).lean();
-                    pastUsed = leaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-                }
-                
-                pastBalance += Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
-            }
-            limit += pastBalance;
+        
+        // If no rule exists for 2025-2026, it won't show!
+        if (!currentRule) {
+            return res.json({ 
+                balance: 0, 
+                isIncrementing: false, 
+                error: `No ${leaveTypeUpper} quota set for session ${currentSessionName}` 
+            });
         }
 
-        res.json({ balance: Math.max(0, limit - usedThisYear), isIncrementing: false });
+        // 5. Calculate used leaves in the CURRENT session
+        // We match by sessionName label to be 100% accurate to your DB table
+        const leavesThisSession = await Leave.find({
+            Emp_CODE: Number(empCode),
+            sessionName: currentSessionName,
+            Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
+            $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+        }).lean();
+
+        const usedThisYear = leavesThisSession.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+
+        // 6. Handle Carry Forward (SL / SAT)
+        let totalLimit = Number(currentRule.total_yearly_limit);
+        let carryForwardAmount = 0;
+        
+        if (currentRule.can_carry_forward) {
+            const currentYearStart = parseInt(currentSessionName.split('-')[0]); // e.g., 2025
+            
+            // Get rules from previous years (e.g., 2024)
+            const rawPastRules = userRules.filter(r => {
+                const rYear = parseInt(r.sessionName.split('-')[0]);
+                return rYear < currentYearStart;
+            });
+
+            // Deduplicate past rules so we don't multiply carry forward because of legacy staffTypes
+            const pastRulesMap = new Map();
+            rawPastRules.forEach(r => {
+                if (!pastRulesMap.has(r.sessionName)) {
+                    pastRulesMap.set(r.sessionName, r);
+                }
+            });
+            const pastRules = Array.from(pastRulesMap.values());
+
+            for (let pastRule of pastRules) {
+                const pastLeaves = await Leave.find({
+                    Emp_CODE: Number(empCode),
+                    sessionName: pastRule.sessionName,
+                    Status: { $in: ['Approved', 'Final Approved', 'HOD Approved'] }, // Only count approved for past carry-forward
+                    $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+                }).lean();
+
+                const pastUsed = pastLeaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+                const carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
+                totalLimit += carryAmount;
+                carryForwardAmount += carryAmount;
+            }
+        }
+
+        res.json({ 
+            balance: Math.max(0, totalLimit - usedThisYear), 
+            isIncrementing: false,
+            sessionName: currentSessionName,
+            limit: totalLimit,
+            carryForward: carryForwardAmount,
+            currentLimit: Number(currentRule.total_yearly_limit),
+            usedThisYear: usedThisYear
+        });
 
     } catch (err) {
-        res.status(500).send("Balance Calculation Error");
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 // Helper function to detect session from date strings like "6/18/2025"

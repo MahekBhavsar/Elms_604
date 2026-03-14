@@ -52,27 +52,39 @@ export class ApplyLeave implements OnInit {
   }
 
   fetchLeaveTypes() {
-    forkJoin({
-      session: this.http.get<any>('http://localhost:5000/api/active-session'),
-      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
-    }).subscribe({
-      next: (res) => {
-        const currentSessionLabel = res.session.sessionName;
-        const applicableRules = res.rules.filter(r =>
-          String(r.dept_code) === String(this.staffData().dept_code) &&
-          r.staffType === (this.staffData().staffType || 'Teaching') &&
-          r.sessionName === currentSessionLabel
-        );
+  forkJoin({
+    session: this.http.get<any>('http://localhost:5000/api/active-session'),
+    rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
+  }).subscribe({
+    next: (res) => {
+      const currentSessionLabel = res.session.sessionName;
+      const userDept = String(this.staffData().dept_code);
 
-        const unique = [...new Set(applicableRules.map(item => item.leave_name))];
-        this.leaveTypes.set(unique);
-        if (unique.length > 0) {
-          this.leaveForm.Type_of_Leave = unique[0];
-          this.fetchBalance();
+      // PERFECT FILTER: 
+      // 1. Must match Session
+      // 2. Match user's specific Dept OR match "0" (Universal/Others)
+      const applicableRules = res.rules.filter(r =>
+        r.sessionName === currentSessionLabel &&
+        (String(r.dept_code) === userDept || String(r.dept_code) === '0' || !r.dept_code)
+      );
+
+      // Sort alphabetically and remove duplicates
+      const uniqueNames = [...new Set(applicableRules.map(item => item.leave_name))].sort();
+      
+      this.leaveTypes.set(uniqueNames);
+      this.activeSession.set(currentSessionLabel);
+
+      if (uniqueNames.length > 0) {
+        // Only reset if current selection isn't in the new list
+        if (!uniqueNames.includes(this.leaveForm.Type_of_Leave)) {
+          this.leaveForm.Type_of_Leave = uniqueNames[0];
         }
+        this.fetchBalance();
       }
-    });
-  }
+    },
+    error: (err) => console.error("Error loading leave setup:", err)
+  });
+}
 
   fetchBalance() {
     const empCode = this.leaveForm.Emp_CODE;

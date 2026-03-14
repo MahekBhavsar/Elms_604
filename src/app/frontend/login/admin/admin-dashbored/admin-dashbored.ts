@@ -78,65 +78,55 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
         this.calculateSystemStats(res.leaves, res.staff, startDate, endDate);
 
         // 2. Calculate PERSONAL Admin Quotas (Like Staff Dash)
-        const myCurrentRules = res.rules.filter(r => 
+        const rawCurrentRules = res.rules.filter(r => 
           String(r.dept_code) === String(this.user.dept_code) && 
-          r.staffType === this.user.staffType &&
           r.sessionName === currentSessionLabel
         );
 
-        this.quotaCards = myCurrentRules.map(rule => {
-          const name = rule.leave_name.toUpperCase().trim();
-          const isCarryForward = !!rule.can_carry_forward;
-          const isIncrementing = ['VAL', 'AL'].includes(name);
-
-          const usedInCurrentWindow = res.leaves.filter(l => {
-            const isMine = l.Emp_CODE?.toString() === this.user.empCode?.toString();
-            const d = new Date(l.From || l.From_Date);
-            return isMine && this.getLeaveTypeName(l) === name && this.isApproved(l.Status) && (d >= startDate && d <= endDate);
-          }).reduce((sum, l) => sum + this.getDays(l), 0);
-
-          let remaining = 0;
-          let displayLimit = rule.total_yearly_limit;
-
-          if (isIncrementing) {
-            remaining = usedInCurrentWindow;
-          } else if (isCarryForward) {
-            const currentYearStart = parseInt(currentSessionLabel.split('-')[0]);
-            const pastBalance = res.rules
-              .filter(r => {
-                const rYear = parseInt(r.sessionName.split('-')[0]);
-                return r.leave_name.toUpperCase().trim() === name && 
-                       String(r.dept_code) === String(this.user.dept_code) && 
-                       r.staffType === this.user.staffType && rYear < currentYearStart;
-              })
-              .reduce((balance, pastRule) => {
-                const pastUsed = res.leaves.filter(l => 
-                  l.Emp_CODE?.toString() === this.user.empCode?.toString() &&
-                  this.getLeaveTypeName(l) === name && this.isApproved(l.Status) && 
-                  (l.sessionName === pastRule.sessionName)
-                ).reduce((s, l) => s + this.getDays(l), 0);
-                return balance + Math.max(0, pastRule.total_yearly_limit - pastUsed);
-              }, 0);
-
-            remaining = Math.max(0, (pastBalance + rule.total_yearly_limit) - usedInCurrentWindow);
-            displayLimit = pastBalance + rule.total_yearly_limit;
-          } else {
-            remaining = Math.max(0, rule.total_yearly_limit - usedInCurrentWindow);
+        const uniqueRulesMap = new Map();
+        rawCurrentRules.forEach(r => {
+          const name = r.leave_name.toUpperCase().trim();
+          if (!uniqueRulesMap.has(name)) {
+            uniqueRulesMap.set(name, r);
           }
-
-          return {
-            name,
-            limit: displayLimit,
-            remaining,
-            percent: isIncrementing ? 100 : (remaining / (displayLimit || 1)) * 100,
-            isIncrementing,
-            isCarryForward
-          };
         });
+        const myCurrentRules = Array.from(uniqueRulesMap.values());
 
-        this.dataReady = true;
-        this.cdr.detectChanges();
-        this.tryRenderCharts();
+        if (myCurrentRules.length === 0) {
+          this.dataReady = true;
+          this.cdr.detectChanges();
+          return;
+        }
+
+        const balanceRequests = myCurrentRules.map(r => 
+          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}`)
+        );
+
+        forkJoin(balanceRequests).subscribe(balances => {
+          this.quotaCards = myCurrentRules.map((rule, i) => {
+            const b = balances[i];
+            const name = rule.leave_name.toUpperCase().trim();
+            const isIncrementing = ['VAL', 'AL'].includes(name);
+            const used = b.usedThisYear || 0;
+            const limit = b.limit || 0;
+
+            return {
+                name,
+                limit: limit,
+                remaining: b.balance,
+                percent: limit > 0 ? (used / limit) * 100 : 0,
+                isIncrementing,
+                isCarryForward: rule.can_carry_forward,
+                carryForward: b.carryForward || 0,
+                currentLimit: b.currentLimit || rule.total_yearly_limit,
+                used: used
+            };
+          });
+
+          this.dataReady = true;
+          this.cdr.detectChanges();
+          this.tryRenderCharts();
+        });
       }
     });
   }

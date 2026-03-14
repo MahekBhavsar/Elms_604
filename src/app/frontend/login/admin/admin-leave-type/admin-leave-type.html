@@ -95,16 +95,7 @@
                 </div>
               </div>
 
-              <div class="mb-4">
-                <label class="form-label small fw-bold text-muted text-uppercase d-block mb-2">Staff Categories</label>
-                <div class="d-flex flex-wrap gap-2">
-                  @for (st of availableStaffTypes; track st) {
-                    <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
-                      [ngClass]="leaveLimit.staffTypes.includes(st) ? 'btn-primary' : 'btn-white text-muted'"
-                      (click)="toggleSelection(leaveLimit.staffTypes, st)">{{ st }}</button>
-                  }
-                </div>
-              </div>
+
 
               <button type="submit" class="btn btn-dark w-100 py-3 fw-bold rounded-3 shadow-sm">
                 Save for {{ activeSession().sessionName }}
@@ -122,7 +113,7 @@
               <thead class="bg-light border-bottom">
                 <tr class="small text-muted text-uppercase">
                   <th class="ps-4 py-3">Type</th>
-                  <th>Staff / Categories</th>
+                  <th>Departments</th>
                   <th class="text-center">Rule / Limit</th>
                   <th class="text-end pe-4">Actions</th>
                 </tr>
@@ -137,8 +128,7 @@
                     </span>
                   </td>
                   <td>
-                    <div class="small fw-medium text-dark">{{ group.category_display }}</div>
-                    <div class="text-muted" style="font-size: 0.7rem;">Depts: {{ group.dept_display }}</div>
+                    <div class="small fw-medium text-dark">Depts: {{ group.dept_display }}</div>
                   </td>
                   <td class="text-center">
                     @if (['VAL', 'AL'].includes(group.leave_name.toUpperCase())) {
