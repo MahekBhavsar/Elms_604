@@ -107,8 +107,21 @@ export class AdminLeaveApplication implements OnInit {
         this.leaveForm.Total_Days.set(0);
         return;
       }
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      
+      let days = 0;
+      const currentDate = new Date(start);
+      currentDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(end);
+      endDate.setHours(0, 0, 0, 0);
+
+      while (currentDate <= endDate) {
+        // 0 corresponds to Sunday in JavaScript
+        if (currentDate.getDay() !== 0) {
+          days++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
       this.leaveForm.Total_Days.set(days);
     }
   }

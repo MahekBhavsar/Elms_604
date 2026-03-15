@@ -272,12 +272,63 @@ function isDateInSession(dateStr, sessionLabel) {
     // Academic year: June (6) to March (3) of next year
     return (year === startYear && month >= 6) || (year === startYear + 1 && month <= 3);
 }
+
+// Ensure dates parse robustly into local time without UTC offset glitches
+function parseDateLocal(dateStr) {
+    if (!dateStr) return new Date(0);
+    if (dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        return new Date(parts[0], parts[1]-1, parts[2]);
+    } else if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        return new Date(parts[2], parts[0]-1, parts[1]);
+    }
+    return new Date(dateStr);
+}
+
 // 3. APPLY LEAVE
 app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
     try {
-        const { Type_of_Leave, Total_Days } = req.body;
+        const { Type_of_Leave, Total_Days, Emp_CODE, From, To, sr_no, Name, Dept_Code, Role } = req.body;
         
-        // --- SL DOCUMENT VALIDATION ---
+        // --- 1. OVERLAPPING DATE VALIDATION ---
+        const existingLeaves = await Leave.find({
+            Emp_CODE: Number(Emp_CODE),
+            Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] }
+        }).lean();
+
+        const newStart = parseDateLocal(From);
+        const newEnd = parseDateLocal(To);
+
+        for (let leave of existingLeaves) {
+            if (!leave.From || !leave.To) continue;
+            const existStart = parseDateLocal(leave.From);
+            const existEnd = parseDateLocal(leave.To);
+            
+            // Check for date range overlap
+            if (newStart <= existEnd && newEnd >= existStart) {
+                return res.status(400).json({
+                    success: false,
+                    error: `You already have a leave scheduled between ${leave.From} and ${leave.To}. Dates cannot overlap.`
+                });
+            }
+        }
+
+        // --- 2. SATURDAY LEAVE VALIDATION ---
+        if (Type_of_Leave?.toUpperCase() === 'SAT') {
+            let current = new Date(newStart);
+            while (current <= newEnd) {
+                if (current.getDay() !== 6) { // 6 = Saturday
+                    return res.status(400).json({
+                        success: false,
+                        error: "SAT leaves can only be applied on Saturdays. Please select valid Saturday dates."
+                    });
+                }
+                current.setDate(current.getDate() + 1);
+            }
+        }
+        
+        // --- 3. SL DOCUMENT VALIDATION ---
         if (Type_of_Leave?.toUpperCase() === 'SL' && Number(Total_Days) > 3 && !req.file) {
             return res.status(400).json({ 
                 success: false, 
@@ -288,13 +339,13 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
         const activeSession = await Session.findOne().sort({ updatedAt: -1 });
         
         const newLeave = new Leave({
-            sr_no: req.body.sr_no, // Saves manual Sr No from UI
-            Emp_CODE: Number(req.body.Emp_CODE),
-            Name: req.body.Name,
-            Dept_Code: Number(req.body.Dept_Code),
+            sr_no: sr_no, // Saves manual Sr No from UI
+            Emp_CODE: Number(Emp_CODE),
+            Name: Name,
+            Dept_Code: Number(Dept_Code),
             "Type of Leave": Type_of_Leave.toUpperCase(),
-            From: req.body.From,
-            To: req.body.To,
+            From: From,
+            To: To,
             "Total Days": Number(Total_Days),
             sessionName: activeSession?.sessionName || "2025-26",
             document: req.file ? req.file.filename : null,
