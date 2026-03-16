@@ -40,7 +40,7 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         this.user = JSON.parse(savedUser);
         this.fetchDashboardData();
@@ -50,14 +50,22 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
 
 fetchDashboardData() {
   this.dataReady = false;
+  const cachedSession = sessionStorage.getItem('activeSessionName');
+
   forkJoin({
     session: this.http.get<any>('http://localhost:5000/api/active-session'),
     rules: this.http.get<any[]>('http://localhost:5000/api/leave-types'),
     history: this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`)
   }).subscribe({
     next: (res) => {
-      this.activeSession = res.session;
-      const currentSessionLabel = res.session.sessionName; // e.g., "2025-2026"
+      const currentSessionLabel = cachedSession || res.session.sessionName;
+      this.activeSession = res.session; 
+      if (cachedSession && cachedSession !== res.session.sessionName) {
+        // Find matching session object from history or rules if possible, 
+        // but label is the most important
+        this.activeSession = { sessionName: currentSessionLabel };
+      }
+      sessionStorage.setItem('activeSessionName', currentSessionLabel);
 
       // 0. Calculate Session Stats for Charts
       const sessionHistory = res.history.filter((l: any) => l.sessionName === currentSessionLabel);
@@ -67,39 +75,42 @@ fetchDashboardData() {
         rejected: sessionHistory.filter((l: any) => l.Status?.toLowerCase().trim() === 'rejected').length
       };
 
-      // THE PERFECT FILTER
+      // 1. Filter rules for CURRENT session
       const rawCurrentRules = res.rules.filter(r => {
-        // 1. Session Match
         const isSessionMatch = r.sessionName === currentSessionLabel;
-
-        // 2. Dept Code Match (Handles String "1" vs Number 1)
         const userDept = String(this.user.dept_code || '');
         const ruleDept = String(r.dept_code || '');
         const isDeptMatch = userDept === ruleDept || ruleDept === '0';
-
         return isSessionMatch && isDeptMatch;
       });
 
-      // 3. Deduplicate by leave_name to prevent multiple cards
+      // 2. Deduplicate rules
       const uniqueRulesMap = new Map();
       rawCurrentRules.forEach(r => {
         const name = r.leave_name.toUpperCase().trim();
-        if (!uniqueRulesMap.has(name)) {
-          uniqueRulesMap.set(name, r);
-        }
+        if (!uniqueRulesMap.has(name)) uniqueRulesMap.set(name, r);
       });
-      const myCurrentRules = Array.from(uniqueRulesMap.values());
+      let myCurrentRules = Array.from(uniqueRulesMap.values());
 
-      // If no rules found, help the user understand why
+      // 3. Fallback: If no rules found for active session, show standard default set
+      if (myCurrentRules.length === 0 && currentSessionLabel && currentSessionLabel !== "Not Set") {
+        const defaultNames = ['CL', 'SL', 'AL', 'VAL', 'EL'];
+        myCurrentRules = defaultNames.map(name => ({
+          leave_name: name,
+          total_yearly_limit: 12,
+          can_carry_forward: ['SL', 'EL'].includes(name) // VAL is now false
+        }));
+      }
+
       if (myCurrentRules.length === 0) {
-        console.warn(`No rules found for Session: ${currentSessionLabel}, Dept: ${this.user.dept_code}`);
         this.dataReady = true;
         this.cdr.detectChanges();
         return;
       }
 
+      // 4. Fetch balances specifically for THIS session
       const balanceRequests = myCurrentRules.map(r => 
-        this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}`)
+        this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
       );
 
       forkJoin(balanceRequests).subscribe(balances => {
@@ -112,7 +123,7 @@ fetchDashboardData() {
 
              return {
                  name,
-                 limit: limit,
+                 limit: limit, // Synced from Backend
                  remaining: b.balance,
                  percent: limit > 0 ? (used / limit) * 100 : 0,
                  isIncrementing,

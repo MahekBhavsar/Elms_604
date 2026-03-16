@@ -22,9 +22,9 @@ export class HodLeaveApproved implements OnInit {
   ) { }
 
   ngOnInit() {
-    // Safely access localStorage only in the browser to avoid SSR errors
+    // Safely access sessionStorage only in the browser to avoid SSR errors
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         this.hodData = JSON.parse(savedUser);
         this.fetchLeaves();

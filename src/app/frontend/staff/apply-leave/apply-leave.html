@@ -78,6 +78,26 @@
                 <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.To" name="to" (change)="calculateDays()" required>
               </div>
 
+              @if (leaveForm.Type_of_Leave === 'VAL') {
+              <div class="col-md-12">
+                <div class="p-3 border border-warning rounded-3 bg-warning bg-opacity-10">
+                  <label class="form-label small fw-bold text-uppercase d-flex justify-content-between align-items-center text-warning-emphasis">
+                    <span><i class="bi bi-calendar2-check me-1"></i> 3 Working Dates During Vacation</span>
+                    <span class="badge rounded-pill bg-warning text-dark">Required for VAL</span>
+                  </label>
+                  <textarea class="form-control bg-white border-0 shadow-none" rows="3"
+                    name="VAL_working_dates"
+                    [(ngModel)]="leaveForm.VAL_working_dates"
+                    placeholder="e.g. 01-May-2025, 02-May-2025, 03-May-2025 (mention the 3 days you worked during vacation)"
+                    required></textarea>
+                  <div class="form-text mt-2 small text-warning-emphasis">
+                    <i class="bi bi-info-circle me-1"></i>
+                    VAL is granted only when you worked 3 days during a vacation period. Please mention those dates.
+                  </div>
+                </div>
+              </div>
+              }
+
               <div class="col-md-12">
                 <div class="p-3 border rounded-3 transition-all" 
                      [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light border-0': leaveForm.Type_of_Leave !== 'SL' || leaveForm.Total_Days() <= 3}">

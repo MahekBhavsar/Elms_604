@@ -19,7 +19,7 @@ export class Login {
   onLogin() {
     this.http.post('http://localhost:5000/login', this.loginForm).subscribe({
       next: (res: any) => {
-        localStorage.setItem('user', JSON.stringify(res));
+        sessionStorage.setItem('user', JSON.stringify(res));
 
         // Use exact role names from your MongoDB image (e.g., "Admin")
         if (res.role === 'Admin') {

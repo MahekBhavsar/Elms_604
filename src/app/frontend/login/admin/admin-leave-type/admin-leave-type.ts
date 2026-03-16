@@ -20,7 +20,7 @@ export class AdminLeaveType implements OnInit {
   activeSession = signal<any>({ sessionName: '', startDate: '', endDate: '' });
   sessionsList = signal<any[]>([]); 
 
-  availableDeptCodes = ['1', '2', '3', '4', '5', '6', '7'];
+  availableDeptCodes = ['0', '1', '2', '3', '4', '5', '6', '7'];
 
   leaveLimit = {
     leave_name: '',
@@ -37,11 +37,32 @@ export class AdminLeaveType implements OnInit {
     this.fetchLeaveTypes();
   }
 
-  // Load the current active session settings (with cache buster)
+  // Load the current active session settings
   fetchActiveSession() {
+    // 1. Check if we already have a session choice for this TAB
+    const cachedSession = sessionStorage.getItem('activeSessionName');
+    
     this.http.get<any>(`http://localhost:5000/api/active-session?t=${Date.now()}`).subscribe(res => {
       if (res && res.sessionName !== "Not Set") {
-        this.activeSession.set(res);
+        // If we have a cached choice, we fetch specifically THAT session details
+        // Otherwise use the global active one
+        const sessionToLoad = cachedSession || res.sessionName;
+        
+        if (sessionToLoad === res.sessionName) {
+           this.activeSession.set(res);
+           sessionStorage.setItem('activeSessionName', res.sessionName);
+        } else {
+           // Fetch the specific session by name
+           this.http.get<any[]>(`http://localhost:5000/api/sessions/all`).subscribe(list => {
+             const match = list.find(s => s.sessionName === sessionToLoad);
+             if (match) {
+               this.activeSession.set(match);
+             } else {
+               this.activeSession.set(res);
+               sessionStorage.setItem('activeSessionName', res.sessionName);
+             }
+           });
+        }
       }
     });
   }
@@ -60,6 +81,8 @@ export class AdminLeaveType implements OnInit {
       startDate: s.startDate,
       endDate: s.endDate
     });
+    sessionStorage.setItem('activeSessionName', s.sessionName);
+    this.fetchLeaveTypes(); // <--- Refresh data for new session
   }
 
   // Save or Update a Session and force it as the ACTIVE one
@@ -71,6 +94,7 @@ export class AdminLeaveType implements OnInit {
     this.http.post('http://localhost:5000/api/admin/set-session', this.activeSession()).subscribe({
       next: () => {
         alert(`✅ ${this.activeSession().sessionName} is now the Active Session!`);
+        sessionStorage.setItem('activeSessionName', this.activeSession().sessionName);
         this.loadAllSavedSessions(); 
         this.fetchLeaveTypes();    
       },
@@ -107,13 +131,15 @@ export class AdminLeaveType implements OnInit {
     }
 
     const requests = [];
-    for (const dept of this.leaveLimit.dept_codes) {
+    const codesToSave = this.leaveLimit.dept_codes.includes('0') ? ['0'] : this.leaveLimit.dept_codes;
+
+    for (const dept of codesToSave) {
       const payload = {
         leave_name: name,
         total_yearly_limit: this.leaveLimit.total_yearly_limit,
         dept_code: dept,
-        staffType: 'All', // Default since it's no longer categorized
-        can_carry_forward: isIncrementing ? true : this.leaveLimit.can_carry_forward,
+        staffType: 'All',
+        can_carry_forward: this.leaveLimit.can_carry_forward,
         sessionName: session
       };
       requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
@@ -134,7 +160,8 @@ export class AdminLeaveType implements OnInit {
       const existing = groups.find(g => 
         g.leave_name === item.leave_name && 
         g.total_yearly_limit === item.total_yearly_limit &&
-        g.sessionName === item.sessionName
+        g.sessionName === item.sessionName &&
+        g.can_carry_forward === item.can_carry_forward
       );
       if (existing) {
         if (!existing.all_depts.includes(item.dept_code)) existing.all_depts.push(item.dept_code);
@@ -144,7 +171,9 @@ export class AdminLeaveType implements OnInit {
     });
     return groups.map(g => ({
       ...g,
-      dept_display: g.all_depts.sort().join(', ')
+      dept_display: g.all_depts.includes(0) || g.all_depts.includes('0') 
+        ? 'All Departments' 
+        : g.all_depts.sort().join(', ')
     }));
   });
 

@@ -65,7 +65,7 @@ const LeaveType = mongoose.model('LeaveType', leaveTypeSchema);
 // 4. Leave Applications
 // 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
-    sr_no: String,        // <--- ADD THIS LINE
+    sr_no: String,
     Emp_CODE: Number,
     Name: String,
     Dept_Code: Number,
@@ -77,9 +77,20 @@ const leaveSchema = new mongoose.Schema({
     Status: { type: String, default: 'Pending' },
     HOD_Approved: { type: Boolean, default: false },
     Reject_Reason: String,
-    document: String
+    document: String,
+    VAL_working_dates: String  // 3 working dates required for VAL leave type
 }, { collection: 'leave_applications', versionKey: false });
 const Leave = mongoose.model('Leave', leaveSchema);
+
+// 5. Balance Adjustments (Manual edits by Admin)
+const balanceAdjustmentSchema = new mongoose.Schema({
+    empCode: Number,
+    leaveType: String,
+    sessionName: String,
+    adjustmentValue: Number, // The value the admin manually SETS as remaining
+    updatedAt: { type: Date, default: Date.now }
+}, { collection: 'balance_adjustments', versionKey: false });
+const BalanceAdjustment = mongoose.model('BalanceAdjustment', balanceAdjustmentSchema);
 
 // --- ROUTES ---
 
@@ -88,14 +99,40 @@ app.post('/api/admin/set-session', async (req, res) => {
     try {
         const { sessionName, startDate, endDate } = req.body;
 
-        // This ensures the single "Active" record is updated
+        // 1. Update/Create the session record
         await Session.findOneAndUpdate(
             {}, // Empty filter updates the first/only record
             { sessionName, startDate, endDate },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
+
+        // 2. AUTO-SEEDING LOGIC: If this session has no quotas, provide defaults
+        const existingQuotas = await LeaveType.countDocuments({ sessionName });
+        if (existingQuotas === 0) {
+            const defaultTypes = [
+                { name: 'CL', limit: 12, cf: false },
+                { name: 'SL', limit: 12, cf: true },
+                { name: 'AL', limit: 12, cf: false },
+                { name: 'VAL', limit: 12, cf: false },
+                { name: 'EL', limit: 12, cf: true }
+            ];
+
+            const seedData = defaultTypes.map(t => ({
+                leave_name: t.name,
+                total_yearly_limit: t.limit,
+                dept_code: 0, // Global/All
+                staffType: 'All',
+                can_carry_forward: t.cf,
+                sessionName: sessionName
+            }));
+
+            await LeaveType.insertMany(seedData);
+            console.log(`Auto-seeded default quotas for session: ${sessionName}`);
+        }
+
         res.json({ success: true });
     } catch (err) {
+        console.error("Session Set Error:", err);
         res.status(500).send(err);
     }
 });
@@ -107,17 +144,10 @@ app.get('/api/sessions/all', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Fetch sessions failed" }); }
 });
 
-// GET: The Single "Current" Active Session (First record or specialized flag)
+// GET: The Single "Current" Active Session (Sorted by LATEST activity)
 app.get('/api/active-session', async (req, res) => {
     try {
-        // Sort by updatedAt descending to get the one you last clicked "Save & Set Active"
         const session = await Session.findOne().sort({ updatedAt: -1 });
-        res.json(session || { sessionName: "Not Set" });
-    } catch (err) { res.status(500).send(err); }
-});
-app.get('/api/active-session', async (req, res) => {
-    try {
-        const session = await Session.findOne();
         res.json(session || { sessionName: "Not Set", startDate: "", endDate: "" });
     } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
 });
@@ -150,30 +180,60 @@ app.get('/api/sessions/list', async (req, res) => {
 app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
     try {
         const { empCode, type } = req.params;
+        const { sessionName: querySession } = req.query; // <--- ADDED: support for query param
+        const employeeCode = Number(empCode);
         const leaveTypeUpper = type.toUpperCase().trim();
 
-        // 1. Get the current active session
-        const activeSession = await Session.findOne().sort({ updatedAt: -1 });
-        if (!activeSession) return res.json({ balance: 0, error: "No active session set by admin" });
+        if (isNaN(employeeCode)) {
+            return res.status(400).json({ balance: 0, error: "Invalid Employee Code provided" });
+        }
 
-        const currentSessionName = activeSession.sessionName;
+        // 1. Get the session to use
+        let sessionToUse;
+        if (querySession) {
+            sessionToUse = querySession;
+        } else {
+            const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+            if (!activeSession) return res.json({ balance: 0, error: "No active session set by admin" });
+            sessionToUse = activeSession.sessionName;
+        }
+
+        const currentSessionName = sessionToUse;
 
         // 2. Fetch User and ensure we have their dept_code as a String for safe comparison
-        const emp = await User.findOne({ "Employee Code": Number(empCode) });
+        const emp = await User.findOne({ "Employee Code": employeeCode });
         if (!emp) return res.json({ balance: 0, error: "User not found" });
         
         const userDept = String(emp.dept_code || '');
         const userStaffType = emp.staffType || 'Teaching';
 
-        // 3. CASE A: VAL / AL (Incrementing - Total History across all sessions)
-        if (['VAL', 'AL'].includes(leaveTypeUpper)) {
+        // 3. CASE A: AL (Incrementing - Total History across all sessions)
+        // Note: EL and VAL are now removed from here to support yearly quotas
+        if (['AL'].includes(leaveTypeUpper)) {
             const history = await Leave.find({
-                Emp_CODE: Number(empCode),
+                Emp_CODE: employeeCode,
                 Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
                 $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
             }).lean();
             const total = history.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-            return res.json({ balance: total, isIncrementing: true, sessionName: currentSessionName });
+            
+            // Check for manual adjustments (even for VAL/AL)
+            const manualAdjustment = await BalanceAdjustment.findOne({
+                empCode: employeeCode,
+                leaveType: leaveTypeUpper,
+                sessionName: currentSessionName
+            }).lean();
+
+            const finalTotal = manualAdjustment ? manualAdjustment.adjustmentValue : total;
+
+            return res.json({ 
+                balance: finalTotal, 
+                isIncrementing: true, 
+                sessionName: currentSessionName,
+                isManuallyAdjusted: !!manualAdjustment,
+                usedThisYear: total, // For incrementing, 'used' is the total accumulated
+                limit: '-' // No limit for incrementing types usually
+            });
         }
 
         // 4. Fetch ALL rules for this user's leave type to handle Current + Carry Forward
@@ -186,22 +246,24 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
             String(r.dept_code) === userDept || String(r.dept_code) === '0'
         );
 
-        // Find the rule for the CURRENT session
-        const currentRule = userRules.find(r => r.sessionName === currentSessionName);
+        // Find the rule for the target session
+        let currentRule = userRules.find(r => r.sessionName === currentSessionName);
         
-        // If no rule exists for 2025-2026, it won't show!
+        // --- DEFAULT 12-DAY LOGIC ---
+        // If no explicit rule is found, we fall back to a default limit of 12 (as requested)
         if (!currentRule) {
-            return res.json({ 
-                balance: 0, 
-                isIncrementing: false, 
-                error: `No ${leaveTypeUpper} quota set for session ${currentSessionName}` 
-            });
+            currentRule = {
+                leave_name: leaveTypeUpper,
+                total_yearly_limit: 12,
+                can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'), // Only SL/EL
+                sessionName: currentSessionName
+            };
         }
 
         // 5. Calculate used leaves in the CURRENT session
         // We match by sessionName label to be 100% accurate to your DB table
         const leavesThisSession = await Leave.find({
-            Emp_CODE: Number(empCode),
+            Emp_CODE: employeeCode,
             sessionName: currentSessionName,
             Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
             $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
@@ -232,28 +294,59 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
             const pastRules = Array.from(pastRulesMap.values());
 
             for (let pastRule of pastRules) {
-                const pastLeaves = await Leave.find({
-                    Emp_CODE: Number(empCode),
-                    sessionName: pastRule.sessionName,
-                    Status: { $in: ['Approved', 'Final Approved', 'HOD Approved'] }, // Only count approved for past carry-forward
-                    $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+                // Check if there was a manual adjustment for this specific past year
+                const pastAdjustment = await BalanceAdjustment.findOne({
+                    empCode: Number(empCode),
+                    leaveType: leaveTypeUpper,
+                    sessionName: pastRule.sessionName
                 }).lean();
 
-                const pastUsed = pastLeaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-                const carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
+                let carryAmount = 0;
+                if (pastAdjustment) {
+                    // If manually adjusted, that value IS the remainder for that year
+                    carryAmount = Number(pastAdjustment.adjustmentValue);
+                } else {
+                    const pastLeaves = await Leave.find({
+                        Emp_CODE: Number(empCode),
+                        sessionName: pastRule.sessionName,
+                        Status: { $in: ['Approved', 'Final Approved', 'HOD Approved'] },
+                        $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+                    }).lean();
+
+                    const pastUsed = pastLeaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+                    carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
+                }
+                
                 totalLimit += carryAmount;
                 carryForwardAmount += carryAmount;
             }
         }
 
+        // 7. Check for manual adjustments
+        const manualAdjustment = await BalanceAdjustment.findOne({
+            empCode: employeeCode,
+            leaveType: leaveTypeUpper,
+            sessionName: currentSessionName
+        }).lean();
+
+        let finalBalance = Math.max(0, totalLimit - usedThisYear);
+        let finalLimit = totalLimit;
+
+        if (manualAdjustment) {
+            finalBalance = manualAdjustment.adjustmentValue;
+            // Sync limit so that Used + Remaining = Limit (Perfect Math for UI)
+            finalLimit = finalBalance + usedThisYear;
+        }
+
         res.json({ 
-            balance: Math.max(0, totalLimit - usedThisYear), 
+            balance: finalBalance, 
             isIncrementing: false,
             sessionName: currentSessionName,
-            limit: totalLimit,
+            limit: finalLimit, // <--- Synced
             carryForward: carryForwardAmount,
             currentLimit: Number(currentRule.total_yearly_limit),
-            usedThisYear: usedThisYear
+            usedThisYear: usedThisYear,
+            isManuallyAdjusted: !!manualAdjustment
         });
 
     } catch (err) {
@@ -289,7 +382,15 @@ function parseDateLocal(dateStr) {
 // 3. APPLY LEAVE
 app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
     try {
-        const { Type_of_Leave, Total_Days, Emp_CODE, From, To, sr_no, Name, Dept_Code, Role } = req.body;
+        const { Type_of_Leave, Total_Days, Emp_CODE, From, To, sr_no, Name, Dept_Code, Role, VAL_working_dates } = req.body;
+
+        // --- VAL WORKING DATES VALIDATION ---
+        if (Type_of_Leave?.toUpperCase() === 'VAL' && !VAL_working_dates?.trim()) {
+            return res.status(400).json({
+                success: false,
+                error: "Please mention the 3 working dates during vacation for VAL leave."
+            });
+        }
         
         // --- 1. OVERLAPPING DATE VALIDATION ---
         const existingLeaves = await Leave.find({
@@ -339,7 +440,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
         const activeSession = await Session.findOne().sort({ updatedAt: -1 });
         
         const newLeave = new Leave({
-            sr_no: sr_no, // Saves manual Sr No from UI
+            sr_no: sr_no,
             Emp_CODE: Number(Emp_CODE),
             Name: Name,
             Dept_Code: Number(Dept_Code),
@@ -349,7 +450,8 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             "Total Days": Number(Total_Days),
             sessionName: activeSession?.sessionName || "2025-26",
             document: req.file ? req.file.filename : null,
-            Status: 'Pending' 
+            Status: 'Pending',
+            VAL_working_dates: Type_of_Leave?.toUpperCase() === 'VAL' ? VAL_working_dates?.trim() : undefined
         });
 
         await newLeave.save();
@@ -373,7 +475,7 @@ app.post('/api/leave-types/set', async (req, res) => {
         const updatedType = await LeaveType.findOneAndUpdate(
             query,
             { total_yearly_limit: Number(total_yearly_limit), can_carry_forward },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
         res.json({ success: true, data: updatedType });
     } catch (err) { res.status(500).json({ success: false, error: "Database save failed" }); }
@@ -393,6 +495,30 @@ app.post('/api/leaves/process/:id', async (req, res) => {
     if (status === 'Rejected' && reason) updateData.Reject_Reason = reason;
     const updated = await Leave.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json({ success: true, data: updated });
+});
+
+// 6. MANUAL BALANCE ADJUSTMENT
+app.post('/api/leaves/adjust-balance', async (req, res) => {
+    try {
+        const { empCode, leaveType, sessionName, adjustmentValue } = req.body;
+        
+        const query = {
+            empCode: Number(empCode),
+            leaveType: leaveType.toUpperCase(),
+            sessionName: sessionName
+        };
+
+        const updated = await BalanceAdjustment.findOneAndUpdate(
+            query,
+            { adjustmentValue: Number(adjustmentValue), updatedAt: new Date() },
+            { upsert: true, returnDocument: 'after' }
+        );
+        
+        res.json({ success: true, data: updated });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: "Adjustment failed" });
+    }
 });
 
 // 6. LOGIN & STAFF MANAGEMENT

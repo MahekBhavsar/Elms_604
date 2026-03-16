@@ -19,37 +19,57 @@
       </button>
     </div>
 
+    <!-- Tab Navigation -->
     <div class="nav nav-pills bg-white p-2 rounded-4 shadow-sm mb-4 gap-2">
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'staff' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'staff' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
-        (click)="activeTab.set('staff')">
+        (click)="onTabChange('staff')">
         <i class="bi bi-people-fill me-2"></i>Staff Directory
       </button>
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'logs' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'logs' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
-        (click)="activeTab.set('logs')">
+        (click)="onTabChange('logs')">
         <i class="bi bi-calendar2-week-fill me-2"></i>Leave History
       </button>
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'configs' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'configs' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
-        (click)="activeTab.set('configs')">
+        (click)="onTabChange('configs')">
         <i class="bi bi-gear-fill me-2"></i>Leave Quotas
+      </button>
+      <button class="nav-link py-3 flex-fill fw-bold rounded-3"
+        [ngClass]="activeTab() === 'balance' ? 'text-white' : 'text-muted'"
+        [style.background]="activeTab() === 'balance' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
+        (click)="onTabChange('balance')">
+        <i class="bi bi-wallet2 me-2"></i>Balance Summary
       </button>
     </div>
 
+    <!-- Filters Card -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
         <div class="row g-3">
-          <div class="col-md-8">
+          <div class="col-md-3">
+            <div class="input-group border border-2 rounded-3 bg-light p-1" style="border-color: rgba(30, 60, 114, 0.1) !important;">
+              <span class="input-group-text bg-transparent border-0"><i class="bi bi-calendar3" style="color: #2a5298;"></i></span>
+              <select class="form-select bg-transparent border-0 shadow-none fw-bold text-primary" 
+                      [ngModel]="selectedSession()" 
+                      (ngModelChange)="onSessionChange($event)">
+                @for (sess of availableSessions(); track sess) {
+                  <option [value]="sess">{{ sess }} Session</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="col-md-5">
             <div class="input-group border border-2 rounded-3 bg-light p-1"
               style="border-color: rgba(30, 60, 114, 0.1) !important;">
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"
                   style="color: #2a5298;"></i></span>
               <input type="text" class="form-control bg-transparent border-0 shadow-none"
-                placeholder="Search by name, ID or leave type..." [ngModel]="searchTerm()"
+                placeholder="Search staff, code or type..." [ngModel]="searchTerm()"
                 (ngModelChange)="searchTerm.set($event)">
             </div>
           </div>
@@ -88,11 +108,10 @@
       </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white"
-      style="transition: transform 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;">
+    <!-- ===== TAB: Staff Directory ===== -->
+    @if (activeTab() === 'staff') {
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
       <div class="table-responsive">
-
-        @if (activeTab() === 'staff') {
         <table class="table table-hover align-middle mb-0">
           <thead class="border-bottom" style="background-color: #f8f9fa;">
             <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
@@ -116,53 +135,89 @@
                   {{ s.department }} ({{ s.dept_code || s.Dept_Code }})
                 </span>
               </td>
-              <td><span class="badge bg-light text-secondary border px-2 py-1 small fw-bold">{{ s.role | uppercase
-                  }}</span></td>
+              <td><span class="badge bg-light text-secondary border px-2 py-1 small fw-bold">{{ s.role | uppercase }}</span></td>
               <td class="text-end pe-4 small text-muted">{{ s.Email }}</td>
             </tr>
             }
           </tbody>
         </table>
-        }
+      </div>
+    </div>
+    }
 
-        @if (activeTab() === 'logs') {
-        <table class="table table-hover align-middle mb-0">
-          <thead class="border-bottom" style="background-color: #f8f9fa;">
-            <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-              <th class="ps-4 py-4 border-0">Staff Name</th>
-              <th class="border-0">Leave Period</th>
-              <th class="border-0">Category</th>
-              <th class="text-center border-0">Days</th>
-              <th class="text-end pe-4 border-0">Status</th>
-            </tr>
-          </thead>
-          <tbody class="border-top-0">
-            @for (l of filteredLogs(); track l._id) {
-            <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
-              onmouseout="this.style.backgroundColor='transparent'">
-              <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
-              <td class="text-secondary fw-medium">{{ l.From | displayDate }} - <br> {{ l.To | displayDate }}</td>
-              <td><span class="badge px-3 py-2 border shadow-sm"
-                  style="background: rgba(30, 60, 114, 0.05); color: #1e3c72; border-color: rgba(30, 60, 114, 0.1) !important;">{{
-                  l['Type of Leave'] || l.Type_of_Leave }}</span></td>
-              <td class="text-center fw-bold fs-6" style="color: #1e3c72;">{{ l.Total_Days || l['Total Days'] }}</td>
-              <td class="text-end pe-4">
-                <span class="badge rounded-pill px-4 py-2 fw-bold shadow-sm"
-                  [ngClass]="l.Status === 'Approved' ? 'bg-success text-white' : 'bg-warning text-dark'">
-                  {{ l.Status | uppercase }}
-                </span>
-              </td>
-            </tr>
-            }
-          </tbody>
-        </table>
-        }
+    <!-- ===== TAB: Leave History — Grouped by Category ===== -->
+    @if (activeTab() === 'logs') {
+    <div class="d-flex flex-column gap-4">
+      @if (logsGroupedByCategory().length === 0) {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
+          <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>No leave records found.
+        </div>
+      }
+      @for (group of logsGroupedByCategory(); track group.category) {
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <!-- Category Header -->
+        <div class="d-flex align-items-center justify-content-between p-3 px-4"
+          style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+          <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-white fw-bold px-3 py-2 rounded-pill fs-6" style="color: #1e3c72;">
+              {{ group.category }}
+            </span>
+            <span class="text-white fw-semibold">{{ group.applications.length }} Application(s)</span>
+          </div>
+          <span class="badge bg-white bg-opacity-20 text-white fw-bold px-3 py-2 rounded-pill border border-white border-opacity-25">
+            <i class="bi bi-calendar-check me-1"></i>Total: {{ group.totalDays }} Days
+          </span>
+        </div>
+        <!-- Applications Table for this category -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 bg-white">
+            <thead style="background-color: #f8f9fa;">
+              <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
+                <th class="ps-4 py-3 border-0">Staff Name</th>
+                <th class="py-3 border-0">Dept</th>
+                <th class="py-3 border-0">Leave Period</th>
+                <th class="text-center py-3 border-0">Days</th>
+                <th class="text-end pe-4 py-3 border-0">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of group.applications; track l._id) {
+              <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
+                style="transition: background-color 0.2s;">
+                <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
+                <td class="text-secondary small">{{ l.Dept_Code || l.dept_code }}</td>
+                <td class="text-secondary fw-medium small">{{ l.From | displayDate }} → {{ l.To | displayDate }}</td>
+                <td class="text-center fw-bold fs-6" style="color: #1e3c72;">{{ l['Total Days'] || l.Total_Days }}</td>
+                <td class="text-end pe-4">
+                  <span class="badge rounded-pill px-3 py-2 fw-bold"
+                    [ngClass]="{
+                      'bg-success text-white': l.Status === 'Final Approved' || l.Status === 'Approved',
+                      'bg-info text-white':    l.Status === 'HOD Approved',
+                      'bg-warning text-dark':  l.Status === 'Pending',
+                      'bg-danger text-white':  l.Status === 'Rejected'
+                    }">
+                    {{ l.Status | uppercase }}
+                  </span>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      }
+    </div>
+    }
 
-        @if (activeTab() === 'configs') {
+    <!-- ===== TAB: Leave Quotas ===== -->
+    @if (activeTab() === 'configs') {
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+      <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="border-bottom" style="background-color: #f8f9fa;">
             <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
               <th class="ps-4 py-4 border-0">Leave Name</th>
+              <th class="border-0">Session</th>
               <th class="border-0">Target Dept Code</th>
               <th class="text-center border-0">Assigned Dept Name</th>
               <th class="text-end pe-4 border-0">Yearly Quota</th>
@@ -173,8 +228,8 @@
             <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
               onmouseout="this.style.backgroundColor='transparent'">
               <td class="ps-4 py-3"><span class="badge text-white px-3 py-2 shadow-sm rounded-3"
-                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">{{ c.leave_name | uppercase
-                  }}</span></td>
+                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">{{ c.leave_name | uppercase }}</span></td>
+              <td class="text-secondary small">{{ c.sessionName || '—' }}</td>
               <td class="fw-bold fs-5" style="color: #1e3c72;">{{ c.dept_code || 'ALL' }}</td>
               <td class="text-center text-secondary fw-medium">{{ getDeptName()(c.dept_code) }}</td>
               <td class="text-end pe-4 fw-bold fs-5" style="color: #1e3c72;">{{ c.total_yearly_limit }} Days</td>
@@ -182,9 +237,100 @@
             }
           </tbody>
         </table>
-        }
-
       </div>
     </div>
+    }
+
+    <!-- ===== TAB: Balance Summary ===== -->
+    @if (activeTab() === 'balance') {
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+
+      @if (balanceLoading()) {
+        <div class="text-center py-5 text-muted">
+          <div class="spinner-border text-primary mb-3" role="status"></div>
+          <p class="mb-0 fw-semibold">Loading balance summary for all staff...</p>
+        </div>
+      } @else {
+        <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
+          <h6 class="fw-bold text-dark mb-0">
+            <i class="bi bi-wallet2 me-2 text-primary"></i>
+            Remaining Leave Balance Summary
+          </h6>
+          <button class="btn btn-sm btn-outline-primary rounded-pill px-3" (click)="loadBalanceSummary()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead style="background-color: #f8f9fa;">
+              <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
+                <th class="ps-4 py-3 border-0">Staff</th>
+                <th class="py-3 border-0">Dept</th>
+                @for (name of leaveNames; track name) {
+                <th class="text-center py-3 border-0">{{ name }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of staffBalanceSummary(); track s.empCode) {
+              <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
+                style="transition: background-color 0.2s;">
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">{{ s.name }}</div>
+                  <small class="text-muted">Code: {{ s.empCode }}</small>
+                </td>
+                <td class="text-secondary small">{{ s.dept }}</td>
+                @for (name of leaveNames; track name) {
+                  @let bal = getBalance(s.balances, name);
+                  <td class="text-center py-3">
+                    @if (editingBalance()?.empCode === s.empCode && editingBalance()?.leave === name) {
+                      <div class="d-flex align-items-center justify-content-center gap-1">
+                        <input type="number" class="form-control form-control-sm border-primary shadow-none text-center" 
+                          style="width: 60px;" [(ngModel)]="newBalanceValue">
+                        <button class="btn btn-sm btn-success p-1 lh-1 rounded-pill" (click)="saveAdjustment(s, name)">
+                          <i class="bi bi-check-lg"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light p-1 lh-1 rounded-pill border" (click)="cancelEdit()">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                    } @else {
+                      <div class="d-flex flex-column align-items-center gap-1 group-hover-edit">
+                        <!-- Used / Limit Info -->
+                        <div class="small text-muted mb-1" style="font-size: 0.75rem;">
+                          {{ bal.used }} / {{ bal.limit }}
+                        </div>
+
+                        <!-- Remaining Badge -->
+                        <div class="d-flex align-items-center gap-2">
+                          @if (bal.isIncrementing) {
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold small"
+                              [style.border]="bal.isManuallyAdjusted ? '1px dashed #1e3c72' : 'none'">
+                              {{ bal.balance }} Accumulated
+                            </span>
+                          } @else {
+                            <span class="badge px-3 py-2 rounded-pill fw-bold small"
+                              [style.border]="bal.isManuallyAdjusted ? '1px dashed currentColor' : 'none'"
+                              [ngClass]="bal.balance <= 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'">
+                              {{ bal.balance }} Left
+                            </span>
+                          }
+                          <button class="btn btn-link btn-sm p-0 text-muted opacity-50 edit-icon" (click)="startEdit(s, name, bal.balance)">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </td>
+                }
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+    }
+
   </div>
 </app-admin-sidebar>

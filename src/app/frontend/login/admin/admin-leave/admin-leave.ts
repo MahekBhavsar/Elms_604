@@ -18,11 +18,27 @@ export class AdminLeave implements OnInit {
   searchStaff = signal('');
   searchLeave = signal('');
   deptFilter = signal('');
+  activeSessionName = signal('');
 
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
+    this.initializeSession();
     this.fetchStaffAndLeaves();
+  }
+
+  initializeSession() {
+    const cached = sessionStorage.getItem('activeSessionName');
+    if (cached) {
+      this.activeSessionName.set(cached);
+    } else {
+      this.http.get<any>('http://localhost:5000/api/active-session').subscribe(res => {
+        if (res && res.sessionName && res.sessionName !== "Not Set") {
+          this.activeSessionName.set(res.sessionName);
+          sessionStorage.setItem('activeSessionName', res.sessionName);
+        }
+      });
+    }
   }
 
   fetchStaffAndLeaves() {
@@ -47,8 +63,9 @@ export class AdminLeave implements OnInit {
         }
 
         // Create balance requests for every single leave item
+        const session = this.activeSessionName() || 'Active';
         const balanceRequests = data.map(leave => 
-          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${leave.Emp_CODE}/${leave['Type of Leave'] || leave.Type_of_Leave}`)
+          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${leave.Emp_CODE}/${leave['Type of Leave'] || leave.Type_of_Leave}?sessionName=${session}`)
           .pipe(catchError(() => of({ balance: 0, isIncrementing: false })))
         );
 

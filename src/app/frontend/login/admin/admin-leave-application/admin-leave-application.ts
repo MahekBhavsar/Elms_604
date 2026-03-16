@@ -27,7 +27,8 @@ export class AdminLeaveApplication implements OnInit {
     From: '',
     To: '',
     Total_Days: signal(0),
-    Role: ''
+    Role: '',
+    VAL_working_dates: ''
   };
 
   constructor(
@@ -37,7 +38,7 @@ export class AdminLeaveApplication implements OnInit {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         const user = JSON.parse(savedUser);
         this.staffData.set(user);
@@ -134,6 +135,12 @@ export class AdminLeaveApplication implements OnInit {
       return;
     }
 
+    // VAL working dates check
+    if (this.leaveForm.Type_of_Leave === 'VAL' && !this.leaveForm.VAL_working_dates.trim()) {
+      alert("⚠️ Please mention the 3 working dates during vacation for VAL leave.");
+      return;
+    }
+
     if (this.leaveForm.Type_of_Leave === 'SL' && totalDays > 3 && !this.selectedFile()) {
       alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
       return;
@@ -154,6 +161,9 @@ export class AdminLeaveApplication implements OnInit {
     formData.append('To', this.leaveForm.To);
     formData.append('Total_Days', String(totalDays));
     formData.append('Role', this.leaveForm.Role);
+    if (this.leaveForm.Type_of_Leave === 'VAL') {
+      formData.append('VAL_working_dates', this.leaveForm.VAL_working_dates);
+    }
 
     if (this.selectedFile()) {
       formData.append('document', this.selectedFile()!);
@@ -173,6 +183,7 @@ export class AdminLeaveApplication implements OnInit {
     this.leaveForm.From = '';
     this.leaveForm.To = '';
     this.leaveForm.Total_Days.set(0);
+    this.leaveForm.VAL_working_dates = '';
     this.selectedFile.set(null);
     this.fetchBalance(); 
   }

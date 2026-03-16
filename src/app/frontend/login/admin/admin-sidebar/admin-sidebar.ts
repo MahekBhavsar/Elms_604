@@ -20,7 +20,7 @@ export class AdminSidebar {
 
   logout() {
     console.log("Admin logged out");
-    localStorage.removeItem('user'); // Always good to clear just in case
+    sessionStorage.removeItem('user'); // Always good to clear just in case
     this.router.navigate(['/login']);
   }
 }

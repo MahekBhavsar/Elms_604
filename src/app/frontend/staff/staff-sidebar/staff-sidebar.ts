@@ -22,7 +22,7 @@ export class StaffSidebar implements OnInit {
   ngOnInit() {
     // Only access localStorage if running in the browser
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         try {
           const user = JSON.parse(savedUser);
@@ -32,7 +32,7 @@ export class StaffSidebar implements OnInit {
           const rawRoles = Array.isArray(user.role) ? user.role : [user.role];
           this.userRoles = rawRoles.map((r: string) => r ? r.toLowerCase() : '');
         } catch (e) {
-          console.error("Error parsing user data from localStorage", e);
+          console.error("Error parsing user data from sessionStorage", e);
         }
       }
     }
@@ -49,7 +49,7 @@ export class StaffSidebar implements OnInit {
 
   logout() {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
     }
     this.router.navigate(['/login']);
   }

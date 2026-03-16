@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { Chart, registerables } from 'chart.js';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 Chart.register(...registerables);
 
@@ -52,7 +53,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         this.user = JSON.parse(savedUser);
         this.fetchDashboardData();
@@ -62,35 +63,52 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
 
   fetchDashboardData() {
     this.dataReady = false;
+    const cachedSession = sessionStorage.getItem('activeSessionName');
+    
     forkJoin({
-      session: this.http.get<any>('http://localhost:5000/api/active-session'),
-      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types'),
-      leaves: this.http.get<any[]>('http://localhost:5000/api/leaves/admin'),
-      staff: this.http.get<any[]>('http://localhost:5000/api/staff')
+      session: this.http.get<any>('http://localhost:5000/api/active-session').pipe(catchError(() => of({ sessionName: "Not Set" }))),
+      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types').pipe(catchError(() => of([]))),
+      leaves: this.http.get<any[]>('http://localhost:5000/api/leaves/admin').pipe(catchError(() => of([]))),
+      staff: this.http.get<any[]>('http://localhost:5000/api/staff').pipe(catchError(() => of([])))
     }).subscribe({
       next: (res) => {
-        this.activeSession = res.session;
+        const currentSessionLabel = cachedSession || res.session.sessionName;
+        this.activeSession = res.session; 
+        
+        if (cachedSession && cachedSession !== res.session.sessionName) {
+           this.activeSession = { sessionName: currentSessionLabel };
+        }
+        sessionStorage.setItem('activeSessionName', currentSessionLabel);
+
         const startDate = new Date(res.session.startDate);
         const endDate = new Date(res.session.endDate);
-        const currentSessionLabel = res.session.sessionName;
 
         // 1. Calculate General Admin Stats (Total System Overview)
         this.calculateSystemStats(res.leaves, res.staff, startDate, endDate);
 
-        // 2. Calculate PERSONAL Admin Quotas (Like Staff Dash)
-        const rawCurrentRules = res.rules.filter(r => 
-          String(r.dept_code) === String(this.user.dept_code) && 
-          r.sessionName === currentSessionLabel
+        // 2. Calculate PERSONAL Admin Quotas
+        const userDept = String(this.user.dept_code || '');
+        let myCurrentRules = res.rules.filter(r => 
+          r.sessionName === currentSessionLabel && 
+          (String(r.dept_code || '') === userDept || String(r.dept_code || '') === '0')
         );
 
         const uniqueRulesMap = new Map();
-        rawCurrentRules.forEach(r => {
+        myCurrentRules.forEach(r => {
           const name = r.leave_name.toUpperCase().trim();
-          if (!uniqueRulesMap.has(name)) {
-            uniqueRulesMap.set(name, r);
-          }
+          if (!uniqueRulesMap.has(name)) uniqueRulesMap.set(name, r);
         });
-        const myCurrentRules = Array.from(uniqueRulesMap.values());
+        myCurrentRules = Array.from(uniqueRulesMap.values());
+
+        // 3. Fallback logic
+        if (myCurrentRules.length === 0 && currentSessionLabel && currentSessionLabel !== "Not Set") {
+          const defaultNames = ['CL', 'SL', 'AL', 'VAL', 'EL'];
+          myCurrentRules = defaultNames.map(name => ({
+            leave_name: name,
+            total_yearly_limit: 12,
+            can_carry_forward: ['SL', 'EL'].includes(name)
+          }));
+        }
 
         if (myCurrentRules.length === 0) {
           this.dataReady = true;
@@ -98,13 +116,15 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
+        // 4. Fetch balances specifically for Admin as a staff member
         const balanceRequests = myCurrentRules.map(r => 
-          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}`)
+          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
+          .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: 12 })))
         );
 
         forkJoin(balanceRequests).subscribe(balances => {
           this.quotaCards = myCurrentRules.map((rule, i) => {
-            const b = balances[i];
+            const b = (balances as any[])[i];
             const name = rule.leave_name.toUpperCase().trim();
             const isIncrementing = ['VAL', 'AL'].includes(name);
             const used = b.usedThisYear || 0;
@@ -118,7 +138,6 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
                 isIncrementing,
                 isCarryForward: rule.can_carry_forward,
                 carryForward: b.carryForward || 0,
-                currentLimit: b.currentLimit || rule.total_yearly_limit,
                 used: used
             };
           });
@@ -135,7 +154,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
     this.staffStats.totalStaff = staff.length;
     const depts: Record<string, number> = {};
     staff.forEach(s => {
-      const d = s.department || s.dept_code || 'Unknown Dept';
+      const d = s.department || s.dept_code || 'Others';
       depts[d] = (depts[d] || 0) + 1;
     });
     this.staffStats.departments = depts;
@@ -154,7 +173,6 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
-  // Helpers
   getLeaveTypeName(l: any) { 
     const n = l['Type of Leave'] || l.Type_of_Leave || l.leave_name || l.Type || '';
     return n.toString().trim().toUpperCase(); 
@@ -174,10 +192,11 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
 
   renderLeaveChart() {
     if (this.leaveChart) this.leaveChart.destroy();
-    this.leaveChart = new Chart(this.leaveChartRef.nativeElement.getContext('2d'), {
+    const ctx = this.leaveChartRef.nativeElement.getContext('2d');
+    this.leaveChart = new Chart(ctx, {
       type: 'pie',
       data: {
-        labels: ['Pending', 'HOD Approved', 'Approved', 'Rejected'],
+        labels: ['Pending', 'HOD Appr.', 'Approved', 'Rejected'],
         datasets: [{
           data: [this.stats.pendingLeaves, this.stats.hodApprovedLeaves, this.stats.finalApprovedLeaves, this.stats.rejectedLeaves],
           backgroundColor: ['#ffc107', '#17a2b8', '#198754', '#dc3545'],
@@ -190,7 +209,8 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
 
   renderStaffChart() {
     if (this.staffChart) this.staffChart.destroy();
-    this.staffChart = new Chart(this.staffChartRef.nativeElement.getContext('2d'), {
+    const ctx = this.staffChartRef.nativeElement.getContext('2d');
+    this.staffChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: Object.keys(this.staffStats.departments),

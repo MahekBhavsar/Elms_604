@@ -67,7 +67,30 @@
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">
-            <h5 class="fw-bold mb-4 text-primary">Quota Configuration</h5>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h5 class="fw-bold text-primary mb-0">Quota Configuration</h5>
+              
+              <!-- Perfect All Years Dropdown -->
+              <div class="dropdown">
+                <button class="btn btn-sm btn-white border dropdown-toggle fw-bold shadow-none rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-clock-history me-2 text-primary"></i>
+                  Session: {{ activeSession().sessionName || 'Select Year' }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3">
+                  <li class="px-3 py-2 small text-muted text-uppercase fw-bold border-bottom">Choose Academic Year</li>
+                  @for (s of sessionsList(); track s.sessionName) {
+                    <li>
+                      <a class="dropdown-item d-flex justify-content-between align-items-center py-2" (click)="onSelectDropdownSession(s)">
+                        <span>{{ s.sessionName }}</span>
+                        @if(s.sessionName === activeSession().sessionName) {
+                          <i class="bi bi-check-circle-fill text-success ms-2"></i>
+                        }
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
             <form (ngSubmit)="saveYearlyLimit()">
               <div class="mb-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Leave Name</label>
@@ -79,9 +102,9 @@
                 <input type="number" [(ngModel)]="leaveLimit.total_yearly_limit" name="total_yearly_limit" class="form-control bg-light border-0 py-2 shadow-none" required>
               </div>
 
-              <div class="mb-3 form-check form-switch p-3 bg-light rounded-3 ms-0" *ngIf="!['VAL', 'AL'].includes(leaveLimit.leave_name.toUpperCase())">
+              <div class="mb-3 form-check form-switch p-3 bg-light rounded-3 ms-0">
                 <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="cfSwitch" [(ngModel)]="leaveLimit.can_carry_forward" name="cf">
-                <label class="form-check-label small fw-bold text-dark" for="cfSwitch">Enable Carry Forward (SL/EL)</label>
+                <label class="form-check-label small fw-bold text-dark" for="cfSwitch">Enable Carry Forward</label>
               </div>
 
               <div class="mb-4">
@@ -90,7 +113,9 @@
                   @for (dept of availableDeptCodes; track dept) {
                     <button type="button" class="btn btn-sm rounded-pill px-3 border shadow-none"
                       [ngClass]="leaveLimit.dept_codes.includes(dept) ? 'btn-primary' : 'btn-white text-muted'"
-                      (click)="toggleSelection(leaveLimit.dept_codes, dept)">{{ dept }}</button>
+                      (click)="toggleSelection(leaveLimit.dept_codes, dept)">
+                      {{ dept === '0' ? 'ALL' : dept }}
+                    </button>
                   }
                 </div>
               </div>

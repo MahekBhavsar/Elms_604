@@ -28,7 +28,8 @@ export class ApplyLeave implements OnInit {
     From: '',
     To: '',
     Total_Days: signal(0),
-    Role: ''
+    Role: '',
+    VAL_working_dates: ''
   };
 
   constructor(
@@ -38,7 +39,7 @@ export class ApplyLeave implements OnInit {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         const user = JSON.parse(savedUser);
         this.staffData.set(user);
@@ -52,12 +53,14 @@ export class ApplyLeave implements OnInit {
   }
 
   fetchLeaveTypes() {
+  const cachedSession = sessionStorage.getItem('activeSessionName');
   forkJoin({
     session: this.http.get<any>('http://localhost:5000/api/active-session'),
     rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
   }).subscribe({
     next: (res) => {
-      const currentSessionLabel = res.session.sessionName;
+      const currentSessionLabel = cachedSession || res.session.sessionName;
+      sessionStorage.setItem('activeSessionName', currentSessionLabel);
       const userDept = String(this.staffData().dept_code);
 
       // PERFECT FILTER: 
@@ -141,6 +144,12 @@ export class ApplyLeave implements OnInit {
       return;
     }
 
+    // VAL working dates check
+    if (this.leaveForm.Type_of_Leave === 'VAL' && !this.leaveForm.VAL_working_dates.trim()) {
+      alert("⚠️ Please mention the 3 working dates during vacation for VAL leave.");
+      return;
+    }
+
     // Medical proof check for SL > 3 days
     if (this.leaveForm.Type_of_Leave === 'SL' && days > 3 && !this.selectedFile()) {
       alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
@@ -163,6 +172,9 @@ export class ApplyLeave implements OnInit {
     formData.append('To', this.leaveForm.To);
     formData.append('Total_Days', String(days));
     formData.append('Role', this.leaveForm.Role);
+    if (this.leaveForm.Type_of_Leave === 'VAL') {
+      formData.append('VAL_working_dates', this.leaveForm.VAL_working_dates);
+    }
 
     if (this.selectedFile()) {
       formData.append('document', this.selectedFile()!);
@@ -182,6 +194,7 @@ export class ApplyLeave implements OnInit {
     this.leaveForm.From = '';
     this.leaveForm.To = '';
     this.leaveForm.Total_Days.set(0);
+    this.leaveForm.VAL_working_dates = '';
     this.selectedFile.set(null);
     this.fetchBalance(); 
   }

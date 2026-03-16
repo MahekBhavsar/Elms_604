@@ -23,7 +23,7 @@ export class StaffViewStatus implements OnInit {
   ngOnInit() {
     // Only run this code if we are in the browser
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         const user = JSON.parse(savedUser);
         this.userName.set(user.name);

@@ -40,7 +40,7 @@ export class ProfileUpdate implements OnInit {
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         this.user.set(JSON.parse(savedUser));
         this.fetchProfile();
@@ -90,7 +90,7 @@ export class ProfileUpdate implements OnInit {
           
           // Sync local storage if email changed
           const updatedUser = { ...this.user(), email: this.email() };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+          sessionStorage.setItem('user', JSON.stringify(updatedUser));
           this.user.set(updatedUser);
         } else {
           this.errorMessage.set(res.error || 'Failed to update profile.');
