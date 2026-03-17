@@ -23,6 +23,7 @@ export class Report implements OnInit {
   activeTab = signal<'staff' | 'logs' | 'configs' | 'balance'>('staff');
   deptSearch = signal<string>(''); // Dynamic 1-7 Filter
   searchTerm = signal<string>('');
+  selectedCategory = signal<string>(''); // New Leave Category Filter
   
   // Date Range Signals
   fromDate = signal<string>('');
@@ -38,6 +39,21 @@ export class Report implements OnInit {
   // Inline editing state
   editingBalance = signal<{ empCode: any, leave: string } | null>(null);
   newBalanceValue = signal<number>(0);
+
+  // Filtered Balance Summary Computed Signal
+  filteredBalanceSummary = computed(() => {
+    const summary = this.staffBalanceSummary();
+    const term = this.searchTerm().toLowerCase();
+    const dept = this.deptSearch();
+
+    return summary.filter(s => {
+      const matchDept = !dept || (s.dept || '').toString() === dept;
+      const matchName = !term || 
+        (s.name || '').toLowerCase().includes(term) || 
+        (s.empCode || '').toString().toLowerCase().includes(term);
+      return matchDept && matchName;
+    });
+  });
 
   constructor(private http: HttpClient) {}
 
@@ -84,21 +100,38 @@ export class Report implements OnInit {
 
   /** 1. Staff Directory Report */
   filteredStaff = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    const dept = this.deptSearch();
     return this.allStaff().filter(s => {
       const rowDept = (s.dept_code || s.Dept_Code || '').toString();
-      const matchDept = !this.deptSearch() || rowDept === this.deptSearch();
-      const matchName = !this.searchTerm() || s.Name.toLowerCase().includes(this.searchTerm().toLowerCase());
+      const matchDept = !dept || rowDept === dept;
+      
+      const matchName = !term || 
+        s.Name.toLowerCase().includes(term) || 
+        (s['Employee Code'] || s.Employee_Code || '').toString().toLowerCase().includes(term);
+        
       return matchDept && matchName;
     });
   });
 
   /** 2. Leave Application Logs (ADDED DATE LOGIC HERE) */
   filteredLogs = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    const dept = this.deptSearch();
+    const cat = this.selectedCategory().toUpperCase();
+    
     return this.allLeaves().filter(l => {
       const rowDept = (l.Dept_Code || l.dept_code || '').toString();
-      const matchDept = !this.deptSearch() || rowDept === this.deptSearch();
-      const matchName = !this.searchTerm() || l.Name.toLowerCase().includes(this.searchTerm().toLowerCase());
+      const matchDept = !dept || rowDept === dept;
       
+      const matchName = !term || 
+        l.Name.toLowerCase().includes(term) || 
+        (l.Employee_Code || l['Employee Code'] || '').toString().toLowerCase().includes(term);
+      
+      // Leave Category Filter
+      const leaveCat = (l['Type of Leave'] || l.Type_of_Leave || '').toUpperCase();
+      const matchCat = !cat || leaveCat === cat;
+
       // Date Filtering Logic
       const leaveDate = new Date(l.From).getTime();
       const startLimit = this.fromDate() ? new Date(this.fromDate()).getTime() : null;
@@ -111,16 +144,18 @@ export class Report implements OnInit {
       const session = this.selectedSession();
       const matchSession = !session || l.sessionName === session;
 
-      return matchDept && matchName && matchFrom && matchTo && matchSession;
+      return matchDept && matchName && matchFrom && matchTo && matchSession && matchCat;
     });
   });
 
   /** 3. Leave Configuration Report */
   filteredConfigs = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    const dept = this.deptSearch();
     return this.allLeaveTypes().filter(c => {
       const rowDept = (c.dept_code || '').toString();
-      const matchDept = !this.deptSearch() || rowDept === this.deptSearch();
-      const matchName = !this.searchTerm() || c.leave_name.toLowerCase().includes(this.searchTerm().toLowerCase());
+      const matchDept = !dept || rowDept === dept;
+      const matchName = !term || c.leave_name.toLowerCase().includes(term);
       
       const session = this.selectedSession();
       const matchSession = !session || c.sessionName === session;
@@ -170,11 +205,6 @@ export class Report implements OnInit {
       return forkJoin(balCalls);
     }).filter(call => call !== null);
 
-    if (calls.length === 0) {
-      this.balanceLoading.set(false);
-      return;
-    }
-
     forkJoin(calls).subscribe({
       next: (results: any[][]) => {
         const validStaff = staff.filter(s => {
@@ -184,7 +214,8 @@ export class Report implements OnInit {
         const summary = validStaff.map((s, i) => ({
           name: s.Name,
           empCode: s['Employee Code'] || s.Employee_Code || s.empCode,
-          dept: s.department,
+          dept: s.dept_code || s.Dept_Code, // Use code for filtering consistency
+          deptName: s.department,
           balances: leaveNames.map((name, j) => ({
             leave: name,
             balance: results[i]?.[j]?.balance ?? 0,
@@ -211,6 +242,7 @@ export class Report implements OnInit {
   resetFilters() {
     this.deptSearch.set('');
     this.searchTerm.set('');
+    this.selectedCategory.set('');
     this.fromDate.set('');
     this.toDate.set('');
   }

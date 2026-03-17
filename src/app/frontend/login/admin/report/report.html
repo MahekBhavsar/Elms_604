@@ -63,7 +63,22 @@
               </select>
             </div>
           </div>
-          <div class="col-md-5">
+          <div class="col-md-3">
+            <div class="input-group border border-2 rounded-3 bg-light p-1"
+              style="border-color: rgba(30, 60, 114, 0.1) !important;">
+              <span class="input-group-text bg-transparent border-0"><i class="bi bi-funnel"
+                  style="color: #2a5298;"></i></span>
+              <select class="form-select bg-transparent border-0 shadow-none fw-bold text-primary" 
+                      [ngModel]="selectedCategory()" 
+                      (ngModelChange)="selectedCategory.set($event)">
+                <option value="">All Categories</option>
+                @for (name of leaveNames; track name) {
+                  <option [value]="name">{{ name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="col-md-3">
             <div class="input-group border border-2 rounded-3 bg-light p-1"
               style="border-color: rgba(30, 60, 114, 0.1) !important;">
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"
@@ -73,7 +88,7 @@
                 (ngModelChange)="searchTerm.set($event)">
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <div class="input-group border border-2 rounded-3 bg-light p-1"
               style="border-color: rgba(30, 60, 114, 0.1) !important;">
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-building"
@@ -150,7 +165,7 @@
     <div class="d-flex flex-column gap-4">
       @if (logsGroupedByCategory().length === 0) {
         <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
-          <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>No leave records found.
+          <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>No leave records found for the selected filters.
         </div>
       }
       @for (group of logsGroupedByCategory(); track group.category) {
@@ -267,12 +282,14 @@
                 <th class="ps-4 py-3 border-0">Staff</th>
                 <th class="py-3 border-0">Dept</th>
                 @for (name of leaveNames; track name) {
-                <th class="text-center py-3 border-0">{{ name }}</th>
+                  @if (!selectedCategory() || selectedCategory() === name) {
+                    <th class="text-center py-3 border-0">{{ name }}</th>
+                  }
                 }
               </tr>
             </thead>
             <tbody>
-              @for (s of staffBalanceSummary(); track s.empCode) {
+              @for (s of filteredBalanceSummary(); track s.empCode) {
               <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
                 style="transition: background-color 0.2s;">
                 <td class="ps-4 py-3">
@@ -281,6 +298,7 @@
                 </td>
                 <td class="text-secondary small">{{ s.dept }}</td>
                 @for (name of leaveNames; track name) {
+                  @if (!selectedCategory() || selectedCategory() === name) {
                   @let bal = getBalance(s.balances, name);
                   <td class="text-center py-3">
                     @if (editingBalance()?.empCode === s.empCode && editingBalance()?.leave === name) {
@@ -322,6 +340,7 @@
                       </div>
                     }
                   </td>
+                  }
                 }
               </tr>
               }
