@@ -50,7 +50,6 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
 
 fetchDashboardData() {
   this.dataReady = false;
-  const cachedSession = sessionStorage.getItem('activeSessionName');
 
   forkJoin({
     session: this.http.get<any>('http://localhost:5000/api/active-session'),
@@ -58,14 +57,12 @@ fetchDashboardData() {
     history: this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`)
   }).subscribe({
     next: (res) => {
-      const currentSessionLabel = cachedSession || res.session.sessionName;
+      const currentSessionLabel = res.session.sessionName;
       this.activeSession = res.session; 
-      if (cachedSession && cachedSession !== res.session.sessionName) {
-        // Find matching session object from history or rules if possible, 
-        // but label is the most important
-        this.activeSession = { sessionName: currentSessionLabel };
+      
+      if (isPlatformBrowser(this.platformId)) {
+        sessionStorage.setItem('activeSessionName', currentSessionLabel);
       }
-      sessionStorage.setItem('activeSessionName', currentSessionLabel);
 
       // 0. Calculate Session Stats for Charts
       const sessionHistory = res.history.filter((l: any) => l.sessionName === currentSessionLabel);

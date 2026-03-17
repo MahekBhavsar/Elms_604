@@ -53,14 +53,15 @@ export class ApplyLeave implements OnInit {
   }
 
   fetchLeaveTypes() {
-  const cachedSession = sessionStorage.getItem('activeSessionName');
   forkJoin({
     session: this.http.get<any>('http://localhost:5000/api/active-session'),
     rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
   }).subscribe({
     next: (res) => {
-      const currentSessionLabel = cachedSession || res.session.sessionName;
-      sessionStorage.setItem('activeSessionName', currentSessionLabel);
+      const currentSessionLabel = res.session.sessionName;
+      if (isPlatformBrowser(this.platformId)) {
+        sessionStorage.setItem('activeSessionName', currentSessionLabel);
+      }
       const userDept = String(this.staffData().dept_code);
 
       // PERFECT FILTER: 
