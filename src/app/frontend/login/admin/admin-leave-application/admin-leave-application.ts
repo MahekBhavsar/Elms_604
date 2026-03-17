@@ -60,17 +60,37 @@ export class AdminLeaveApplication implements OnInit {
     }).subscribe({
       next: (res) => {
         const currentSessionLabel = res.session.sessionName;
-        const userDept = (this.staffData().dept_code !== undefined && this.staffData().dept_code !== null) ? String(this.staffData().dept_code) : 
-                         (this.staffData().Dept_Code !== undefined && this.staffData().Dept_Code !== null ? String(this.staffData().Dept_Code) : '');
-        const userStaffType = this.staffData().staffType || 'Teaching';
+        const normalize = (v: any) => String(v || '').trim();
+        const userDept = normalize(this.staffData().dept_code !== undefined ? this.staffData().dept_code : this.staffData().Dept_Code);
+        const userStaffType = normalize(this.staffData().staffType || 'Teaching').toLowerCase();
 
-        const applicableRules = res.rules.filter(r =>
-          String(r.dept_code) === userDept &&
-          (r.staffType === userStaffType || r.staffType === 'All' || !r.staffType) &&
-          r.sessionName === currentSessionLabel
-        );
+        const allApplicableRules = res.rules.filter(r => {
+          const rSession = normalize(r.sessionName);
+          if (rSession !== normalize(currentSessionLabel)) return false;
 
-        const uniqueNames = [...new Set(applicableRules.map(item => item.leave_name))];
+          const rDept = normalize(r.dept_code);
+          return userDept === rDept || rDept === '0' || rDept === '';
+        });
+
+        const bestRulesMap = new Map<string, any>();
+        allApplicableRules.forEach(r => {
+          const name = r.leave_name.toUpperCase().trim();
+          const rStaffType = normalize(r.staffType || 'All').toLowerCase();
+          const existing = bestRulesMap.get(name);
+
+          if (!existing) {
+            bestRulesMap.set(name, r);
+          } else {
+            const existingStaffType = normalize(existing.staffType || 'All').toLowerCase();
+            if (rStaffType === userStaffType) {
+              bestRulesMap.set(name, r);
+            } else if (rStaffType === 'all' && existingStaffType !== userStaffType) {
+              bestRulesMap.set(name, r);
+            }
+          }
+        });
+
+        const uniqueNames = [...new Set(Array.from(bestRulesMap.values()).map(r => r.leave_name))];
         this.leaveTypes.set(uniqueNames);
         if (uniqueNames.length > 0) {
           this.leaveForm.Type_of_Leave = uniqueNames[0];

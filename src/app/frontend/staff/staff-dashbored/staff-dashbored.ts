@@ -49,102 +49,132 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-fetchDashboardData() {
-  this.dataReady = false;
+  fetchDashboardData() {
+    this.dataReady = false;
+    if (!this.user) return;
 
-  forkJoin({
-    session: this.http.get<any>('http://localhost:5000/api/active-session'),
-    rules: this.http.get<any[]>('http://localhost:5000/api/leave-types'),
-    history: this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode}`)
-  }).subscribe({
-    next: (res) => {
-      const currentSessionLabel = res.session.sessionName;
-      this.activeSession = res.session; 
-      
-      if (isPlatformBrowser(this.platformId)) {
-        sessionStorage.setItem('activeSessionName', currentSessionLabel);
-      }
+    let cachedSession = null;
+    if (isPlatformBrowser(this.platformId)) {
+      cachedSession = sessionStorage.getItem('activeSessionName');
+    }
 
-      // 0. Calculate Session Stats for Charts
-      const sessionHistory = res.history.filter((l: any) => l.sessionName === currentSessionLabel);
-      this.leaveStats = {
-        approved: sessionHistory.filter((l: any) => this.isApproved(l.Status)).length,
-        pending: sessionHistory.filter((l: any) => l.Status?.toLowerCase().trim() === 'pending').length,
-        rejected: sessionHistory.filter((l: any) => l.Status?.toLowerCase().trim() === 'rejected').length
-      };
+    forkJoin({
+      session: this.http.get<any>('http://localhost:5000/api/active-session').pipe(catchError(() => of({ sessionName: 'Not Set' }))),
+      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types').pipe(catchError(() => of([]))),
+      history: this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode || this.user.Employee_Code}`).pipe(catchError(() => of([])))
+    }).subscribe({
+      next: (res) => {
+        try {
+          const currentSessionLabel = cachedSession || res.session?.sessionName || 'Not Set';
+          this.activeSession = res.session && res.session.sessionName !== 'Not Set' ? res.session : { sessionName: currentSessionLabel };
 
-      // 1. Filter rules for CURRENT session
-      const userDept = (this.user.dept_code !== undefined && this.user.dept_code !== null) ? String(this.user.dept_code) : 
-                       (this.user.Dept_Code !== undefined && this.user.Dept_Code !== null ? String(this.user.Dept_Code) : '');
-      const userStaffType = this.user.staffType || 'Teaching';
+          if (isPlatformBrowser(this.platformId)) {
+            sessionStorage.setItem('activeSessionName', currentSessionLabel);
+          }
+          this.cdr.detectChanges();
 
-      const rawCurrentRules = res.rules.filter(r => {
-        const isSessionMatch = r.sessionName === currentSessionLabel;
-        const ruleDept = (r.dept_code !== undefined && r.dept_code !== null) ? String(r.dept_code) : '';
-        const isDeptMatch = userDept === ruleDept || ruleDept === '0';
-        const isStaffTypeMatch = r.staffType === userStaffType || r.staffType === 'All' || !r.staffType;
+          // 0. Calculate Session Stats
+          const sessionHistory = res.history.filter((l: any) => 
+            normalize(l.sessionName) === normalize(currentSessionLabel)
+          );
+          this.leaveStats = {
+            approved: sessionHistory.filter((l: any) => this.isApproved(l.Status)).length,
+            pending: sessionHistory.filter((l: any) => (l.Status || '').toLowerCase().trim() === 'pending').length,
+            rejected: sessionHistory.filter((l: any) => (l.Status || '').toLowerCase().trim() === 'rejected').length
+          };
 
-        return isSessionMatch && isDeptMatch && isStaffTypeMatch;
-      });
+          // 1. Filter rules for CURRENT session using Perfect Match logic
+          function normalize(v: any) { return String(v || '').trim(); }
+          const userDept = normalize(this.user.dept_code !== undefined ? this.user.dept_code : this.user.Dept_Code);
+          const userStaffType = normalize(this.user.staffType || 'Teaching').toLowerCase();
 
-      // 2. Deduplicate rules
-      const uniqueRulesMap = new Map();
-      rawCurrentRules.forEach(r => {
-        const name = r.leave_name.toUpperCase().trim();
-        if (!uniqueRulesMap.has(name)) uniqueRulesMap.set(name, r);
-      });
-      let myCurrentRules = Array.from(uniqueRulesMap.values());
+          const allApplicableRules = res.rules.filter(r => {
+            const rSession = normalize(r.sessionName);
+            if (rSession !== normalize(currentSessionLabel)) return false;
 
-      // 3. Fallback: If no rules found for active session, show standard default set
-      if (myCurrentRules.length === 0 && currentSessionLabel && currentSessionLabel !== "Not Set") {
-        const defaultNames = ['CL', 'SL', 'AL', 'VAL', 'EL'];
-        myCurrentRules = defaultNames.map(name => ({
-          leave_name: name,
-          total_yearly_limit: 12,
-          can_carry_forward: ['SL', 'EL'].includes(name) // VAL is now false
-        }));
-      }
+            const rDept = normalize(r.dept_code);
+            return userDept === rDept || rDept === '0' || rDept === '';
+          });
 
-      if (myCurrentRules.length === 0) {
+          // 2. Pick the BEST record for each leave name
+          const bestRulesMap = new Map<string, any>();
+          allApplicableRules.forEach(r => {
+            const name = r.leave_name.toUpperCase().trim();
+            const rStaffType = normalize(r.staffType || 'All').toLowerCase();
+            const existing = bestRulesMap.get(name);
+
+            if (!existing) {
+              bestRulesMap.set(name, r);
+            } else {
+              const existingStaffType = normalize(existing.staffType || 'All').toLowerCase();
+              if (rStaffType === userStaffType) {
+                bestRulesMap.set(name, r);
+              } else if (rStaffType === 'all' && existingStaffType !== userStaffType) {
+                bestRulesMap.set(name, r);
+              }
+            }
+          });
+          
+          let currentRulesToUse = Array.from(bestRulesMap.values());
+
+          // 3. Fallback: If no rules found for active session, show standard default set
+          if (currentRulesToUse.length === 0 && currentSessionLabel && currentSessionLabel !== "Not Set") {
+            const defaultNames = ['CL', 'SL', 'AL', 'VAL', 'EL'];
+            currentRulesToUse = defaultNames.map(name => ({
+              leave_name: name,
+              total_yearly_limit: 12,
+              can_carry_forward: ['SL', 'EL'].includes(name)
+            }));
+          }
+
+          if (currentRulesToUse.length === 0) {
+            this.dataReady = true;
+            this.cdr.detectChanges();
+            this.tryRenderCharts();
+            return;
+          }
+
+          // 4. Fetch balances specifically for THIS session
+          const balanceRequests = currentRulesToUse.map(r => 
+            this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
+            .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
+          );
+
+          forkJoin(balanceRequests).subscribe((balances: any[]) => {
+            this.quotaCards = currentRulesToUse.map((rule, i) => {
+              const b = balances[i] || {};
+              const name = rule.leave_name.toUpperCase().trim();
+              const used = b.usedThisYear ?? 0;
+              const limit = b.limit || rule.total_yearly_limit || 12;
+              return {
+                name: name,
+                remaining: b.balance ?? 0,
+                used: used,
+                limit: limit,
+                percent: limit > 0 ? (used / limit) * 100 : 0,
+                isIncrementing: b.isIncrementing || ['VAL', 'AL'].includes(name),
+                isCarryForward: rule.can_carry_forward,
+                carryForward: b.carryForward || 0
+              };
+            });
+            this.dataReady = true;
+            this.cdr.detectChanges();
+            this.tryRenderCharts();
+          });
+
+        } catch (e) {
+          console.error("Dashboard calculation error:", e);
+          this.dataReady = true;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        console.error("Dashboard API error:", err);
         this.dataReady = true;
         this.cdr.detectChanges();
-        return;
       }
-
-      // 4. Fetch balances specifically for THIS session
-      const balanceRequests = myCurrentRules.map(r => 
-        this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
-        .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
-      );
-
-      forkJoin(balanceRequests).subscribe((balances: any[]) => {
-         this.quotaCards = myCurrentRules.map((rule, i) => {
-             const b = balances[i];
-             const name = rule.leave_name.toUpperCase().trim();
-             const isIncrementing = ['VAL', 'AL'].includes(name);
-             const used = b.usedThisYear || 0;
-             const limit = b.limit || 0;
-
-             return {
-                 name,
-                 limit: limit, // Synced from Backend
-                 remaining: b.balance,
-                 percent: limit > 0 ? (used / limit) * 100 : 0,
-                 isIncrementing,
-                 isCarryForward: rule.can_carry_forward,
-                 carryForward: b.carryForward || 0,
-                 currentLimit: b.currentLimit || rule.total_yearly_limit,
-                 used: used
-             };
-         });
-
-         this.dataReady = true;
-         this.cdr.detectChanges();
-         this.tryRenderCharts();
-      });
-    }
-  });
-}
+    });
+  }
 
   getLeaveTypeName(l: any) {
     const n = l['Type of Leave'] || l.Type_of_Leave || l.leave_name || l.Type || '';

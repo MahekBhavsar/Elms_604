@@ -149,7 +149,7 @@ export class AdminLeaveType implements OnInit {
       const payload = {
         leave_name: name,
         total_yearly_limit: this.leaveLimit.total_yearly_limit,
-        dept_code: dept,
+        dept_code: String(dept),
         staffType: 'All',
         can_carry_forward: this.leaveLimit.can_carry_forward,
         sessionName: session

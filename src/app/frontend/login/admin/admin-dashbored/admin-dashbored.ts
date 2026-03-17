@@ -75,86 +75,112 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
       staff: this.http.get<any[]>('http://localhost:5000/api/staff').pipe(catchError(() => of([])))
     }).subscribe({
       next: (res) => {
-        const currentSessionLabel = cachedSession || res.session.sessionName;
-        this.activeSession = res.session; 
-        
-        if (cachedSession && cachedSession !== res.session.sessionName) {
-           this.activeSession = { sessionName: currentSessionLabel };
-        }
-        if (isPlatformBrowser(this.platformId)) {
-          sessionStorage.setItem('activeSessionName', currentSessionLabel);
-        }
+        try {
+          const currentSessionLabel = cachedSession || res.session?.sessionName || 'Not Set';
+          this.activeSession = res.session; 
+          
+          if (cachedSession && cachedSession !== res.session?.sessionName) {
+            this.activeSession = { sessionName: currentSessionLabel };
+          }
+          if (isPlatformBrowser(this.platformId)) {
+            sessionStorage.setItem('activeSessionName', currentSessionLabel);
+          }
 
-        const startDate = new Date(res.session.startDate);
-        const endDate = new Date(res.session.endDate);
+          const startDate = new Date(res.session?.startDate);
+          const endDate = new Date(res.session?.endDate);
 
-        // 1. Calculate General Admin Stats (Total System Overview)
-        this.calculateSystemStats(res.leaves, res.staff, startDate, endDate);
+          // 1. Calculate General Admin Stats
+          this.calculateSystemStats(res.leaves, res.staff, startDate, endDate);
 
-        // 2. Calculate PERSONAL Admin Quotas
-        const userDept = (this.user.dept_code !== undefined && this.user.dept_code !== null) ? String(this.user.dept_code) : 
-                         (this.user.Dept_Code !== undefined && this.user.Dept_Code !== null ? String(this.user.Dept_Code) : '');
-        const userStaffType = this.user.staffType || 'Teaching';
-        
-        let myCurrentRules = res.rules.filter(r => 
-          r.sessionName === currentSessionLabel && 
-          (String(r.dept_code !== undefined && r.dept_code !== null ? r.dept_code : '') === userDept || String(r.dept_code !== undefined && r.dept_code !== null ? r.dept_code : '') === '0') &&
-          (r.staffType === userStaffType || r.staffType === 'All' || !r.staffType)
-        );
+          // 2. Calculate PERSONAL Admin Quotas using Perfect Match logic
+          const normalize = (v: any) => String(v || '').trim();
+          const userDept = normalize(this.user.dept_code !== undefined ? this.user.dept_code : this.user.Dept_Code);
+          const userStaffType = normalize(this.user.staffType || 'Teaching').toLowerCase();
+          
+          const allApplicableRules = res.rules.filter(r => {
+            const rSession = normalize(r.sessionName);
+            if (rSession !== normalize(currentSessionLabel)) return false;
 
-        const uniqueRulesMap = new Map();
-        myCurrentRules.forEach(r => {
-          const name = r.leave_name.toUpperCase().trim();
-          if (!uniqueRulesMap.has(name)) uniqueRulesMap.set(name, r);
-        });
-        myCurrentRules = Array.from(uniqueRulesMap.values());
+            const rDept = normalize(r.dept_code);
+            return userDept === rDept || rDept === '0' || rDept === '';
+          });
 
-        // 3. Fallback logic
-        if (myCurrentRules.length === 0 && currentSessionLabel && currentSessionLabel !== "Not Set") {
-          const defaultNames = ['CL', 'SL', 'AL', 'VAL', 'EL'];
-          myCurrentRules = defaultNames.map(name => ({
-            leave_name: name,
-            total_yearly_limit: 12,
-            can_carry_forward: ['SL', 'EL'].includes(name)
-          }));
-        }
+          const bestRulesMap = new Map<string, any>();
+          allApplicableRules.forEach(r => {
+            const name = r.leave_name.toUpperCase().trim();
+            const rStaffType = normalize(r.staffType || 'All').toLowerCase();
+            const existing = bestRulesMap.get(name);
 
-        if (myCurrentRules.length === 0) {
-          this.dataReady = true;
-          this.cdr.detectChanges();
-          return;
-        }
+            if (!existing) {
+              bestRulesMap.set(name, r);
+            } else {
+              const existingStaffType = normalize(existing.staffType || 'All').toLowerCase();
+              if (rStaffType === userStaffType) {
+                bestRulesMap.set(name, r);
+              } else if (rStaffType === 'all' && existingStaffType !== userStaffType) {
+                bestRulesMap.set(name, r);
+              }
+            }
+          });
+          
+          let myCurrentRules = Array.from(bestRulesMap.values());
 
-        // 4. Fetch balances specifically for Admin as a staff member
-        const balanceRequests = myCurrentRules.map(r => 
-          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
-          .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
-        );
+          // 3. Fallback logic
+          if (myCurrentRules.length === 0 && currentSessionLabel && currentSessionLabel !== "Not Set") {
+            const defaultNames = ['CL', 'SL', 'AL', 'VAL', 'EL'];
+            myCurrentRules = defaultNames.map(name => ({
+              leave_name: name,
+              total_yearly_limit: 12,
+              can_carry_forward: ['SL', 'EL'].includes(name)
+            }));
+          }
 
-        forkJoin(balanceRequests).subscribe(balances => {
-          this.quotaCards = myCurrentRules.map((rule, i) => {
-            const b = (balances as any[])[i];
-            const name = rule.leave_name.toUpperCase().trim();
-            const isIncrementing = ['VAL', 'AL'].includes(name);
-            const used = b.usedThisYear || 0;
-            const limit = b.limit || 0;
+          if (myCurrentRules.length === 0) {
+            this.dataReady = true;
+            this.cdr.detectChanges();
+            this.tryRenderCharts();
+            return;
+          }
 
-            return {
+          // 4. Fetch balances specifically for Admin as a staff member
+          const balanceRequests = myCurrentRules.map(r => 
+            this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
+            .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
+          );
+
+          forkJoin(balanceRequests).subscribe(balances => {
+            this.quotaCards = myCurrentRules.map((rule, i) => {
+              const b = (balances as any[])[i] || {};
+              const name = rule.leave_name.toUpperCase().trim();
+              const used = b.usedThisYear || 0;
+              const limit = b.limit || rule.total_yearly_limit || 12;
+
+              return {
                 name,
                 limit: limit,
-                remaining: b.balance,
+                remaining: b.balance ?? 0,
                 percent: limit > 0 ? (used / limit) * 100 : 0,
-                isIncrementing,
+                isIncrementing: b.isIncrementing,
                 isCarryForward: rule.can_carry_forward,
                 carryForward: b.carryForward || 0,
                 used: used
-            };
-          });
+              };
+            });
 
+            this.dataReady = true;
+            this.cdr.detectChanges();
+            this.tryRenderCharts();
+          });
+        } catch (e) {
+          console.error("Dashboard calculation error:", e);
           this.dataReady = true;
           this.cdr.detectChanges();
-          this.tryRenderCharts();
-        });
+        }
+      },
+      error: (err) => {
+        console.error("Dashboard API error:", err);
+        this.dataReady = true;
+        this.cdr.detectChanges();
       }
     });
   }
