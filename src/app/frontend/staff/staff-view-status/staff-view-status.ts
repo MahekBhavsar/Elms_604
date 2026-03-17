@@ -1,13 +1,13 @@
 import { Component, OnInit, PLATFORM_ID, Inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule, DatePipe, UpperCasePipe, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
 
 @Component({
   selector: 'app-staff-view-status',
   standalone: true,
-  imports: [CommonModule, DatePipe, UpperCasePipe, StaffSidebar, DisplayDatePipe],
+  imports: [CommonModule, StaffSidebar, DisplayDatePipe],
   templateUrl: './staff-view-status.html',
   styleUrl: './staff-view-status.css',
 })

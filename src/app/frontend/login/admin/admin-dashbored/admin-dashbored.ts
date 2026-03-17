@@ -63,7 +63,10 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
 
   fetchDashboardData() {
     this.dataReady = false;
-    const cachedSession = sessionStorage.getItem('activeSessionName');
+    let cachedSession = null;
+    if (isPlatformBrowser(this.platformId)) {
+      cachedSession = sessionStorage.getItem('activeSessionName');
+    }
     
     forkJoin({
       session: this.http.get<any>('http://localhost:5000/api/active-session').pipe(catchError(() => of({ sessionName: "Not Set" }))),
@@ -78,7 +81,9 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
         if (cachedSession && cachedSession !== res.session.sessionName) {
            this.activeSession = { sessionName: currentSessionLabel };
         }
-        sessionStorage.setItem('activeSessionName', currentSessionLabel);
+        if (isPlatformBrowser(this.platformId)) {
+          sessionStorage.setItem('activeSessionName', currentSessionLabel);
+        }
 
         const startDate = new Date(res.session.startDate);
         const endDate = new Date(res.session.endDate);

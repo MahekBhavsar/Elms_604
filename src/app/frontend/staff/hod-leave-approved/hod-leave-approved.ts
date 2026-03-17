@@ -1,13 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef, PLATFORM_ID, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule, DatePipe, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
 
 @Component({
   selector: 'app-hod-leave-approved',
   standalone: true,
-  imports: [CommonModule, DatePipe, StaffSidebar, DisplayDatePipe],
+  imports: [CommonModule, StaffSidebar, DisplayDatePipe],
   templateUrl: './hod-leave-approved.html',
   styleUrl: './hod-leave-approved.css',
 })

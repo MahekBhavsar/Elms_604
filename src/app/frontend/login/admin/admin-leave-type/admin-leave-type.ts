@@ -1,6 +1,6 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule, UpperCasePipe } from '@angular/common';
+import { CommonModule, UpperCasePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin } from 'rxjs';
@@ -29,7 +29,10 @@ export class AdminLeaveType implements OnInit {
     can_carry_forward: false 
   };
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
 
   ngOnInit() {
     this.fetchActiveSession();
@@ -40,7 +43,10 @@ export class AdminLeaveType implements OnInit {
   // Load the current active session settings
   fetchActiveSession() {
     // 1. Check if we already have a session choice for this TAB
-    const cachedSession = sessionStorage.getItem('activeSessionName');
+    let cachedSession = null;
+    if (isPlatformBrowser(this.platformId)) {
+      cachedSession = sessionStorage.getItem('activeSessionName');
+    }
     
     this.http.get<any>(`http://localhost:5000/api/active-session?t=${Date.now()}`).subscribe(res => {
       if (res && res.sessionName !== "Not Set") {
@@ -50,7 +56,9 @@ export class AdminLeaveType implements OnInit {
         
         if (sessionToLoad === res.sessionName) {
            this.activeSession.set(res);
-           sessionStorage.setItem('activeSessionName', res.sessionName);
+           if (isPlatformBrowser(this.platformId)) {
+             sessionStorage.setItem('activeSessionName', res.sessionName);
+           }
         } else {
            // Fetch the specific session by name
            this.http.get<any[]>(`http://localhost:5000/api/sessions/all`).subscribe(list => {
@@ -81,7 +89,9 @@ export class AdminLeaveType implements OnInit {
       startDate: s.startDate,
       endDate: s.endDate
     });
-    sessionStorage.setItem('activeSessionName', s.sessionName);
+    if (isPlatformBrowser(this.platformId)) {
+      sessionStorage.setItem('activeSessionName', s.sessionName);
+    }
     this.fetchLeaveTypes(); // <--- Refresh data for new session
   }
 
@@ -94,7 +104,9 @@ export class AdminLeaveType implements OnInit {
     this.http.post('http://localhost:5000/api/admin/set-session', this.activeSession()).subscribe({
       next: () => {
         alert(`✅ ${this.activeSession().sessionName} is now the Active Session!`);
-        sessionStorage.setItem('activeSessionName', this.activeSession().sessionName);
+        if (isPlatformBrowser(this.platformId)) {
+          sessionStorage.setItem('activeSessionName', this.activeSession().sessionName);
+        }
         this.loadAllSavedSessions(); 
         this.fetchLeaveTypes();    
       },

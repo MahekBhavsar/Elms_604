@@ -1,6 +1,6 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule, UpperCasePipe } from '@angular/common';
+import { CommonModule, UpperCasePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin, of } from 'rxjs';
@@ -20,7 +20,10 @@ export class AdminLeave implements OnInit {
   deptFilter = signal('');
   activeSessionName = signal('');
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
 
   ngOnInit() {
     this.initializeSession();
@@ -28,14 +31,19 @@ export class AdminLeave implements OnInit {
   }
 
   initializeSession() {
-    const cached = sessionStorage.getItem('activeSessionName');
+    let cached = null;
+    if (isPlatformBrowser(this.platformId)) {
+      cached = sessionStorage.getItem('activeSessionName');
+    }
     if (cached) {
       this.activeSessionName.set(cached);
     } else {
       this.http.get<any>('http://localhost:5000/api/active-session').subscribe(res => {
         if (res && res.sessionName && res.sessionName !== "Not Set") {
           this.activeSessionName.set(res.sessionName);
-          sessionStorage.setItem('activeSessionName', res.sessionName);
+          if (isPlatformBrowser(this.platformId)) {
+            sessionStorage.setItem('activeSessionName', res.sessionName);
+          }
         }
       });
     }

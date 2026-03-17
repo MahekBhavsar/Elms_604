@@ -1,6 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Inject, PLATFORM_ID } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-admin-sidebar',
@@ -12,7 +12,10 @@ import { CommonModule } from '@angular/common';
 export class AdminSidebar {
   isCollapsed = false;
 
-  constructor(private router: Router) { }
+  constructor(
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
 
   toggleSidebar() {
     this.isCollapsed = !this.isCollapsed;
@@ -20,7 +23,9 @@ export class AdminSidebar {
 
   logout() {
     console.log("Admin logged out");
-    sessionStorage.removeItem('user'); // Always good to clear just in case
+    if (isPlatformBrowser(this.platformId)) {
+      sessionStorage.removeItem('user'); // Always good to clear just in case
+    }
     this.router.navigate(['/login']);
   }
 }

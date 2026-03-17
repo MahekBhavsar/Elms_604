@@ -1,6 +1,6 @@
-import { Component, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, effect, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule, UpperCasePipe, DatePipe } from '@angular/common';
+import { CommonModule, UpperCasePipe, DatePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { DisplayDatePipe } from '../../../../shared/pipes/display-date.pipe';
@@ -55,7 +55,10 @@ export class Report implements OnInit {
     });
   });
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
   ngOnInit() {
     this.loadData();
@@ -67,13 +70,18 @@ export class Report implements OnInit {
     this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe(res => this.allLeaveTypes.set(res));
     
     // Fetch active session AND all available session labels
-    const cachedSession = sessionStorage.getItem('activeSessionName');
+    let cachedSession = null;
+    if (isPlatformBrowser(this.platformId)) {
+      cachedSession = sessionStorage.getItem('activeSessionName');
+    }
     this.http.get<any>('http://localhost:5000/api/active-session').subscribe(res => {
       const active = res.sessionName || '';
       this.activeSession.set(active);
       const sessionToUse = cachedSession || active;
       this.selectedSession.set(sessionToUse);
-      sessionStorage.setItem('activeSessionName', sessionToUse);
+      if (isPlatformBrowser(this.platformId)) {
+        sessionStorage.setItem('activeSessionName', sessionToUse);
+      }
     });
     this.http.get<string[]>('http://localhost:5000/api/sessions/list').subscribe(res => {
       this.availableSessions.set(res);
@@ -82,7 +90,9 @@ export class Report implements OnInit {
 
   onSessionChange(newSession: string) {
     this.selectedSession.set(newSession);
-    sessionStorage.setItem('activeSessionName', newSession);
+    if (isPlatformBrowser(this.platformId)) {
+      sessionStorage.setItem('activeSessionName', newSession);
+    }
     this.loadBalanceSummary();
     // Refresh lists for the new session
     this.http.get<any[]>('http://localhost:5000/api/leaves/admin').subscribe(res => this.allLeaves.set(res));
