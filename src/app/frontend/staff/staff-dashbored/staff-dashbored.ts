@@ -6,7 +6,8 @@ import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { Chart, registerables } from 'chart.js';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 Chart.register(...registerables);
 
@@ -73,12 +74,17 @@ fetchDashboardData() {
       };
 
       // 1. Filter rules for CURRENT session
+      const userDept = (this.user.dept_code !== undefined && this.user.dept_code !== null) ? String(this.user.dept_code) : 
+                       (this.user.Dept_Code !== undefined && this.user.Dept_Code !== null ? String(this.user.Dept_Code) : '');
+      const userStaffType = this.user.staffType || 'Teaching';
+
       const rawCurrentRules = res.rules.filter(r => {
         const isSessionMatch = r.sessionName === currentSessionLabel;
-        const userDept = String(this.user.dept_code || '');
-        const ruleDept = String(r.dept_code || '');
+        const ruleDept = (r.dept_code !== undefined && r.dept_code !== null) ? String(r.dept_code) : '';
         const isDeptMatch = userDept === ruleDept || ruleDept === '0';
-        return isSessionMatch && isDeptMatch;
+        const isStaffTypeMatch = r.staffType === userStaffType || r.staffType === 'All' || !r.staffType;
+
+        return isSessionMatch && isDeptMatch && isStaffTypeMatch;
       });
 
       // 2. Deduplicate rules
@@ -108,9 +114,10 @@ fetchDashboardData() {
       // 4. Fetch balances specifically for THIS session
       const balanceRequests = myCurrentRules.map(r => 
         this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
+        .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
       );
 
-      forkJoin(balanceRequests).subscribe(balances => {
+      forkJoin(balanceRequests).subscribe((balances: any[]) => {
          this.quotaCards = myCurrentRules.map((rule, i) => {
              const b = balances[i];
              const name = rule.leave_name.toUpperCase().trim();

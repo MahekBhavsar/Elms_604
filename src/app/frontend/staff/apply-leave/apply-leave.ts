@@ -62,14 +62,18 @@ export class ApplyLeave implements OnInit {
       if (isPlatformBrowser(this.platformId)) {
         sessionStorage.setItem('activeSessionName', currentSessionLabel);
       }
-      const userDept = String(this.staffData().dept_code);
+          const userDept = (this.staffData().dept_code !== undefined && this.staffData().dept_code !== null) ? String(this.staffData().dept_code) : 
+                       (this.staffData().Dept_Code !== undefined && this.staffData().Dept_Code !== null ? String(this.staffData().Dept_Code) : '');
+      const userStaffType = this.staffData().staffType || 'Teaching';
 
       // PERFECT FILTER: 
       // 1. Must match Session
       // 2. Match user's specific Dept OR match "0" (Universal/Others)
+      // 3. Match staffType OR "All"
       const applicableRules = res.rules.filter(r =>
         r.sessionName === currentSessionLabel &&
-        (String(r.dept_code) === userDept || String(r.dept_code) === '0' || !r.dept_code)
+        (String(r.dept_code) === userDept || String(r.dept_code) === '0' || !r.dept_code) &&
+        (r.staffType === userStaffType || r.staffType === 'All' || !r.staffType)
       );
 
       // Sort alphabetically and remove duplicates

@@ -92,10 +92,14 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
         this.calculateSystemStats(res.leaves, res.staff, startDate, endDate);
 
         // 2. Calculate PERSONAL Admin Quotas
-        const userDept = String(this.user.dept_code || '');
+        const userDept = (this.user.dept_code !== undefined && this.user.dept_code !== null) ? String(this.user.dept_code) : 
+                         (this.user.Dept_Code !== undefined && this.user.Dept_Code !== null ? String(this.user.Dept_Code) : '');
+        const userStaffType = this.user.staffType || 'Teaching';
+        
         let myCurrentRules = res.rules.filter(r => 
           r.sessionName === currentSessionLabel && 
-          (String(r.dept_code || '') === userDept || String(r.dept_code || '') === '0')
+          (String(r.dept_code !== undefined && r.dept_code !== null ? r.dept_code : '') === userDept || String(r.dept_code !== undefined && r.dept_code !== null ? r.dept_code : '') === '0') &&
+          (r.staffType === userStaffType || r.staffType === 'All' || !r.staffType)
         );
 
         const uniqueRulesMap = new Map();
@@ -124,7 +128,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
         // 4. Fetch balances specifically for Admin as a staff member
         const balanceRequests = myCurrentRules.map(r => 
           this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
-          .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: 12 })))
+          .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
         );
 
         forkJoin(balanceRequests).subscribe(balances => {

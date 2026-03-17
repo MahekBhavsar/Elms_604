@@ -60,9 +60,13 @@ export class AdminLeaveApplication implements OnInit {
     }).subscribe({
       next: (res) => {
         const currentSessionLabel = res.session.sessionName;
+        const userDept = (this.staffData().dept_code !== undefined && this.staffData().dept_code !== null) ? String(this.staffData().dept_code) : 
+                         (this.staffData().Dept_Code !== undefined && this.staffData().Dept_Code !== null ? String(this.staffData().Dept_Code) : '');
+        const userStaffType = this.staffData().staffType || 'Teaching';
+
         const applicableRules = res.rules.filter(r =>
-          String(r.dept_code) === String(this.staffData().dept_code) &&
-          r.staffType === (this.staffData().staffType || 'Teaching') &&
+          String(r.dept_code) === userDept &&
+          (r.staffType === userStaffType || r.staffType === 'All' || !r.staffType) &&
           r.sessionName === currentSessionLabel
         );
 
