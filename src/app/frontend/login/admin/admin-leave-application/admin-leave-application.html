@@ -56,11 +56,37 @@
 
           <form (ngSubmit)="onSubmit()">
             <div class="row g-4">
-              
+
+              <!-- Auto-filled: Emp Code & Dept Code -->
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Employee Code</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="bi bi-person-badge"></i></span>
+                  <input type="text" class="form-control bg-light border-0 py-3 shadow-none text-dark fw-bold"
+                         [value]="leaveForm.Emp_CODE" readonly
+                         style="background-color: #f0fdf4 !important; cursor: not-allowed;">
+                  <span class="input-group-text bg-light border-0 text-muted" style="font-size: 0.7rem;">Auto</span>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Department Code</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-info bg-opacity-10 border-0 text-info"><i class="bi bi-building"></i></span>
+                  <input type="text" class="form-control bg-light border-0 py-3 shadow-none text-dark fw-bold"
+                         [value]="leaveForm.Dept_Code" readonly
+                         style="background-color: #eff6ff !important; cursor: not-allowed;">
+                  <span class="input-group-text bg-light border-0 text-muted" style="font-size: 0.7rem;">Auto</span>
+                </div>
+              </div>
+
               <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted text-uppercase">Sr. No.</label>
+                <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
+                  Sr. No.
+                  <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Auto · Editable</span>
+                </label>
                 <input type="text" class="form-control bg-light border-0 py-3 shadow-none" 
-                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="Enter Serial No." required>
+                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="e.g. 1" required>
               </div>
 
               <div class="col-md-8">

@@ -54,17 +54,16 @@ export class AdminLeaveApplication implements OnInit {
         this.leaveForm.Dept_Code = user.dept_code || 1;
         this.leaveForm.Role = user.role;
         
-        this.fetchLastSrNo();
+        this.fetchLastSrNo(user.empCode);
       }
     }
   }
 
-  fetchLastSrNo() {
-    this.http.get<any>('http://localhost:5000/api/admin/last-sr-no').subscribe({
-      next: (res) => {
-        this.leaveForm.sr_no = res.nextSrNo;
-      },
-      error: (err) => console.error("Error fetching last SR No", err)
+  fetchLastSrNo(empCode: any) {
+    if (!empCode) return;
+    this.http.get<any>(`http://localhost:5000/api/leaves/next-sr-no/${empCode}`).subscribe({
+      next: (res) => { this.leaveForm.sr_no = String(res.nextSrNo); },
+      error: () => { this.leaveForm.sr_no = '1'; }
     });
   }
 
@@ -81,7 +80,8 @@ export class AdminLeaveApplication implements OnInit {
         this.leaveForm.Role = user.role;
         this.employeeBalances.set(res.balances || []);
         
-        // Reset and fetch leave types for THIS employee
+        // Auto-fill Sr. No. for this employee and fetch leave types
+        this.fetchLastSrNo(user.empCode);
         this.fetchLeaveTypes();
       },
       error: (err) => {
@@ -259,7 +259,7 @@ export class AdminLeaveApplication implements OnInit {
       next: () => {
         alert("✅ Leave application submitted successfully!");
         this.resetForm();
-        this.fetchLastSrNo();
+        this.fetchLastSrNo(this.leaveForm.Emp_CODE);
       },
       error: () => alert("❌ Error applying. Please try again.")
     });

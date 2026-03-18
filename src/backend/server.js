@@ -537,6 +537,30 @@ app.post('/api/admin/sync-all-balances', async (req, res) => {
     }
 });
 
+
+// Get next GLOBAL Sr. No (continuous across all staff — 1, 2, 3, ...)
+app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
+    try {
+        // Search ALL leaves (global sequence, not per-employee)
+        const leaves = await Leave.find({}).lean();
+        
+        let maxSr = 0;
+        for (const l of leaves) {
+            // Parse the sr_no — handles "5", "2025/003", "001" etc.
+            const raw = String(l.sr_no || l['Sr No'] || '0');
+            const match = raw.match(/(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxSr) maxSr = num;
+            }
+        }
+        
+        res.json({ nextSrNo: maxSr + 1 });
+    } catch (err) {
+        res.json({ nextSrNo: 1 });
+    }
+});
+
 // 6. LOGIN & STAFF MANAGEMENT
 app.post('/login', async (req, res) => {
     try {

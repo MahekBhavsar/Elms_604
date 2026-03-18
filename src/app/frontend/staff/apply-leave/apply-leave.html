@@ -1,133 +1,292 @@
 <app-staff-sidebar>
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        
+  <div class="container-fluid py-4 bg-light min-vh-100">
+
+    <!-- Main Content Row: Form Left, Balance Panel Right -->
+    <div class="row g-4">
+
+      <!-- ===== LEFT COLUMN: Form ===== -->
+      <div class="col-md-7">
+
+        <!-- Staff Info Hero Card -->
         <div class="card shadow-sm border-0 mb-4 overflow-hidden rounded-4">
           <div class="card-body p-0">
-            <div class="d-flex align-items-center bg-primary text-white p-4">
-              <div class="me-4 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style="width: 65px; height: 65px;">
+            <div class="d-flex align-items-center text-white p-4"
+              style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+              <div class="me-4 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 65px; height: 65px;">
                 <i class="bi bi-person-workspace fs-2"></i>
               </div>
               <div>
                 <h6 class="mb-0 text-white-50">{{ staffData().department }} | {{ staffData().staffType }}</h6>
-                <h4 class="fw-bold mb-0">{{ staffData().name }}</h4> 
+                <h4 class="fw-bold mb-0 text-white">{{ staffData().name }}</h4>
                 <div class="d-flex align-items-center gap-2 mt-1">
-                   <span class="badge bg-white text-primary">Session: {{ activeSession() }}</span>
-                   <small class="opacity-75">Code: {{ staffData().empCode }}</small>
+                  <span class="badge bg-white text-primary">Session: {{ activeSession() }}</span>
+                  <small class="opacity-75">Code: {{ staffData().empCode }} | Dept: {{ staffData().dept_code }}</small>
                 </div>
               </div>
               <div class="ms-auto text-end">
                 <div class="bg-white bg-opacity-10 p-2 rounded-3">
-                    <h1 class="display-6 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
-                    <small class="text-uppercase fw-bold" style="font-size: 0.6rem;">Days Requested</small>
+                  <h1 class="display-6 fw-bold mb-0">{{ leaveForm.Total_Days() }}</h1>
+                  <small class="text-uppercase fw-bold" style="font-size: 0.6rem;">Days Requested</small>
                 </div>
               </div>
             </div>
-            
+            <!-- Live Balance Strip -->
             <div class="px-4 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-                <span class="small text-muted fw-bold">
-                    <i class="bi bi-info-circle me-1"></i>
-                    {{ leaveForm.Type_of_Leave }} Status:
-                </span>
-                <span [ngClass]="isIncrementing() ? 'text-primary' : 'text-success'" class="fw-bold">
-                    {{ displayValue() }} {{ isIncrementing() ? 'Days Taken' : 'Days Available' }}
-                </span>
+              <span class="small text-muted fw-bold">
+                <i class="bi bi-info-circle me-1"></i>
+                {{ leaveForm.Type_of_Leave }} Balance:
+              </span>
+              <span [ngClass]="isIncrementing() ? 'text-primary' : 'text-success'" class="fw-bold">
+                {{ displayValue() }} {{ isIncrementing() ? 'Days Taken' : 'Days Available' }}
+              </span>
             </div>
           </div>
         </div>
 
+        <!-- Application Form Card -->
         <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white">
-          <h5 class="mb-4 fw-bold text-dark"><i class="bi bi-pencil-square me-2"></i>Apply New Leave</h5>
-          
+          <div class="d-flex align-items-center mb-4">
+            <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
+              <i class="bi bi-file-earmark-plus text-primary fs-3"></i>
+            </div>
+            <h3 class="text-dark fw-bold mb-0">New Leave Application</h3>
+          </div>
+
           <form (ngSubmit)="onSubmit()">
             <div class="row g-4">
-              
+
+              <!-- Auto-filled Info Row -->
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Application Sr. No.</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Employee Code</label>
                 <div class="input-group">
-                    <span class="input-group-text bg-light border-0"><i class="bi bi-hash"></i></span>
-                    <input type="text" class="form-control bg-light border-0 py-3 shadow-none" 
-                           [(ngModel)]="leaveForm.sr_no" name="sr_no" 
-                           placeholder="Ex: 2024/001" required>
+                  <span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="bi bi-person-badge"></i></span>
+                  <input type="text" class="form-control bg-light border-0 py-3 shadow-none text-dark fw-bold"
+                         [value]="leaveForm.Emp_CODE" readonly
+                         style="background-color: #f0fdf4 !important; cursor: not-allowed;">
+                  <span class="input-group-text bg-light border-0 text-muted" style="font-size: 0.7rem;">Auto</span>
                 </div>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Leave Type</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Department Code</label>
                 <div class="input-group">
-                    <span class="input-group-text bg-light border-0"><i class="bi bi-calendar-event"></i></span>
-                    <select class="form-select bg-light border-0 py-3 shadow-none" 
-                            [(ngModel)]="leaveForm.Type_of_Leave" 
-                            name="type" 
-                            (change)="fetchBalance()">
-                      @for (name of leaveTypes(); track name) {
-                        <option [value]="name">{{ name }}</option>
-                      }
-                    </select>
+                  <span class="input-group-text bg-info bg-opacity-10 border-0 text-info"><i class="bi bi-building"></i></span>
+                  <input type="text" class="form-control bg-light border-0 py-3 shadow-none text-dark fw-bold"
+                         [value]="leaveForm.Dept_Code" readonly
+                         style="background-color: #eff6ff !important; cursor: not-allowed;">
+                  <span class="input-group-text bg-light border-0 text-muted" style="font-size: 0.7rem;">Auto</span>
                 </div>
               </div>
 
-              <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">From Date</label>
-                <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.From" name="from" (change)="calculateDays()" required>
+              <!-- SR. No (auto-incremented, editable) -->
+              <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
+                  Sr. No.
+                  <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Auto · Editable</span>
+                </label>
+                <input type="text" class="form-control bg-light border-0 py-3 shadow-none"
+                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="e.g. 1" required>
               </div>
 
-              <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">To Date</label>
-                <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.To" name="to" (change)="calculateDays()" required>
+              <!-- Leave Type -->
+              <div class="col-md-8">
+                <label class="form-label small fw-bold text-muted text-uppercase">Type of Leave</label>
+                <select class="form-select bg-light border-0 py-3 shadow-none"
+                        [(ngModel)]="leaveForm.Type_of_Leave" name="type" (change)="fetchBalance()">
+                  <option value="" disabled>Select Leave Type</option>
+                  @for (name of leaveTypes(); track name) {
+                    <option [value]="name">{{ name }}</option>
+                  }
+                </select>
               </div>
 
+              <!-- From Date -->
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Start Date</label>
+                <input type="date" class="form-control bg-light border-0 py-3 shadow-none"
+                       [(ngModel)]="leaveForm.From" name="from" (change)="calculateDays()" required>
+              </div>
+
+              <!-- To Date -->
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">End Date</label>
+                <input type="date" class="form-control bg-light border-0 py-3 shadow-none"
+                       [(ngModel)]="leaveForm.To" name="to" (change)="calculateDays()" required>
+              </div>
+
+              <!-- Reason -->
+              <div class="col-md-12">
+                <label class="form-label small fw-bold text-muted text-uppercase">Reason for Application</label>
+                <textarea class="form-control bg-light border-0 py-3 shadow-none" rows="3"
+                  [(ngModel)]="leaveForm.Reason" name="reason"
+                  placeholder="Enter reason for applying leave" required></textarea>
+              </div>
+
+              <!-- VAL working dates -->
               @if (leaveForm.Type_of_Leave === 'VAL') {
               <div class="col-md-12">
                 <div class="p-3 border border-warning rounded-3 bg-warning bg-opacity-10">
                   <label class="form-label small fw-bold text-uppercase d-flex justify-content-between align-items-center text-warning-emphasis">
                     <span><i class="bi bi-calendar2-check me-1"></i> 3 Working Dates During Vacation</span>
-                    <span class="badge rounded-pill bg-warning text-dark">Required for VAL</span>
+                    <span class="badge bg-warning text-dark">Required for VAL</span>
                   </label>
                   <textarea class="form-control bg-white border-0 shadow-none" rows="3"
-                    name="VAL_working_dates"
-                    [(ngModel)]="leaveForm.VAL_working_dates"
-                    placeholder="e.g. 01-May-2025, 02-May-2025, 03-May-2025 (mention the 3 days you worked during vacation)"
-                    required></textarea>
-                  <div class="form-text mt-2 small text-warning-emphasis">
+                    name="VAL_working_dates" [(ngModel)]="leaveForm.VAL_working_dates"
+                    placeholder="e.g. 01-May-2025, 02-May-2025, 03-May-2025" required></textarea>
+                  <div class="mt-2 small text-warning-emphasis">
                     <i class="bi bi-info-circle me-1"></i>
-                    VAL is granted only when you worked 3 days during a vacation period. Please mention those dates.
+                    VAL is granted only when you worked 3 days during a vacation period.
                   </div>
                 </div>
               </div>
               }
 
+              <!-- Supporting Document -->
               <div class="col-md-12">
-                <div class="p-3 border rounded-3 transition-all" 
+                <div class="p-3 border rounded-3"
                      [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light border-0': leaveForm.Type_of_Leave !== 'SL' || leaveForm.Total_Days() <= 3}">
-                  <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between align-items-center">
+                  <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
                     <span><i class="bi bi-paperclip me-1"></i> Supporting Document</span>
                     @if (leaveForm.Type_of_Leave === 'SL') {
                       @if (leaveForm.Total_Days() > 3) {
-                        <span class="badge rounded-pill bg-danger animate__animated animate__pulse animate__infinite">Required: Medical Certificate</span>
+                        <span class="badge rounded-pill bg-danger">Medical Proof Compulsory</span>
                       } @else {
-                        <span class="badge rounded-pill bg-secondary text-white">Optional for ≤ 3 days</span>
+                        <span class="badge bg-warning text-dark">Optional Proof</span>
                       }
                     }
                   </label>
-                  <input type="file" class="form-control bg-white py-2 shadow-sm" (change)="onFileSelected($event)" name="document">
-                  <div class="form-text mt-2 small">Upload PDF or Image (Max 2MB).</div>
+                  <input type="file" class="form-control bg-white py-2 shadow-none" (change)="onFileSelected($event)" name="document">
+                  <div class="mt-2 small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Allowed: PDF, JPG, PNG. Mandatory for SL > 3 days.
+                  </div>
                 </div>
               </div>
 
-              <div class="col-12 mt-4">
-                <button type="submit" 
-                        [disabled]="!leaveForm.sr_no || leaveForm.Total_Days() === 0"
-                        class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg transform-hover">
-                  <i class="bi bi-send-fill me-2"></i> Submit Application
+              <!-- Submit -->
+              <div class="col-12 mt-5">
+                <button type="submit" class="btn text-white w-100 py-3 rounded-pill fw-bold shadow-lg"
+                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                  <i class="bi bi-check2-circle me-2"></i> Confirm and Submit Request
                 </button>
               </div>
             </div>
           </form>
         </div>
-
       </div>
+
+      <!-- ===== RIGHT COLUMN: Balance Panel ===== -->
+      <div class="col-md-5">
+        <div class="card shadow border-0 rounded-4 overflow-hidden sticky-top" style="top: 100px; z-index: 10;">
+          <div class="card-header bg-primary bg-gradient text-white p-4 border-0">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-1 fw-bold">My Leave Balance</h5>
+                <p class="small mb-0 opacity-75">Session: {{ activeSession() }}</p>
+              </div>
+              <i class="bi bi-shield-check fs-2 opacity-50"></i>
+            </div>
+          </div>
+          <div class="card-body p-0 bg-white">
+            <div class="table-responsive">
+              <table class="table table-borderless mb-0">
+                <thead class="bg-light text-muted small text-uppercase fw-bold">
+                  <tr>
+                    <th class="ps-4 py-3">Leave Type</th>
+                    <th class="text-center py-3">Taken</th>
+                    <th class="pe-4 text-end py-3">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (b of employeeBalances(); track b.type) {
+                    <tr class="border-bottom align-middle">
+                      <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center">
+                          <button class="btn btn-sm btn-light border-0 me-2 rounded-circle"
+                                  (click)="toggleHistory(b.type)"
+                                  [class.text-primary]="expandedType() === b.type">
+                            <i class="bi" [ngClass]="expandedType() === b.type ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                          </button>
+                          <div class="fw-bold text-dark">{{ b.type }}</div>
+                        </div>
+                      </td>
+                      <td class="text-center py-3">
+                        <span class="fw-bold text-secondary">{{ b.used }}</span>
+                      </td>
+                      <td class="pe-4 text-end py-3">
+                        <span class="badge rounded-pill px-3 py-2 fw-bold"
+                              [ngClass]="b.isIncrementing ? 'bg-primary bg-opacity-10 text-primary' : (b.balance <= 3 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success')">
+                          {{ b.balance }} {{ b.isIncrementing ? 'Accumulated' : 'Remaining' }}
+                        </span>
+                      </td>
+                    </tr>
+                    @if (expandedType() === b.type) {
+                      <tr>
+                        <td colspan="3" class="p-0 border-0">
+                          <div class="bg-light p-3 mx-4 mb-3 rounded-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                              <span class="small fw-bold text-muted text-uppercase">History ({{ b.type }})</span>
+                              <span class="badge bg-white text-dark border">{{ leaveHistory().length }} Applications</span>
+                            </div>
+                            @if (leaveHistory().length > 0) {
+                              <div class="table-responsive">
+                                <table class="table table-sm table-borderless mb-0 align-middle" style="font-size: 0.85rem;">
+                                  <thead class="text-muted border-bottom">
+                                    <tr>
+                                      <th>Sr.</th>
+                                      <th>From – To</th>
+                                      <th class="text-center">Days</th>
+                                      <th class="text-end">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    @for (h of leaveHistory(); track h._id) {
+                                      <tr>
+                                        <td class="fw-bold">{{ h.sr_no || h.Sr?.NO?.[''] || h.Sr?.NO || '' }}</td>
+                                        <td>{{ h.From | date:'dd MMM' }} – {{ h.To | date:'dd MMM' }}</td>
+                                        <td class="text-center"><span class="badge bg-dark rounded-pill">{{ h["Total Days"] || h.Total_Days }}</span></td>
+                                        <td class="text-end">
+                                          <span class="small fw-bold" [ngClass]="{
+                                            'text-success': h.Status.toLowerCase().includes('approved'),
+                                            'text-warning': h.Status.toLowerCase().includes('pending'),
+                                            'text-danger': h.Status.toLowerCase().includes('reject')
+                                          }">
+                                            <i class="bi bi-dot fs-4 align-middle"></i>{{ h.Status }}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    }
+                                  </tbody>
+                                </table>
+                              </div>
+                            } @else {
+                              <div class="py-3 text-center text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> No leaves found for this session.
+                              </div>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="p-4 bg-light bg-opacity-50">
+              <div class="d-flex align-items-center p-3 bg-white rounded-3 border">
+                <div class="bg-primary bg-opacity-10 p-2 rounded text-primary me-3">
+                  <i class="bi bi-info-circle-fill"></i>
+                </div>
+                <p class="small mb-0 text-muted">
+                  Balances are calculated in real-time for <strong>{{ staffData().name }}</strong> for the <strong>{{ activeSession() }}</strong> session.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </app-staff-sidebar>
