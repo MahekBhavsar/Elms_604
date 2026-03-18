@@ -44,7 +44,14 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
       const savedUser = sessionStorage.getItem('user');
       if (savedUser) {
         this.user = JSON.parse(savedUser);
-        this.fetchDashboardData();
+        
+        // Ensure we have a valid empCode before fetching
+        if (this.user.empCode || this.user.Employee_Code) {
+          this.fetchDashboardData();
+        } else {
+          console.error("[StaffDashbored] ERROR: No employee code found in user session.");
+          this.dataReady = true; // Stop skeleton/loader
+        }
       }
     }
   }

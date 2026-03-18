@@ -77,6 +77,7 @@ const leaveSchema = new mongoose.Schema({
     Status: { type: String, default: 'Pending' },
     HOD_Approved: { type: Boolean, default: false },
     Reject_Reason: String,
+    Reason: String,
     document: String,
     VAL_working_dates: String  // 3 working dates required for VAL leave type
 }, { collection: 'leave_applications', versionKey: false });
@@ -112,8 +113,10 @@ app.post('/api/admin/set-session', async (req, res) => {
             const defaultTypes = [
                 { name: 'CL', limit: 12, cf: false },
                 { name: 'SL', limit: 12, cf: true },
-                { name: 'AL', limit: 12, cf: false },
-                { name: 'VAL', limit: 12, cf: false },
+                { name: 'AL', limit: 0,  cf: false },
+                { name: 'VAL', limit: 0,  cf: false },
+                { name: 'DL', limit: 0,  cf: false },
+                { name: 'SAT', limit: 12, cf: false },
                 { name: 'EL', limit: 12, cf: true }
             ];
 
@@ -177,18 +180,132 @@ app.get('/api/sessions/list', async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 // 2. LIVE BALANCE CALCULATOR (Supports Incrementing VAL/AL & Deduction CL/SL)
+async function calculateUserBalance(empCode, type, sessionName) {
+    const employeeCode = Number(empCode);
+    
+    // VALIDATION: Prevent NaN or 0 codes from crashing Mongoose findOne
+    if (isNaN(employeeCode) || employeeCode <= 0) {
+        return { balance: 0, error: "Invalid Employee Code" };
+    }
+
+    const leaveTypeUpper = type.toUpperCase().trim();
+    const currentSessionName = sessionName;
+
+    // 1. Fetch User
+    const emp = await User.findOne({ "Employee Code": employeeCode });
+    if (!emp) return { balance: 0, error: "User not found" };
+    
+    const userDept = String(emp.dept_code || '');
+
+    // 2. Fetch Rules
+    const allRulesForType = await LeaveType.find({ leave_name: leaveTypeUpper }).lean();
+    const userRules = allRulesForType.filter(r => 
+        String(r.dept_code) === userDept || String(r.dept_code) === '0'
+    );
+
+    let currentRule = userRules.find(r => r.sessionName === currentSessionName);
+    if (!currentRule) {
+        currentRule = {
+            leave_name: leaveTypeUpper,
+            total_yearly_limit: (['AL', 'VAL', 'DL'].includes(leaveTypeUpper)) ? 0 : 12,
+            can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'),
+            sessionName: currentSessionName
+        };
+    }
+
+    // 3. Mode Selection
+    const isIncrementing = Number(currentRule.total_yearly_limit) === 0;
+
+    // 4. Calculate Used (Always Session Scoped)
+    const leavesThisSession = await Leave.find({
+        Emp_CODE: employeeCode,
+        sessionName: currentSessionName,
+        Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
+        $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+    }).lean();
+
+    const usedThisYear = leavesThisSession.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+
+    // 5. Manual Adjustment Fetch
+    const manualAdjustment = await BalanceAdjustment.findOne({
+        empCode: employeeCode,
+        leaveType: leaveTypeUpper,
+        sessionName: currentSessionName
+    }).lean();
+
+    // 6. MODE ACTIONS
+    if (isIncrementing) {
+        // CASE A: Accumulating (Starts at 0, goes up)
+        const finalBalance = manualAdjustment ? manualAdjustment.adjustmentValue : usedThisYear;
+        return { 
+            balance: finalBalance, 
+            isIncrementing: true, 
+            sessionName: currentSessionName,
+            isManuallyAdjusted: !!manualAdjustment,
+            usedThisYear: usedThisYear,
+            limit: '-'
+        };
+    } else {
+        // CASE B: Deducting (Starts at Quota, goes down)
+        let totalLimit = Number(currentRule.total_yearly_limit);
+        let carryForwardAmount = 0;
+        
+        // Carry Forward Logic
+        if (currentRule.can_carry_forward) {
+            const currentYearStart = parseInt(currentSessionName.split('-')[0]);
+            const pastRules = Array.from(new Map(userRules.filter(r => parseInt(r.sessionName.split('-')[0]) < currentYearStart).map(r => [r.sessionName, r])).values());
+
+            for (let pastRule of pastRules) {
+                const pastAdjustment = await BalanceAdjustment.findOne({
+                    empCode: employeeCode,
+                    leaveType: leaveTypeUpper,
+                    sessionName: pastRule.sessionName
+                }).lean();
+
+                let carryAmount = 0;
+                if (pastAdjustment) {
+                    carryAmount = Number(pastAdjustment.adjustmentValue);
+                } else {
+                    const pastLeaves = await Leave.find({
+                        Emp_CODE: employeeCode,
+                        sessionName: pastRule.sessionName,
+                        Status: { $in: ['Approved', 'Final Approved', 'HOD Approved'] },
+                        $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
+                    }).lean();
+                    const pastUsed = pastLeaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+                    carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
+                }
+                totalLimit += carryAmount;
+                carryForwardAmount += carryAmount;
+            }
+        }
+
+        let finalBalance = Math.max(0, totalLimit - usedThisYear);
+        let finalLimit = totalLimit;
+
+        if (manualAdjustment) {
+            finalBalance = manualAdjustment.adjustmentValue;
+            finalLimit = finalBalance + usedThisYear;
+        }
+
+        return { 
+            balance: finalBalance, 
+            isIncrementing: false,
+            sessionName: currentSessionName,
+            limit: finalLimit,
+            carryForward: carryForwardAmount,
+            currentLimit: Number(currentRule.total_yearly_limit),
+            usedThisYear: usedThisYear,
+            isManuallyAdjusted: !!manualAdjustment
+        };
+    }
+}
+
 app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
     try {
         const { empCode, type } = req.params;
-        const { sessionName: querySession } = req.query; // <--- ADDED: support for query param
-        const employeeCode = Number(empCode);
-        const leaveTypeUpper = type.toUpperCase().trim();
-
-        if (isNaN(employeeCode)) {
-            return res.status(400).json({ balance: 0, error: "Invalid Employee Code provided" });
-        }
-
-        // 1. Get the session to use
+        const { sessionName: querySession } = req.query;
+        
         let sessionToUse;
         if (querySession) {
             sessionToUse = querySession;
@@ -198,156 +315,8 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
             sessionToUse = activeSession.sessionName;
         }
 
-        const currentSessionName = sessionToUse;
-
-        // 2. Fetch User and ensure we have their dept_code as a String for safe comparison
-        const emp = await User.findOne({ "Employee Code": employeeCode });
-        if (!emp) return res.json({ balance: 0, error: "User not found" });
-        
-        const userDept = String(emp.dept_code || '');
-        const userStaffType = emp.staffType || 'Teaching';
-
-        // 3. CASE A: AL (Incrementing - Total History across all sessions)
-        // Note: EL and VAL are now removed from here to support yearly quotas
-        if (['AL'].includes(leaveTypeUpper)) {
-            const history = await Leave.find({
-                Emp_CODE: employeeCode,
-                Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
-                $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
-            }).lean();
-            const total = history.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-            
-            // Check for manual adjustments (even for VAL/AL)
-            const manualAdjustment = await BalanceAdjustment.findOne({
-                empCode: employeeCode,
-                leaveType: leaveTypeUpper,
-                sessionName: currentSessionName
-            }).lean();
-
-            const finalTotal = manualAdjustment ? manualAdjustment.adjustmentValue : total;
-
-            return res.json({ 
-                balance: finalTotal, 
-                isIncrementing: true, 
-                sessionName: currentSessionName,
-                isManuallyAdjusted: !!manualAdjustment,
-                usedThisYear: total, // For incrementing, 'used' is the total accumulated
-                limit: '-' // No limit for incrementing types usually
-            });
-        }
-
-        // 4. Fetch ALL rules for this user's leave type to handle Current + Carry Forward
-        const allRulesForType = await LeaveType.find({ 
-            leave_name: leaveTypeUpper 
-        }).lean();
-
-        // Filter rules matching user's specific dept OR universal '0'
-        const userRules = allRulesForType.filter(r => 
-            String(r.dept_code) === userDept || String(r.dept_code) === '0'
-        );
-
-        // Find the rule for the target session
-        let currentRule = userRules.find(r => r.sessionName === currentSessionName);
-        
-        // --- DEFAULT 12-DAY LOGIC ---
-        // If no explicit rule is found, we fall back to a default limit of 12 (as requested)
-        if (!currentRule) {
-            currentRule = {
-                leave_name: leaveTypeUpper,
-                total_yearly_limit: 12,
-                can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'), // Only SL/EL
-                sessionName: currentSessionName
-            };
-        }
-
-        // 5. Calculate used leaves in the CURRENT session
-        // We match by sessionName label to be 100% accurate to your DB table
-        const leavesThisSession = await Leave.find({
-            Emp_CODE: employeeCode,
-            sessionName: currentSessionName,
-            Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] },
-            $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
-        }).lean();
-
-        const usedThisYear = leavesThisSession.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-
-        // 6. Handle Carry Forward (SL / SAT)
-        let totalLimit = Number(currentRule.total_yearly_limit);
-        let carryForwardAmount = 0;
-        
-        if (currentRule.can_carry_forward) {
-            const currentYearStart = parseInt(currentSessionName.split('-')[0]); // e.g., 2025
-            
-            // Get rules from previous years (e.g., 2024)
-            const rawPastRules = userRules.filter(r => {
-                const rYear = parseInt(r.sessionName.split('-')[0]);
-                return rYear < currentYearStart;
-            });
-
-            // Deduplicate past rules so we don't multiply carry forward because of legacy staffTypes
-            const pastRulesMap = new Map();
-            rawPastRules.forEach(r => {
-                if (!pastRulesMap.has(r.sessionName)) {
-                    pastRulesMap.set(r.sessionName, r);
-                }
-            });
-            const pastRules = Array.from(pastRulesMap.values());
-
-            for (let pastRule of pastRules) {
-                // Check if there was a manual adjustment for this specific past year
-                const pastAdjustment = await BalanceAdjustment.findOne({
-                    empCode: Number(empCode),
-                    leaveType: leaveTypeUpper,
-                    sessionName: pastRule.sessionName
-                }).lean();
-
-                let carryAmount = 0;
-                if (pastAdjustment) {
-                    // If manually adjusted, that value IS the remainder for that year
-                    carryAmount = Number(pastAdjustment.adjustmentValue);
-                } else {
-                    const pastLeaves = await Leave.find({
-                        Emp_CODE: Number(empCode),
-                        sessionName: pastRule.sessionName,
-                        Status: { $in: ['Approved', 'Final Approved', 'HOD Approved'] },
-                        $or: [{ "Type of Leave": leaveTypeUpper }, { "Type_of_Leave": leaveTypeUpper }]
-                    }).lean();
-
-                    const pastUsed = pastLeaves.reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-                    carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
-                }
-                
-                totalLimit += carryAmount;
-                carryForwardAmount += carryAmount;
-            }
-        }
-
-        // 7. Check for manual adjustments
-        const manualAdjustment = await BalanceAdjustment.findOne({
-            empCode: employeeCode,
-            leaveType: leaveTypeUpper,
-            sessionName: currentSessionName
-        }).lean();
-
-        let finalBalance = Math.max(0, totalLimit - usedThisYear);
-        let finalLimit = totalLimit;
-
-        if (manualAdjustment) {
-            finalBalance = manualAdjustment.adjustmentValue;
-            // Sync limit so that Used + Remaining = Limit (Perfect Math for UI)
-            finalLimit = finalBalance + usedThisYear;
-        }
-
-        res.json({ 
-            balance: finalBalance, 
-            isIncrementing: false,
-            sessionName: currentSessionName,
-            limit: finalLimit, // <--- Synced
-            carryForward: carryForwardAmount,
-            currentLimit: Number(currentRule.total_yearly_limit),
-            usedThisYear: usedThisYear,
-            isManuallyAdjusted: !!manualAdjustment
-        });
+        const result = await calculateUserBalance(empCode, type, sessionToUse);
+        res.json(result);
 
     } catch (err) {
         console.error(err);
@@ -382,7 +351,7 @@ function parseDateLocal(dateStr) {
 // 3. APPLY LEAVE
 app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
     try {
-        const { Type_of_Leave, Total_Days, Emp_CODE, From, To, sr_no, Name, Dept_Code, Role, VAL_working_dates } = req.body;
+        const { Type_of_Leave, Total_Days, Emp_CODE, From, To, sr_no, Name, Dept_Code, Role, VAL_working_dates, Reason } = req.body;
 
         // --- VAL WORKING DATES VALIDATION ---
         if (Type_of_Leave?.toUpperCase() === 'VAL' && !VAL_working_dates?.trim()) {
@@ -451,6 +420,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             sessionName: activeSession?.sessionName || "2025-26",
             document: req.file ? req.file.filename : null,
             Status: 'Pending',
+            Reason: Reason,
             VAL_working_dates: Type_of_Leave?.toUpperCase() === 'VAL' ? VAL_working_dates?.trim() : undefined
         });
 
@@ -521,10 +491,59 @@ app.post('/api/leaves/adjust-balance', async (req, res) => {
     }
 });
 
+// 6b. SYNC ALL BALANCES TO MONGODB (Force calculation and storage for all)
+app.post('/api/admin/sync-all-balances', async (req, res) => {
+    try {
+        const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+        if (!activeSession) return res.status(400).json({ success: false, error: "No active session set." });
+
+        const sessionName = activeSession.sessionName;
+        const users = await User.find({}).lean();
+        const leaveTypes = await LeaveType.distinct("leave_name", { sessionName });
+
+        console.log(`[Sync] Starting full balance synchronization for session: ${sessionName}...`);
+        let syncCount = 0;
+
+        for (let user of users) {
+            const empCode = user["Employee Code"];
+            if (!empCode) continue;
+
+            for (let type of leaveTypes) {
+                // Calculate the LIVE balance
+                const result = await calculateUserBalance(empCode, type, sessionName);
+                
+                // Update/Create the Master Copy in balance_adjustments
+                const query = {
+                    empCode: Number(empCode),
+                    leaveType: type.toUpperCase(),
+                    sessionName: sessionName
+                };
+
+                await BalanceAdjustment.findOneAndUpdate(
+                    query,
+                    { adjustmentValue: Number(result.balance), updatedAt: new Date() },
+                    { upsert: true }
+                );
+                syncCount++;
+            }
+        }
+
+        console.log(`[Sync] Completed! Total Records Updated: ${syncCount}`);
+        res.json({ success: true, count: syncCount });
+
+    } catch (err) {
+        console.error("Sync Error:", err);
+        res.status(500).json({ success: false, error: "Sync failed" });
+    }
+});
+
 // 6. LOGIN & STAFF MANAGEMENT
 app.post('/login', async (req, res) => {
     try {
-        const user = await User.findOne({ "Email": req.body.email, "Password": Number(req.body.password) });
+        const password = Number(req.body.password);
+        if (isNaN(password)) return res.status(401).json({ success: false, error: "Invalid password format" });
+        
+        const user = await User.findOne({ "Email": req.body.email, "Password": password });
         if (user) {
             res.json({
                 success: true, name: user["Name"], empCode: user["Employee Code"],
@@ -536,7 +555,9 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/api/leaves/staff/:empCode', async (req, res) => {
-    const leaves = await Leave.find({ Emp_CODE: Number(req.params.empCode) }).sort({ From: -1 });
+    const empCode = Number(req.params.empCode);
+    if (isNaN(empCode)) return res.status(400).json({ error: "Invalid employee code" });
+    const leaves = await Leave.find({ Emp_CODE: empCode }).sort({ From: -1 }).lean();
     res.json(leaves);
 });
 
@@ -565,7 +586,9 @@ app.delete('/api/staff/:id', async (req, res) => {
 // 7. PROFILE UPDATE
 app.get('/api/profile/:empCode', async (req, res) => {
     try {
-        const user = await User.findOne({ "Employee Code": Number(req.params.empCode) });
+        const empCode = Number(req.params.empCode);
+        if (isNaN(empCode)) return res.status(400).json({ error: "Invalid employee code" });
+        const user = await User.findOne({ "Employee Code": empCode });
         if (user) res.json(user);
         else res.status(404).json({ error: "User not found" });
     } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
@@ -573,14 +596,77 @@ app.get('/api/profile/:empCode', async (req, res) => {
 
 app.put('/api/profile/:empCode', async (req, res) => {
     try {
+        const empCode = Number(req.params.empCode);
+        if (isNaN(empCode)) return res.status(400).json({ error: "Invalid employee code" });
         const { Email, Password } = req.body;
         const updated = await User.findOneAndUpdate(
-            { "Employee Code": Number(req.params.empCode) },
+            { "Employee Code": empCode },
             { Email: Email, Password: Number(Password) },
             { new: true }
         );
         res.json({ success: true, data: updated });
     } catch (err) { res.status(500).json({ success: false, error: "Update failed" }); }
+});
+
+// 8. ADMIN HELPER ENDPOINTS
+app.get('/api/admin/employee-results/:empCode', async (req, res) => {
+    try {
+        const empCode = Number(req.params.empCode);
+        const user = await User.findOne({ "Employee Code": empCode });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+        const sessionName = activeSession?.sessionName || "2025-26";
+
+        // Fetch all leave types applicable for this user/dept/session
+        const allTypes = await LeaveType.distinct("leave_name", { sessionName });
+        const balances = [];
+        
+        for (let type of allTypes) {
+            const b = await calculateUserBalance(empCode, type, sessionName);
+            balances.push({
+                type,
+                balance: b.balance,
+                used: b.usedThisYear,
+                limit: b.limit,
+                isIncrementing: b.isIncrementing
+            });
+        }
+        
+        res.json({
+            user: {
+                name: user.Name,
+                empCode: user["Employee Code"],
+                role: user.role,
+                dept_code: user.dept_code,
+                department: user.department,
+                staffType: user.staffType
+            },
+            balances,
+            sessionName
+        });
+    } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
+});
+
+app.get('/api/admin/leave-history/:empCode/:type', async (req, res) => {
+    try {
+        const empCode = Number(req.params.empCode);
+        if (isNaN(empCode)) return res.status(400).json({ error: "Invalid employee code" });
+        const type = req.params.type;
+        const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+        const sessionName = activeSession?.sessionName || "2025-26";
+
+        // Querying with EXACT schema field names
+        // Including Pending to match the "taken" balance calculation
+        const history = await Leave.find({ 
+            Emp_CODE: empCode, 
+            "Type of Leave": type.toUpperCase().trim(),
+            sessionName: sessionName,
+            Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] } 
+        }).sort({ From: -1 }).lean(); 
+
+        res.json(history);
+    } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
 });
 
 const PORT = 5000;

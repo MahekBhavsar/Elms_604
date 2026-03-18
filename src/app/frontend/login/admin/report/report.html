@@ -34,12 +34,6 @@
         <i class="bi bi-calendar2-week-fill me-2"></i>Leave History
       </button>
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
-        [ngClass]="activeTab() === 'configs' ? 'text-white' : 'text-muted'"
-        [style.background]="activeTab() === 'configs' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
-        (click)="onTabChange('configs')">
-        <i class="bi bi-gear-fill me-2"></i>Leave Quotas
-      </button>
-      <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'balance' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'balance' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
         (click)="onTabChange('balance')">
@@ -51,7 +45,7 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
         <div class="row g-3">
-          <div class="col-md-3">
+          <div [class]="activeTab() === 'staff' ? 'col-md-4' : 'col-md-3'">
             <div class="input-group border border-2 rounded-3 bg-light p-1" style="border-color: rgba(30, 60, 114, 0.1) !important;">
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-calendar3" style="color: #2a5298;"></i></span>
               <select class="form-select bg-transparent border-0 shadow-none fw-bold text-primary" 
@@ -63,6 +57,7 @@
               </select>
             </div>
           </div>
+          @if (activeTab() !== 'staff') {
           <div class="col-md-3">
             <div class="input-group border border-2 rounded-3 bg-light p-1"
               style="border-color: rgba(30, 60, 114, 0.1) !important;">
@@ -78,7 +73,8 @@
               </select>
             </div>
           </div>
-          <div class="col-md-3">
+          }
+          <div [class]="activeTab() === 'staff' ? 'col-md-4' : 'col-md-3'">
             <div class="input-group border border-2 rounded-3 bg-light p-1"
               style="border-color: rgba(30, 60, 114, 0.1) !important;">
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"
@@ -88,7 +84,7 @@
                 (ngModelChange)="searchTerm.set($event)">
             </div>
           </div>
-          <div class="col-md-3">
+          <div [class]="activeTab() === 'staff' ? 'col-md-4' : 'col-md-3'">
             <div class="input-group border border-2 rounded-3 bg-light p-1"
               style="border-color: rgba(30, 60, 114, 0.1) !important;">
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-building"
@@ -224,37 +220,6 @@
     </div>
     }
 
-    <!-- ===== TAB: Leave Quotas ===== -->
-    @if (activeTab() === 'configs') {
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="border-bottom" style="background-color: #f8f9fa;">
-            <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-              <th class="ps-4 py-4 border-0">Leave Name</th>
-              <th class="border-0">Session</th>
-              <th class="border-0">Target Dept Code</th>
-              <th class="text-center border-0">Assigned Dept Name</th>
-              <th class="text-end pe-4 border-0">Yearly Quota</th>
-            </tr>
-          </thead>
-          <tbody class="border-top-0">
-            @for (c of filteredConfigs(); track c._id) {
-            <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
-              onmouseout="this.style.backgroundColor='transparent'">
-              <td class="ps-4 py-3"><span class="badge text-white px-3 py-2 shadow-sm rounded-3"
-                  style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">{{ c.leave_name | uppercase }}</span></td>
-              <td class="text-secondary small">{{ c.sessionName || '—' }}</td>
-              <td class="fw-bold fs-5" style="color: #1e3c72;">{{ c.dept_code || 'ALL' }}</td>
-              <td class="text-center text-secondary fw-medium">{{ getDeptName()(c.dept_code) }}</td>
-              <td class="text-end pe-4 fw-bold fs-5" style="color: #1e3c72;">{{ c.total_yearly_limit }} Days</td>
-            </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-    }
 
     <!-- ===== TAB: Balance Summary ===== -->
     @if (activeTab() === 'balance') {
@@ -266,14 +231,27 @@
           <p class="mb-0 fw-semibold">Loading balance summary for all staff...</p>
         </div>
       } @else {
-        <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
-          <h6 class="fw-bold text-dark mb-0">
-            <i class="bi bi-wallet2 me-2 text-primary"></i>
-            Remaining Leave Balance Summary
-          </h6>
-          <button class="btn btn-sm btn-outline-primary rounded-pill px-3" (click)="loadBalanceSummary()">
-            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-          </button>
+        <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom bg-light">
+          <div>
+            <h6 class="fw-bold text-dark mb-1">
+              <i class="bi bi-wallet2 me-2 text-primary"></i>
+              Employee Master Balance Summary
+            </h6>
+            <p class="small text-muted mb-0">Live calculated values for <strong>{{ selectedSession() || activeSession() }}</strong> session.</p>
+          </div>
+          <div class="d-flex gap-2">
+              <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center" 
+                      (click)="syncAllMasterBalances()" [disabled]="syncLoading()">
+                @if (syncLoading()) {
+                  <span class="spinner-border spinner-border-sm me-2"></span> Syncing...
+                } @else {
+                  <i class="bi bi-cloud-arrow-up-fill me-2"></i> Sync All to DB
+                }
+              </button>
+              <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="loadBalanceSummary()" [disabled]="balanceLoading()">
+                  <i class="bi bi-arrow-clockwise me-1"></i> Refresh View
+              </button>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">

@@ -39,6 +39,7 @@ export class Report implements OnInit {
   // Inline editing state
   editingBalance = signal<{ empCode: any, leave: string } | null>(null);
   newBalanceValue = signal<number>(0);
+  syncLoading = signal<boolean>(false);
 
   // Filtered Balance Summary Computed Signal
   filteredBalanceSummary = computed(() => {
@@ -196,7 +197,6 @@ export class Report implements OnInit {
     const session = this.selectedSession() || this.activeSession();
     
     // Get unique leave names from configured types
-    // (We show all unique names found across any session, or just current if preferred)
     const leaveNames = this.leaveNames;
 
     if (!staff.length || !leaveNames.length) {
@@ -294,6 +294,25 @@ export class Report implements OnInit {
         this.loadBalanceSummary();
       },
       error: (err) => console.error('Adjustment failed', err)
+    });
+  }
+
+  /** 6. Master Sync to MongoDB */
+  syncAllMasterBalances() {
+    if (!confirm('This will calculate and save LIVE balances for ALL employees into the database. Continue?')) return;
+    
+    this.syncLoading.set(true);
+    this.http.post<any>('http://localhost:5000/api/admin/sync-all-balances', {}).subscribe({
+      next: (res) => {
+        alert(`Successfully synced ${res.count} balance records to MongoDB!`);
+        this.syncLoading.set(false);
+        this.loadBalanceSummary();
+      },
+      error: (err) => {
+        console.error('Sync failed', err);
+        alert('Synchronization failed. Check console for details.');
+        this.syncLoading.set(false);
+      }
     });
   }
 }

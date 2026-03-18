@@ -4,6 +4,7 @@
     background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 15px 35px rgba(30, 60, 114, 0.2) !important;
 }
 
 .status-hero-card::after {
@@ -15,6 +16,46 @@
     height: 250px;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
     transform: translate(30%, 30%);
+}
+
+/* Balance Summary Table Styling */
+.balance-summary-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.balance-row {
+  transition: all 0.25s ease;
+}
+
+.balance-row:hover {
+  background-color: #f8f9fa !important;
+  transform: scale(1.002);
+}
+
+.balance-icon-circle-lg {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Leave-specific colors for icons */
+.bg-cl { background: linear-gradient(135deg, #FF9966 0%, #FF5E62 100%); }
+.bg-sl { background: linear-gradient(135deg, #11998E 0%, #38EF7D 100%); }
+.bg-al { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
+.bg-val { background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%); }
+.bg-el { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); }
+.bg-dl { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
+.bg-sat { background: linear-gradient(135deg, #00B4DB 0%, #0083B0 100%); }
+
+.fw-black {
+  font-weight: 900;
 }
 
 .status-table-card {
@@ -65,4 +106,15 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+
+.balance-icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9rem;
 }

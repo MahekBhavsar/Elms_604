@@ -15,6 +15,11 @@ export class AdminLeaveApplication implements OnInit {
   staffData = signal<any>({});
   remainingBalance = signal<number>(0);
   selectedFile = signal<File | null>(null);
+  searchEmpCode = '';
+  isEmpFound = signal<boolean>(false);
+  employeeBalances = signal<any[]>([]);
+  expandedType = signal<string | null>(null);
+  leaveHistory = signal<any[]>([]);
   
   leaveTypes = signal<any[]>([]);
   
@@ -28,7 +33,8 @@ export class AdminLeaveApplication implements OnInit {
     To: '',
     Total_Days: signal(0),
     Role: '',
-    VAL_working_dates: ''
+    VAL_working_dates: '',
+    Reason: ''
   };
 
   constructor(
@@ -48,8 +54,63 @@ export class AdminLeaveApplication implements OnInit {
         this.leaveForm.Dept_Code = user.dept_code || 1;
         this.leaveForm.Role = user.role;
         
-        this.fetchLeaveTypes(); 
+        this.fetchLastSrNo();
       }
+    }
+  }
+
+  fetchLastSrNo() {
+    this.http.get<any>('http://localhost:5000/api/admin/last-sr-no').subscribe({
+      next: (res) => {
+        this.leaveForm.sr_no = res.nextSrNo;
+      },
+      error: (err) => console.error("Error fetching last SR No", err)
+    });
+  }
+
+  onEmpCodeSearch() {
+    if (!this.searchEmpCode) return;
+    
+    this.http.get<any>(`http://localhost:5000/api/admin/employee-results/${this.searchEmpCode}`).subscribe({
+      next: (res) => {
+        this.isEmpFound.set(true);
+        const user = res.user;
+        this.leaveForm.Emp_CODE = user.empCode;
+        this.leaveForm.Name = user.name;
+        this.leaveForm.Dept_Code = user.dept_code;
+        this.leaveForm.Role = user.role;
+        this.employeeBalances.set(res.balances || []);
+        
+        // Reset and fetch leave types for THIS employee
+        this.fetchLeaveTypes();
+      },
+      error: (err) => {
+        console.error("Employee not found", err);
+        alert("❌ Employee not found!");
+        this.isEmpFound.set(false);
+      }
+    });
+  }
+
+  onEmpCodeChange() {
+    if (this.searchEmpCode && this.searchEmpCode.toString().length >= 3) {
+      this.onEmpCodeSearch();
+    } else if (!this.searchEmpCode) {
+      this.isEmpFound.set(false);
+    }
+  }
+
+  toggleHistory(type: string) {
+    if (this.expandedType() === type) {
+      this.expandedType.set(null);
+      this.leaveHistory.set([]);
+    } else {
+      this.expandedType.set(type);
+      this.http.get<any[]>(`http://localhost:5000/api/admin/leave-history/${this.leaveForm.Emp_CODE}/${type}`)
+        .subscribe({
+          next: (res) => this.leaveHistory.set(res),
+          error: (err) => console.error("Error fetching history", err)
+        });
     }
   }
 
@@ -188,6 +249,7 @@ export class AdminLeaveApplication implements OnInit {
     if (this.leaveForm.Type_of_Leave === 'VAL') {
       formData.append('VAL_working_dates', this.leaveForm.VAL_working_dates);
     }
+    formData.append('Reason', this.leaveForm.Reason);
 
     if (this.selectedFile()) {
       formData.append('document', this.selectedFile()!);
@@ -197,6 +259,7 @@ export class AdminLeaveApplication implements OnInit {
       next: () => {
         alert("✅ Leave application submitted successfully!");
         this.resetForm();
+        this.fetchLastSrNo();
       },
       error: () => alert("❌ Error applying. Please try again.")
     });
@@ -208,6 +271,7 @@ export class AdminLeaveApplication implements OnInit {
     this.leaveForm.To = '';
     this.leaveForm.Total_Days.set(0);
     this.leaveForm.VAL_working_dates = '';
+    this.leaveForm.Reason = '';
     this.selectedFile.set(null);
     this.fetchBalance(); 
   }

@@ -14,6 +14,8 @@ import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
 export class StaffViewStatus implements OnInit {
   myLeaves = signal<any[]>([]); // Using Signals for better performance/SSR stability
   userName = signal<string>('');
+  myBalances = signal<any[]>([]);
+  activeSession = signal<string>('2025-26');
 
   constructor(
     private http: HttpClient,
@@ -27,9 +29,26 @@ export class StaffViewStatus implements OnInit {
       if (savedUser) {
         const user = JSON.parse(savedUser);
         this.userName.set(user.name);
-        this.fetchMyStatus(user.empCode);
+        
+        // Use the exact key from the login response (empCode)
+        if (user.empCode) {
+          this.fetchMyStatus(user.empCode);
+        } else {
+          console.warn("[StaffViewStatus] ERROR: No empCode found in session user object.");
+        }
       }
     }
+  }
+
+  fetchMyBalances(empCode: number) {
+    this.http.get<any>(`http://localhost:5000/api/admin/employee-results/${empCode}`)
+      .subscribe({
+        next: (res) => {
+          this.myBalances.set(res.balances);
+          this.activeSession.set(res.sessionName);
+        },
+        error: (err) => console.error("Error fetching balances:", err)
+      });
   }
 
   fetchMyStatus(empCode: number) {

@@ -133,8 +133,6 @@ export class AdminLeaveType implements OnInit {
   }
 
   saveYearlyLimit() {
-    const name = this.leaveLimit.leave_name.toUpperCase();
-    const isIncrementing = ['VAL', 'AL'].includes(name);
     const session = this.activeSession().sessionName;
 
     if (!session || session === 'Not Set') {
