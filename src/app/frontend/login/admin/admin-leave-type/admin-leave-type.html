@@ -84,8 +84,14 @@
         </div>
 
         <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-          <div class="bg-dark p-3 text-white">
-            <h5 class="mb-0 fw-bold fs-6"><i class="bi bi-plus-circle-dotted me-2"></i>Configure Rule</h5>
+          <div class="bg-dark p-3 text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold fs-6 text-white">
+              <i class="bi me-2" [class.bi-pencil-square]="editingId()" [class.bi-plus-circle-dotted]="!editingId()"></i>
+              {{ editingId() ? 'Update Policy' : 'Configure Rule' }}
+            </h5>
+            <button *ngIf="editingId()" class="btn btn-outline-light btn-sm rounded-pill px-2 border-0" (click)="resetForm()" type="button">
+              <i class="bi bi-x-circle me-1"></i>Reset
+            </button>
           </div>
           <div class="card-body p-4">
             <form (ngSubmit)="saveYearlyLimit()">
@@ -211,7 +217,7 @@
                           <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
                         </button>
                         <button class="btn btn-outline-danger btn-sm rounded-circle shadow-none transition-all p-2 d-flex align-items-center justify-content-center"
-                          (click)="deleteType(group._id)" style="width: 32px; height: 32px;">
+                          (click)="deleteType(group)" style="width: 32px; height: 32px;">
                           <i class="bi bi-trash3-fill" style="font-size: 0.8rem;"></i>
                         </button>
                     </div>

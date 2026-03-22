@@ -29,6 +29,8 @@ export class AdminLeaveType implements OnInit {
     can_carry_forward: false 
   };
 
+  oldGroupState: any = null;
+
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -134,34 +136,54 @@ export class AdminLeaveType implements OnInit {
 
   saveYearlyLimit() {
     const session = this.activeSession().sessionName;
-
     if (!session || session === 'Not Set') {
       alert("Please save/select an Academic Session first.");
       return;
     }
 
-    const requests = [];
-    const codesToSave = this.leaveLimit.dept_codes.includes('0') ? ['0'] : this.leaveLimit.dept_codes;
+    const startSave = () => {
+      const requests = [];
+      const codesToSave = this.leaveLimit.dept_codes.includes('0') ? ['0'] : this.leaveLimit.dept_codes;
 
-    for (const dept of codesToSave) {
-      const payload = {
-        leave_name: name,
-        total_yearly_limit: this.leaveLimit.total_yearly_limit,
-        dept_code: String(dept),
-        staffType: 'All',
-        can_carry_forward: this.leaveLimit.can_carry_forward,
-        sessionName: session
-      };
-      requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
-    }
-
-    forkJoin(requests).subscribe({
-      next: () => {
-        alert(`Quotas for ${session} updated!`);
-        this.fetchLeaveTypes();
-        this.resetForm();
+      for (const dept of codesToSave) {
+        const payload = {
+          leave_name: this.leaveLimit.leave_name.toUpperCase().trim(),
+          total_yearly_limit: this.leaveLimit.total_yearly_limit,
+          dept_code: dept,
+          staffType: 'All',
+          can_carry_forward: this.leaveLimit.can_carry_forward,
+          sessionName: session
+        };
+        requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
       }
-    });
+
+      forkJoin(requests).subscribe({
+        next: () => {
+          alert(`Policy for ${this.leaveLimit.leave_name} saved/updated successfully!`);
+          this.fetchLeaveTypes();
+          this.resetForm();
+        }
+      });
+    };
+
+    // If we are editing, we might need to purge original records if keys (name/depts) changed
+    if (this.editingId()) {
+      const old = this.oldGroupState;
+      const targets = this.leaveTypes().filter(t => 
+        t.leave_name === old.leave_name && 
+        t.sessionName === old.sessionName &&
+        old.all_depts.includes(String(t.dept_code))
+      );
+      
+      const deleteRequests = targets.map(t => this.http.delete(`http://localhost:5000/api/leave-types/${t._id}`));
+      if (deleteRequests.length > 0) {
+        forkJoin(deleteRequests).subscribe(() => startSave());
+      } else {
+        startSave();
+      }
+    } else {
+      startSave();
+    }
   }
 
   groupedLeaveTypes = computed(() => {
@@ -174,14 +196,14 @@ export class AdminLeaveType implements OnInit {
         g.can_carry_forward === item.can_carry_forward
       );
       if (existing) {
-        if (!existing.all_depts.includes(item.dept_code)) existing.all_depts.push(item.dept_code);
+        if (!existing.all_depts.includes(String(item.dept_code))) existing.all_depts.push(String(item.dept_code));
       } else {
-        groups.push({ ...item, all_depts: [item.dept_code] });
+        groups.push({ ...item, all_depts: [String(item.dept_code)] });
       }
     });
     return groups.map(g => ({
       ...g,
-      dept_display: g.all_depts.includes(0) || g.all_depts.includes('0') 
+      dept_display: g.all_depts.includes('0') 
         ? 'All Departments' 
         : g.all_depts.sort().join(', ')
     }));
@@ -189,6 +211,7 @@ export class AdminLeaveType implements OnInit {
 
   editType(group: any) {
     this.editingId.set(group._id);
+    this.oldGroupState = group;
     this.leaveLimit = { 
       leave_name: group.leave_name,
       total_yearly_limit: group.total_yearly_limit,
@@ -197,14 +220,22 @@ export class AdminLeaveType implements OnInit {
     };
   }
 
-  deleteType(id: string) {
-    if (confirm("Delete this quota?")) {
-      this.http.delete(`http://localhost:5000/api/leave-types/${id}`).subscribe(() => this.fetchLeaveTypes());
+  deleteType(group: any) {
+    if (confirm(`Delete all ${group.leave_name} quotas for this session?`)) {
+      const targets = this.leaveTypes().filter(t => 
+        t.leave_name === group.leave_name && 
+        t.sessionName === group.sessionName &&
+        t.total_yearly_limit === group.total_yearly_limit &&
+        t.can_carry_forward === group.can_carry_forward
+      );
+      const requests = targets.map(t => this.http.delete(`http://localhost:5000/api/leave-types/${t._id}`));
+      forkJoin(requests).subscribe(() => this.fetchLeaveTypes());
     }
   }
 
   resetForm() {
     this.editingId.set(null);
+    this.oldGroupState = null;
     this.leaveLimit = {
       leave_name: '', total_yearly_limit: 0,
       dept_codes: [], can_carry_forward: false
