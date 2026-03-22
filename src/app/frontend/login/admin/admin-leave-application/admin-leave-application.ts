@@ -14,6 +14,8 @@ import { forkJoin } from 'rxjs';
 export class AdminLeaveApplication implements OnInit {
   staffData = signal<any>({});
   remainingBalance = signal<number>(0);
+  displayValue = signal<number>(0);
+  isIncrementing = signal<boolean>(false);
   selectedFile = signal<File | null>(null);
   searchEmpCode = '';
   isEmpFound = signal<boolean>(false);
@@ -168,15 +170,18 @@ export class AdminLeaveApplication implements OnInit {
     this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.leaveForm.Emp_CODE}/${this.leaveForm.Type_of_Leave}`)
       .subscribe({
         next: (res) => {
-          // SUM: Carry Forward + Current Session (e.g., 12 + 12 = 24)
+          this.isIncrementing.set(res.isIncrementing || false);
           const carryForward = Number(res.carry_forward || 0);
-          const currentSession = Number(res.current_balance || res.balance || 0);
+          const currentSession = Number(res.balance || 0);
           
           this.remainingBalance.set(carryForward + currentSession);
+          this.displayValue.set(carryForward + currentSession);
         },
         error: (err) => {
           console.error("Error fetching balance", err);
           this.remainingBalance.set(0);
+          this.displayValue.set(0);
+          this.isIncrementing.set(false);
         }
       });
   }
@@ -231,7 +236,7 @@ export class AdminLeaveApplication implements OnInit {
       return;
     }
 
-    if (totalDays > this.remainingBalance()) {
+    if (!this.isIncrementing() && totalDays > this.remainingBalance()) {
       alert(`Insufficient Balance! You only have ${this.remainingBalance()} days available.`);
       return;
     }
