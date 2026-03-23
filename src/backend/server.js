@@ -5,25 +5,64 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Load .env file if present (for local development)
+try {
+    require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+} catch (e) { /* dotenv optional */ }
+
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 // --- File Storage Setup ---
-const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir); }
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir, { recursive: true }); }
+app.use('/uploads', express.static(uploadDir));
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
+    destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage: storage });
 
-// --- Database Connection ---
-mongoose.connect('mongodb://127.0.0.1:27017/employeeDB')
-    .then(() => console.log("Connected to MongoDB - employeeDB"))
-    .catch(err => console.error("Database Connection Error:", err));
+// --- Smart Dual Database Connection ---
+// Priority: Atlas (cloud) first → Local MongoDB fallback
+const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || '';
+const LOCAL_URI  = process.env.MONGO_LOCAL_URI  || 'mongodb://127.0.0.1:27017/employeeDB';
+
+let dbMode = 'none'; // will be 'atlas' or 'local'
+
+// Expose which DB is active via API
+app.get('/api/db-status', (req, res) => {
+    res.json({ mode: dbMode, connected: mongoose.connection.readyState === 1 });
+});
+
+async function connectDB() {
+    // 1. Try Atlas first (only if URI configured)
+    if (ATLAS_URI) {
+        try {
+            await mongoose.connect(ATLAS_URI, { serverSelectionTimeoutMS: 5000 });
+            dbMode = 'atlas';
+            console.log('✅ Connected to MongoDB Atlas (Cloud)');
+            return;
+        } catch (err) {
+            console.warn('⚠️  Atlas connection failed:', err.message);
+            console.log('🔄 Falling back to Local MongoDB...');
+        }
+    }
+
+    // 2. Fallback to Local MongoDB
+    try {
+        await mongoose.connect(LOCAL_URI, { serverSelectionTimeoutMS: 5000 });
+        dbMode = 'local';
+        console.log('✅ Connected to Local MongoDB');
+    } catch (err) {
+        console.error('❌ Local MongoDB also failed:', err.message);
+        console.error('   Make sure MongoDB is installed and running on this PC.');
+    }
+}
+
+connectDB();
 
 // --- Schemas ---
 
@@ -336,8 +375,13 @@ function isDateInSession(dateStr, sessionLabel) {
 }
 
 // Ensure dates parse robustly into local time without UTC offset glitches
-function parseDateLocal(dateStr) {
-    if (!dateStr) return new Date(0);
+function parseDateLocal(dateRaw) {
+    if (!dateRaw) return new Date(0);
+    if (dateRaw instanceof Date) return dateRaw;
+    
+    // Convert to string safely to avoid 'includes is not a function' if MongoDB returns a non-string somehow
+    const dateStr = String(dateRaw);
+    
     if (dateStr.includes('-')) {
         const parts = dateStr.split('-');
         return new Date(parts[0], parts[1]-1, parts[2]);
@@ -408,26 +452,36 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
 
         const activeSession = await Session.findOne().sort({ updatedAt: -1 });
         
+        // Prevent Mongoose CastError on NaN fields
+        const empCodeNum = Number(Emp_CODE);
+        const deptCodeNum = Number(Dept_Code);
+        const totalDaysNum = Number(Total_Days);
+
+        if (isNaN(empCodeNum) || isNaN(totalDaysNum)) {
+            return res.status(400).json({ success: false, error: "Invalid Employee Code or Total Days." });
+        }
+
         const newLeave = new Leave({
             sr_no: sr_no,
-            Emp_CODE: Number(Emp_CODE),
+            Emp_CODE: empCodeNum,
             Name: Name,
-            Dept_Code: Number(Dept_Code),
-            "Type of Leave": Type_of_Leave.toUpperCase(),
-            From: From,
-            To: To,
-            "Total Days": Number(Total_Days),
+            Dept_Code: isNaN(deptCodeNum) ? null : deptCodeNum,
+            "Type of Leave": Type_of_Leave ? String(Type_of_Leave).toUpperCase() : "UNKNOWN",
+            From: From || "",
+            To: To || "",
+            "Total Days": totalDaysNum,
             sessionName: activeSession?.sessionName || "2025-26",
             document: req.file ? req.file.filename : null,
-            Status: 'Pending',
-            Reason: Reason,
+            Status: req.body.Applied_By_Admin === 'true' ? 'Approved' : 'Pending',
+            Reason: Reason || "",
             VAL_working_dates: Type_of_Leave?.toUpperCase() === 'VAL' ? VAL_working_dates?.trim() : undefined
         });
 
         await newLeave.save();
         res.json({ success: true, data: newLeave });
     } catch (err) { 
-        res.status(500).json({ success: false, error: "Submission failed" }); 
+        console.error("=== APPLY LEAVE ERROR 500 ===", err);
+        res.status(500).json({ success: false, error: err.message || "Submission failed" }); 
     }
 });
 // 4. LEAVE TYPES MANAGEMENT (Session-Wise Setting)

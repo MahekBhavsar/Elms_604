@@ -315,4 +315,89 @@ export class Report implements OnInit {
       }
     });
   }
+
+  /** 7. Print Balance Summary to PDF */
+  printToPDF() {
+    const summary = this.filteredBalanceSummary();
+    const headers = this.leaveNames;
+    const session = this.selectedSession() || this.activeSession();
+    
+    let printContents = `
+    <html>
+      <head>
+        <title>Employee Master Balance Summary - ${session}</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #333; }
+          h2 { text-align: center; color: #1e3c72; border-bottom: 2px solid #1e3c72; padding-bottom: 10px; margin-bottom: 5px; }
+          .meta { text-align: center; margin-bottom: 20px; font-style: italic; color: #666; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+          th { background-color: #f8f9fa; color: #1e3c72; font-weight: bold; }
+          .text-left { text-align: left; }
+          .balance-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+          .balance-used { font-size: 10px; color: #777; margin-bottom: 2px; }
+          .balance-left { font-weight: bold; font-size: 13px; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Employee Master Balance Summary</h2>
+        <div class="meta">Session: ${session} | Printed on: ${new Date().toLocaleDateString()}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sr No</th>
+              <th class="text-left">Staff Name</th>
+              <th>Code</th>
+              <th>Dept</th>
+              ${headers.map(h => `<th>${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    summary.forEach((s, i) => {
+      printContents += `
+        <tr>
+          <td>${i + 1}</td>
+          <td class="text-left"><strong>${s.name}</strong></td>
+          <td>${s.empCode}</td>
+          <td>${s.dept}</td>
+          ${headers.map(h => {
+            const bal = this.getBalance(s.balances, h);
+            return `
+              <td>
+                <div class="balance-cell">
+                  <span class="balance-used">${bal.used}/${bal.limit}</span>
+                  <span class="balance-left">${bal.balance}</span>
+                </div>
+              </td>
+            `;
+          }).join('')}
+        </tr>
+      `;
+    });
+
+    printContents += `
+          </tbody>
+        </table>
+      </body>
+    </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContents);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 300);
+    }
+  }
 }

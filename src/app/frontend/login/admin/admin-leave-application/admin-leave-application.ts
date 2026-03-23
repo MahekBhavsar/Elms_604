@@ -4,6 +4,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin } from 'rxjs';
+import { OfflineSyncService } from '../../../../offline-sync.service';
 @Component({
   selector: 'app-admin-leave-application',
   standalone: true,
@@ -41,6 +42,7 @@ export class AdminLeaveApplication implements OnInit {
 
   constructor(
     private http: HttpClient,
+    private offlineSync: OfflineSyncService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
@@ -241,32 +243,37 @@ export class AdminLeaveApplication implements OnInit {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('sr_no', this.leaveForm.sr_no);
-    formData.append('Emp_CODE', String(this.leaveForm.Emp_CODE));
-    formData.append('Name', this.leaveForm.Name);
-    formData.append('Dept_Code', String(this.leaveForm.Dept_Code));
-    formData.append('Type_of_Leave', this.leaveForm.Type_of_Leave);
-    formData.append('From', this.leaveForm.From);
-    formData.append('To', this.leaveForm.To);
-    formData.append('Total_Days', String(totalDays));
-    formData.append('Role', this.leaveForm.Role);
+    const payload: any = {
+      sr_no: this.leaveForm.sr_no,
+      Emp_CODE: String(this.leaveForm.Emp_CODE),
+      Name: this.leaveForm.Name,
+      Dept_Code: String(this.leaveForm.Dept_Code),
+      Type_of_Leave: this.leaveForm.Type_of_Leave,
+      From: this.leaveForm.From,
+      To: this.leaveForm.To,
+      Total_Days: String(totalDays),
+      Role: this.leaveForm.Role,
+      Reason: this.leaveForm.Reason,
+      Applied_By_Admin: 'true'
+    };
+
     if (this.leaveForm.Type_of_Leave === 'VAL') {
-      formData.append('VAL_working_dates', this.leaveForm.VAL_working_dates);
-    }
-    formData.append('Reason', this.leaveForm.Reason);
-
-    if (this.selectedFile()) {
-      formData.append('document', this.selectedFile()!);
+      payload.VAL_working_dates = this.leaveForm.VAL_working_dates;
     }
 
-    this.http.post('http://localhost:5000/api/leaves/apply', formData).subscribe({
-      next: () => {
-        alert("✅ Leave application submitted successfully!");
+    // ALWAYS SAVE LOCALLY FIRST (Offline-First Architecture)
+    this.offlineSync.saveLeaveOffline(payload, this.selectedFile() || null).then((success: boolean) => {
+      if (success) {
+        alert('✅ Application Saved Locally!');
         this.resetForm();
         this.fetchLastSrNo(this.leaveForm.Emp_CODE);
-      },
-      error: () => alert("❌ Error applying. Please try again.")
+        
+        // Let the daemon securely push it to MongoDB if internet is on
+        this.offlineSync.syncNow();
+        
+      } else {
+        alert('❌ Local Database Save Failed.');
+      }
     });
   }
 

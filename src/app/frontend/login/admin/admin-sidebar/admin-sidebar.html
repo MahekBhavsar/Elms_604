@@ -143,6 +143,18 @@
               <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Settings</span>
             </a>
           </li>
+
+          <li class="nav-item">
+            <a (click)="viewOfflineQueue()" style="cursor: pointer;"
+              class="nav-link text-white d-flex align-items-center justify-content-between py-3 rounded-end-3 border-0 opacity-100 side-link-hover"
+              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-cloud-arrow-up-fill fs-5 text-warning"></i>
+                <span [class.d-none]="isCollapsed" class="ms-3 fw-bold text-warning">Sync Queue</span>
+              </div>
+              <span [class.d-none]="isCollapsed" class="badge bg-warning text-dark rounded-pill fs-6 px-2 shadow-sm">{{ offlineCount() }}</span>
+            </a>
+          </li>
         </ul>
 
         <div class="mt-auto pt-3 border-top border-white border-opacity-25">

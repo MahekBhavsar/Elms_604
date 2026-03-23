@@ -126,17 +126,19 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="border-bottom" style="background-color: #f8f9fa;">
             <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-              <th class="ps-4 py-4 border-0">Employee Member</th>
+              <th class="ps-4 py-4 border-0">Sr No</th>
+              <th class="py-4 border-0">Employee Member</th>
               <th class="py-4 border-0">Department Info</th>
               <th class="py-4 border-0">Role</th>
               <th class="text-end pe-4 py-4 border-0">Email</th>
             </tr>
           </thead>
           <tbody class="border-top-0">
-            @for (s of filteredStaff(); track s._id) {
+            @for (s of filteredStaff(); track s._id; let i = $index) {
             <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
               onmouseout="this.style.backgroundColor='transparent'">
-              <td class="ps-4 py-3">
+              <td class="ps-4 py-3 fw-bold text-dark border-0">{{ i + 1 }}</td>
+              <td class="py-3">
                 <div class="fw-bold text-dark">{{ s.Name }}</div>
                 <small class="text-muted">Code: {{ s['Employee Code'] || s.Employee_Code }}</small>
               </td>
@@ -184,7 +186,8 @@
           <table class="table table-hover align-middle mb-0 bg-white">
             <thead style="background-color: #f8f9fa;">
               <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-                <th class="ps-4 py-3 border-0">Staff Name</th>
+                <th class="ps-4 py-3 border-0">Sr No</th>
+                <th class="py-3 border-0">Staff Name</th>
                 <th class="py-3 border-0">Dept</th>
                 <th class="py-3 border-0">Leave Period</th>
                 <th class="text-center py-3 border-0">Days</th>
@@ -192,10 +195,11 @@
               </tr>
             </thead>
             <tbody>
-              @for (l of group.applications; track l._id) {
+              @for (l of group.applications; track l._id; let idx = $index) {
               <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
                 style="transition: background-color 0.2s;">
-                <td class="ps-4 py-3 fw-bold text-dark">{{ l.Name }}</td>
+                <td class="ps-4 py-3 fw-bold text-dark">{{ l.sr_no || '-' }}</td>
+                <td class="py-3 fw-bold text-dark">{{ l.Name }}</td>
                 <td class="text-secondary small">{{ l.Dept_Code || l.dept_code }}</td>
                 <td class="text-secondary fw-medium small">{{ l.From | displayDate }} → {{ l.To | displayDate }}</td>
                 <td class="text-center fw-bold fs-6" style="color: #1e3c72;">{{ l['Total Days'] || l.Total_Days }}</td>
@@ -251,13 +255,17 @@
               <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="loadBalanceSummary()" [disabled]="balanceLoading()">
                   <i class="bi bi-arrow-clockwise me-1"></i> Refresh View
               </button>
+              <button class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center" (click)="printToPDF()">
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> Print PDF
+              </button>
           </div>
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead style="background-color: #f8f9fa;">
               <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-                <th class="ps-4 py-3 border-0">Staff</th>
+                <th class="ps-4 py-3 border-0">Sr No</th>
+                <th class="py-3 border-0">Staff</th>
                 <th class="py-3 border-0">Dept</th>
                 @for (name of leaveNames; track name) {
                   @if (!selectedCategory() || selectedCategory() === name) {
@@ -267,10 +275,11 @@
               </tr>
             </thead>
             <tbody>
-              @for (s of filteredBalanceSummary(); track s.empCode) {
+              @for (s of filteredBalanceSummary(); track s.empCode; let index = $index) {
               <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
                 style="transition: background-color 0.2s;">
-                <td class="ps-4 py-3">
+                <td class="ps-4 py-3 fw-bold text-dark border-0">{{ index + 1 }}</td>
+                <td class="py-3">
                   <div class="fw-bold text-dark">{{ s.name }}</div>
                   <small class="text-muted">Code: {{ s.empCode }}</small>
                 </td>

@@ -35,59 +35,69 @@
           Action Required: Admin Decision
         </h5>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light text-muted small text-uppercase">
+      <div class="table-responsive" style="overflow-x: auto; overflow-y: hidden;">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
             <tr>
-              <th class="ps-4 py-3 border-0">Staff Details</th>
-              <th class="border-0">Request Details</th>
-              <th class="border-0">Status Info</th>
-              <th class="text-end pe-4 border-0">Actions</th>
+              <th class="ps-3 py-2 border-0">Staff Details</th>
+              <th class="border-0">Request</th>
+              <th class="border-0">Reason</th>
+              <th class="border-0 text-center">Attachment</th>
+              <th class="border-0">Status</th>
+              <th class="text-end pe-3 border-0">Actions</th>
             </tr>
           </thead>
           <tbody class="border-top-0">
             @for (l of getHodApproved(); track l._id) {
             <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
               onmouseout="this.style.backgroundColor='transparent'">
-              <td class="ps-4">
+              <td class="ps-3 py-2">
                 <div class="d-flex align-items-center">
                   <div
-                    class="text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold shadow-sm"
-                    style="width: 42px; height: 42px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                    class="text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm"
+                    style="width: 38px; height: 38px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
                     {{ l.Name?.charAt(0) | uppercase }}
                   </div>
                   <div>
-                    <div class="fw-bold text-dark d-flex align-items-center">
+                    <div class="fw-bold text-dark d-flex align-items-center" style="font-size: 0.9rem;">
                       {{ l.Name }}
-                      @if ((l.Role || l.role)?.toLowerCase() === 'hod') { <span class="badge bg-warning text-dark ms-2"
-                        style="font-size:0.6rem;">HOD</span> }
-                      @if ((l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === 0 || (l.Dept_Code !== undefined ?
-                      l.Dept_Code : l.dept_code) === "0" || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) ===
-                      null || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === undefined || (l.Dept_Code !==
-                      undefined ? l.Dept_Code : l.dept_code) === '') { <span class="badge bg-info text-white ms-2"
-                        style="font-size:0.6rem;">DIRECT</span> }
+                      @if ((l.Role || l.role)?.toLowerCase() === 'hod') { <span class="badge bg-warning text-dark ms-1" style="font-size:0.55rem;">HOD</span> }
+                      @if ((l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === 0 || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === "0" || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === null || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === undefined || (l.Dept_Code !== undefined ? l.Dept_Code : l.dept_code) === '') { <span class="badge bg-info text-white ms-1" style="font-size:0.55rem;">DIRECT</span> }
                     </div>
-                    <small class="text-muted">ID: {{ l.Emp_CODE }} | Dept: {{ l.Dept_Code || l.dept_code }}</small>
+                    <small class="text-muted" style="font-size: 0.75rem;">Sr: <span class="fw-bold">{{ l.sr_no || l.Sr?.NO?.[''] || l.Sr?.NO || '—' }}</span> | ID: {{ l.Emp_CODE }} | Dpt: {{ l.Dept_Code || l.dept_code }}</small>
                   </div>
                 </div>
               </td>
-              <td>
-                <div class="mb-1 text-dark fw-bold">
-                  <span class="badge bg-light text-primary border border-primary border-opacity-25 me-1">{{ l['Type of
-                    Leave'] || l.Type_of_Leave }}</span>
-                  {{ l['Total Days'] || l.Total_Days }} Days
+              <td class="py-2">
+                <div class="mb-0 text-dark fw-bold" style="font-size: 0.85rem;">
+                  <span class="badge bg-light text-primary border border-primary border-opacity-25 me-1">{{ l['Type of Leave'] || l.Type_of_Leave }}</span>
+                  {{ l['Total Days'] || l.Total_Days }}d
                 </div>
-           
               </td>
-              <td>
-                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1 small">Awaiting Final
-                  Action</span>
+              <td class="py-2">
+                <div class="text-muted" style="font-size: 0.8rem; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="l.Reason || 'No reason provided'">
+                  {{ l.Reason || l.reason || '—' }}
+                </div>
               </td>
-              <td class="text-end pe-4">
+              <td class="py-2 text-center">
+                @if (l.document) {
+                   <a [href]="'http://localhost:5000/uploads/' + l.document" target="_blank" 
+                      class="btn btn-sm btn-light border rounded-pill px-2 py-1 fw-bold text-primary"
+                      style="font-size: 0.70rem;">
+                     View
+                   </a>
+                } @else {
+                   <span class="text-muted small">—</span>
+                }
+              </td>
+              <td class="py-2">
+                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1" style="font-size: 0.70rem;">Awaiting Action</span>
+              </td>
+              <td class="text-end pe-3 py-2">
                 <button (click)="processLeave(l._id, 'Approved')"
-                  class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold shadow-sm">Approve</button>
+                  class="btn btn-sm btn-success rounded-pill px-2 me-1 fw-bold shadow-sm" style="font-size: 0.70rem;">Approve</button>
                 <button (click)="processLeave(l._id, 'Rejected')"
-                  class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">Reject</button>
+                  class="btn btn-sm btn-outline-danger rounded-pill px-2 fw-bold" style="font-size: 0.70rem;">Reject</button>
               </td>
             </tr>
             }
@@ -111,29 +121,51 @@
               Awaiting HOD Approval
             </h6>
           </div>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+          <div class="table-responsive" style="overflow-x: hidden; overflow-y: hidden;">
+            <table class="table table-hover table-sm align-middle mb-0">
+              <thead class="bg-light">
+                <tr class="text-uppercase text-muted fw-bold" style="font-size: 0.70rem;">
+                  <th class="ps-3 py-2 border-0">Staff Member</th>
+                  <th class="border-0">Leave</th>
+                  <th class="border-0">Reason</th>
+                  <th class="border-0 text-center">Docs</th>
+                  <th class="text-end pe-3 border-0">Actions</th>
+                </tr>
+              </thead>
               <tbody class="border-top-0">
                 @for (l of getPending(); track l._id) {
                 <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
                   onmouseout="this.style.backgroundColor='transparent'">
-                  <td class="ps-4 py-3 border-light">
-                    <div class="fw-bold text-dark">{{ l.Name }}</div>
-                    <small class="text-muted">ID: {{ l.Emp_CODE }} | Dept: {{ l.Dept_Code }}</small>
+                  <td class="ps-3 py-2 border-light">
+                    <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ l.Name }}</div>
+                    <small class="text-muted" style="font-size: 0.70rem;">Sr:<span class="fw-bold">{{ l.sr_no || l.Sr?.NO?.[''] || l.Sr?.NO || '—' }}</span> | ID:{{ l.Emp_CODE }} | D:{{ l.Dept_Code }}</small>
                   </td>
-                  <td class="border-light">
-                    <div class="fw-bold text-dark">{{ l['Total Days'] || l.Total_Days }} Days</div>
-                    <small class="text-secondary opacity-75">{{ l['Type of Leave'] || l.Type_of_Leave }}</small>
+                  <td class="py-2 border-light">
+                    <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ l['Total Days'] || l.Total_Days }}d</div>
+                    <small class="text-secondary opacity-75" style="font-size: 0.70rem;">{{ l['Type of Leave'] || l.Type_of_Leave }}</small>
                   </td>
-                  <td class="text-end pe-4 border-light">
+                  <td class="py-2 border-light">
+                    <div class="text-muted" style="font-size: 0.75rem; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="l.Reason || 'No reason provided'">
+                      {{ l.Reason || l.reason || '—' }}
+                    </div>
+                  </td>
+                  <td class="py-2 text-center border-light">
+                    @if (l.document) {
+                       <a [href]="'http://localhost:5000/uploads/' + l.document" target="_blank" 
+                          class="btn btn-sm btn-light border rounded-pill py-0 px-2 fw-bold text-primary"
+                          style="font-size: 0.65rem;">
+                         <i class="bi bi-paperclip"></i>
+                       </a>
+                    } @else {
+                       <span class="text-muted" style="font-size: 0.70rem;">—</span>
+                    }
+                  </td>
+                  <td class="text-end pe-3 py-2 border-light">
                     <div class="d-flex justify-content-end align-items-center">
-                      <span
-                        class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-1 small fw-semibold me-2">Pending
-                        HOD</span>
                       <button (click)="processLeave(l._id, 'Approved')"
-                        class="btn btn-sm btn-success rounded-pill px-3 me-2 fw-bold shadow-sm">Approve</button>
+                        class="btn btn-sm btn-success rounded-circle me-1 shadow-sm px-2 py-1"><i class="bi bi-check-lg" style="font-size: 0.70rem;"></i></button>
                       <button (click)="processLeave(l._id, 'Rejected')"
-                        class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">Reject</button>
+                        class="btn btn-sm btn-outline-danger rounded-circle px-2 py-1"><i class="bi bi-x-lg" style="font-size: 0.70rem;"></i></button>
                     </div>
                   </td>
                 </tr>
