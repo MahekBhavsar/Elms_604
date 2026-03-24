@@ -2,7 +2,8 @@ import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import Dexie, { Table } from 'dexie';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 
 export interface OfflineLeave {
   id?: number;
@@ -13,11 +14,18 @@ export interface OfflineLeave {
   createdAt: number;
 }
 
+export interface CachedData {
+  key: string; // e.g., 'leaves_101', 'balances_101'
+  data: any;
+  updatedAt: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class OfflineSyncService extends Dexie {
   offlineLeaves!: Table<OfflineLeave, number>;
+  cachedData!: Table<CachedData, string>;
 
   constructor(
     private http: HttpClient,
@@ -25,17 +33,71 @@ export class OfflineSyncService extends Dexie {
   ) {
     super('ELMSDatabase');
     if (isPlatformBrowser(this.platformId)) {
-      this.version(1).stores({
-        offlineLeaves: '++id, createdAt'
+      this.version(2).stores({
+        offlineLeaves: '++id, createdAt',
+        cachedData: 'key'
       });
       
-      // Auto-trigger sync when the internet reconnects globally!
+      this.requestNotificationPermission();
+
+      // Auto-trigger sync when the internet reconnects
       window.addEventListener('online', () => this.syncNow());
+      // Initial check on load
       setTimeout(() => this.syncNow(), 3000);
     }
   }
 
-  // 1. Queue Leave Offline
+  // --- Notification System ---
+
+  private async requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      await Notification.requestPermission();
+    }
+  }
+
+  private showNotification(title: string, body: string, icon: string = '/icons/icon-72x72.png') {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon });
+    }
+  }
+
+  // --- 1. VIEW CACHING (Allows Staff to see data offline) ---
+
+  async saveToCache(key: string, data: any) {
+    if (!isPlatformBrowser(this.platformId)) return;
+    await this.cachedData.put({ key, data, updatedAt: Date.now() });
+  }
+
+  async getFromCache(key: string): Promise<any | null> {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    const record = await this.cachedData.get(key);
+    return record ? record.data : null;
+  }
+
+  // Wrapper for HTTP GET with caching
+  getCachedObservable(url: string, cacheKey: string): Observable<any> {
+    if (!navigator.onLine) {
+       // Offline: Use Cache
+       return new Observable(obs => {
+         this.getFromCache(cacheKey).then(data => {
+           if (data) obs.next(data);
+           obs.complete();
+         });
+       });
+    }
+
+    // Online: Fetch from Central Server and update Cache
+    return this.http.get(url).pipe(
+      tap(data => this.saveToCache(cacheKey, data)),
+      catchError(err => {
+        console.warn(`[ELMS Sync] Server unreachable, trying local cache for ${cacheKey}`);
+        return this.getFromCache(cacheKey);
+      })
+    );
+  }
+
+  // --- 2. OFFLINE SUBMISSION (Queue Leave Offline) ---
+
   async saveLeaveOffline(payload: any, file: File | null): Promise<boolean> {
     if (!isPlatformBrowser(this.platformId)) return false;
     
@@ -49,6 +111,13 @@ export class OfflineSyncService extends Dexie {
 
     try {
       await this.offlineLeaves.add(dbRecord);
+      
+      // Desktop Notification for Offline Save
+      this.showNotification(
+        'ELMS: Saved Offline', 
+        `Your ${payload.Type_of_Leave} leave request has been saved locally. It will sync automatically when you reconnect.`
+      );
+      
       return true;
     } catch (err) {
       console.error('Offline DB save error:', err);
@@ -56,19 +125,19 @@ export class OfflineSyncService extends Dexie {
     }
   }
 
-  // 2. The Bi-Directional Synchronizer
+  // --- 3. AUTO-SYNC SYNC (Push data to MongoDB when online) ---
+
   async syncNow() {
     if (!isPlatformBrowser(this.platformId)) return;
-    if (!navigator.onLine) return; // Prevent sync if still offline
+    if (!navigator.onLine) return;
 
     try {
       const pendingLeaves = await this.offlineLeaves.orderBy('createdAt').toArray();
       if (pendingLeaves.length === 0) return;
 
-      console.log(`[ELMS Sync] Found ${pendingLeaves.length} offline leave applications in Outbox. Starting upload to MongoDB...`);
+      console.log(`[ELMS Sync] Found ${pendingLeaves.length} offline leave applications. Syncing to central server...`);
 
       for (let record of pendingLeaves) {
-        // Reconstruct exact payload format expected by Mongoose backend
         const formData = new FormData();
         Object.keys(record.payload).forEach(key => {
           formData.append(key, record.payload[key]);
@@ -80,21 +149,28 @@ export class OfflineSyncService extends Dexie {
         }
 
         try {
-          // Push securely to MongoDB Server
-          await firstValueFrom(this.http.post('http://localhost:5000/api/leaves/apply', formData));
+          // Note: Use central server URL here instead of localhost if Admin PC is different
+          const apiUrl = '/api/leaves/apply'; 
+          await firstValueFrom(this.http.post(apiUrl, formData));
           
-          // Clear it from the local queue on Success
           if (record.id) {
             await this.offlineLeaves.delete(record.id);
           }
-          console.log(`[ELMS Sync] Uploaded leave task (Sr: ${record.payload.sr_no}) fully into MongoDB Server successfully!`);
+          
+          // Desktop Notification for Successful Sync
+          this.showNotification(
+            'ELMS: Synchronized', 
+            `Leave application (Sr: ${record.payload.sr_no}) has been uploaded to the central server.`
+          );
+          
+          console.log(`[ELMS Sync] Successfully synced leave (Sr: ${record.payload.sr_no}) to central server.`);
         } catch (err) {
-          console.error(`[ELMS Sync] Failed to upload leave queue... stopping background worker until next connection check.`, err);
-          break; // Stop loop and try again later if the server rejected or crashed
+          console.error(`[ELMS Sync] Sync failed for record ${record.id}. Will retry later.`, err);
+          break;
         }
       }
     } catch (err) {
-      console.error('[ELMS Sync] Fatal error syncing offline items', err);
+      console.error('[ELMS Sync] Fatal error during sync', err);
     }
   }
 }

@@ -65,7 +65,7 @@ export class ApplyLeave implements OnInit {
   fetchLastSrNo() {
     const empCode = this.leaveForm.Emp_CODE;
     if (!empCode) return;
-    this.http.get<any>(`http://localhost:5000/api/leaves/next-sr-no/${empCode}`).subscribe({
+    this.http.get<any>(`/api/leaves/next-sr-no/${empCode}`).subscribe({
       next: (res) => { this.leaveForm.sr_no = String(res.nextSrNo); },
       error: () => { this.leaveForm.sr_no = '1'; }
     });
@@ -73,8 +73,8 @@ export class ApplyLeave implements OnInit {
 
   fetchLeaveTypes() {
     forkJoin({
-      session: this.http.get<any>('http://localhost:5000/api/active-session'),
-      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
+      session: this.http.get<any>('/api/active-session'),
+      rules: this.http.get<any[]>('/api/leave-types')
     }).subscribe({
       next: (res) => {
         const currentSessionLabel = res.session.sessionName;
@@ -129,7 +129,7 @@ export class ApplyLeave implements OnInit {
     if (!empCode || !leaveNames.length) return;
 
     const balanceCalls = leaveNames.map(name =>
-      this.http.get<any>(`http://localhost:5000/api/leaves/balance/${empCode}/${name}?sessionName=${session}`)
+      this.http.get<any>(`/api/leaves/balance/${empCode}/${name}?sessionName=${session}`)
         .pipe(catchError(() => of({ balance: 0, used: 0, limit: 0, isIncrementing: false })))
     );
 
@@ -155,7 +155,7 @@ export class ApplyLeave implements OnInit {
     this.expandedType.set(type);
     const empCode = this.leaveForm.Emp_CODE;
     const session = this.activeSession();
-    this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${empCode}`)
+    this.http.get<any[]>(`/api/leaves/staff/${empCode}`)
       .pipe(catchError(() => of([])))
       .subscribe(all => {
         const filtered = all.filter((l: any) => {
@@ -171,7 +171,7 @@ export class ApplyLeave implements OnInit {
     const type = this.leaveForm.Type_of_Leave;
     if (!empCode || !type) return;
 
-    this.http.get<any>(`http://localhost:5000/api/leaves/balance/${empCode}/${type}`)
+    this.http.get<any>(`/api/leaves/balance/${empCode}/${type}`)
       .subscribe({
         next: (res) => {
           this.displayValue.set(res.balance);
@@ -229,7 +229,8 @@ export class ApplyLeave implements OnInit {
       To: this.leaveForm.To,
       Total_Days: String(days),
       Role: this.leaveForm.Role,
-      Reason: this.leaveForm.Reason || ''
+      Reason: this.leaveForm.Reason || '',
+      Applied_By_Admin: this.staffData().role === 'Admin' ? 'true' : 'false'
     };
     if (this.leaveForm.Type_of_Leave === 'VAL') {
       payload.VAL_working_dates = this.leaveForm.VAL_working_dates;

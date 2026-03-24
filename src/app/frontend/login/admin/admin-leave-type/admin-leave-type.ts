@@ -50,7 +50,7 @@ export class AdminLeaveType implements OnInit {
       cachedSession = sessionStorage.getItem('activeSessionName');
     }
     
-    this.http.get<any>(`http://localhost:5000/api/active-session?t=${Date.now()}`).subscribe(res => {
+    this.http.get<any>(`/api/active-session?t=${Date.now()}`).subscribe(res => {
       if (res && res.sessionName !== "Not Set") {
         // If we have a cached choice, we fetch specifically THAT session details
         // Otherwise use the global active one
@@ -63,7 +63,7 @@ export class AdminLeaveType implements OnInit {
            }
         } else {
            // Fetch the specific session by name
-           this.http.get<any[]>(`http://localhost:5000/api/sessions/all`).subscribe(list => {
+           this.http.get<any[]>(`/api/sessions/all`).subscribe(list => {
              const match = list.find(s => s.sessionName === sessionToLoad);
              if (match) {
                this.activeSession.set(match);
@@ -79,7 +79,7 @@ export class AdminLeaveType implements OnInit {
 
   // Load all sessions from the database for the dropdown
   loadAllSavedSessions() {
-    this.http.get<any[]>(`http://localhost:5000/api/sessions/all?t=${Date.now()}`).subscribe(list => {
+    this.http.get<any[]>(`/api/sessions/all?t=${Date.now()}`).subscribe(list => {
       this.sessionsList.set(list);
     });
   }
@@ -103,7 +103,7 @@ export class AdminLeaveType implements OnInit {
       alert("Please enter a Session Name");
       return;
     }
-    this.http.post('http://localhost:5000/api/admin/set-session', this.activeSession()).subscribe({
+    this.http.post('/api/admin/set-session', this.activeSession()).subscribe({
       next: () => {
         alert(`✅ ${this.activeSession().sessionName} is now the Active Session!`);
         if (isPlatformBrowser(this.platformId)) {
@@ -117,7 +117,7 @@ export class AdminLeaveType implements OnInit {
   }
 
   fetchLeaveTypes() {
-    this.http.get<any[]>('http://localhost:5000/api/leave-types').subscribe({
+    this.http.get<any[]>('/api/leave-types').subscribe({
       next: (data) => this.leaveTypes.set(data),
       error: (err) => console.error("Error fetching types:", err)
     });
@@ -154,7 +154,7 @@ export class AdminLeaveType implements OnInit {
           can_carry_forward: this.leaveLimit.can_carry_forward,
           sessionName: session
         };
-        requests.push(this.http.post('http://localhost:5000/api/leave-types/set', payload));
+        requests.push(this.http.post('/api/leave-types/set', payload));
       }
 
       forkJoin(requests).subscribe({
@@ -175,7 +175,7 @@ export class AdminLeaveType implements OnInit {
         old.all_depts.includes(String(t.dept_code))
       );
       
-      const deleteRequests = targets.map(t => this.http.delete(`http://localhost:5000/api/leave-types/${t._id}`));
+      const deleteRequests = targets.map(t => this.http.delete(`/api/leave-types/${t._id}`));
       if (deleteRequests.length > 0) {
         forkJoin(deleteRequests).subscribe(() => startSave());
       } else {
@@ -228,7 +228,7 @@ export class AdminLeaveType implements OnInit {
         t.total_yearly_limit === group.total_yearly_limit &&
         t.can_carry_forward === group.can_carry_forward
       );
-      const requests = targets.map(t => this.http.delete(`http://localhost:5000/api/leave-types/${t._id}`));
+      const requests = targets.map(t => this.http.delete(`/api/leave-types/${t._id}`));
       forkJoin(requests).subscribe(() => this.fetchLeaveTypes());
     }
   }

@@ -38,7 +38,7 @@ export class AdminLeave implements OnInit {
     if (cached) {
       this.activeSessionName.set(cached);
     } else {
-      this.http.get<any>('http://localhost:5000/api/active-session').subscribe(res => {
+      this.http.get<any>('/api/active-session').subscribe(res => {
         if (res && res.sessionName && res.sessionName !== "Not Set") {
           this.activeSessionName.set(res.sessionName);
           if (isPlatformBrowser(this.platformId)) {
@@ -50,7 +50,7 @@ export class AdminLeave implements OnInit {
   }
 
   fetchStaffAndLeaves() {
-    this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
+    this.http.get<any[]>('/api/staff').subscribe({
       next: (staffData) => {
         const roleMap = new Map<number, string>();
         staffData.forEach(staff => {
@@ -63,7 +63,7 @@ export class AdminLeave implements OnInit {
   }
 
   fetchLeaves(roleMap: Map<number, string>) {
-    this.http.get<any[]>('http://localhost:5000/api/leaves/admin').subscribe({
+    this.http.get<any[]>('/api/leaves/admin').subscribe({
       next: (data) => {
         if (data.length === 0) {
           this.allLeaves.set([]);
@@ -73,7 +73,7 @@ export class AdminLeave implements OnInit {
         // Create balance requests for every single leave item
         const session = this.activeSessionName() || 'Active';
         const balanceRequests = data.map(leave => 
-          this.http.get<any>(`http://localhost:5000/api/leaves/balance/${leave.Emp_CODE}/${leave['Type of Leave'] || leave.Type_of_Leave}?sessionName=${session}`)
+          this.http.get<any>(`/api/leaves/balance/${leave.Emp_CODE}/${leave['Type of Leave'] || leave.Type_of_Leave}?sessionName=${session}`)
           .pipe(catchError(() => of({ balance: 0, isIncrementing: false })))
         );
 
@@ -136,7 +136,7 @@ export class AdminLeave implements OnInit {
     }
 
     if (confirm(`Confirm ${decision}?`)) {
-      this.http.post(`http://localhost:5000/api/leaves/process/${id}`, { status: decision, reason: remark })
+      this.http.post(`/api/leaves/process/${id}`, { status: decision, reason: remark })
         .subscribe(() => {
           alert(`Leave ${decision} successfully`);
           this.fetchStaffAndLeaves();

@@ -33,7 +33,7 @@ export class HodLeaveApproved implements OnInit {
   }
 
   fetchLeaves() {
-    this.http.get<any[]>('http://localhost:5000/api/leaves/admin').subscribe({
+    this.http.get<any[]>('/api/leaves/admin').subscribe({
       next: (data) => {
         setTimeout(() => {
           // 1. Filter by Department Code
@@ -72,7 +72,7 @@ export class HodLeaveApproved implements OnInit {
     }
 
     if (confirm(`Are you sure you want to mark this request as ${decision}?`)) {
-      this.http.post(`http://localhost:5000/api/leaves/process/${id}`, { 
+      this.http.post(`/api/leaves/process/${id}`, { 
         status: decision,
         reason: remark 
       }).subscribe({

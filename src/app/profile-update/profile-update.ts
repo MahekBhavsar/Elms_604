@@ -55,7 +55,7 @@ export class ProfileUpdate implements OnInit {
     if (!empCode) return;
 
     this.loading.set(true);
-    this.http.get<any>(`http://localhost:5000/api/profile/${empCode}`).subscribe({
+    this.http.get<any>(`/api/profile/${empCode}`).subscribe({
       next: (res) => {
         this.email.set(res.Email || '');
         this.password.set(res.Password || '');
@@ -83,7 +83,7 @@ export class ProfileUpdate implements OnInit {
       Password: this.password()
     };
 
-    this.http.put<any>(`http://localhost:5000/api/profile/${this.user().empCode}`, body).subscribe({
+    this.http.put<any>(`/api/profile/${this.user().empCode}`, body).subscribe({
       next: (res) => {
         if (res.success) {
           this.successMessage.set('Profile updated successfully!');

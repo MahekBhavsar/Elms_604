@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
+import { OfflineSyncService } from '../../../offline-sync.service';
 
 @Component({
   selector: 'app-staff-view-status',
@@ -19,6 +20,7 @@ export class StaffViewStatus implements OnInit {
 
   constructor(
     private http: HttpClient,
+    private syncService: OfflineSyncService,
     @Inject(PLATFORM_ID) private platformId: Object // Inject Platform ID to check for Browser
   ) {}
 
@@ -32,6 +34,7 @@ export class StaffViewStatus implements OnInit {
         
         // Use the exact key from the login response (empCode)
         if (user.empCode) {
+          this.fetchMyBalances(user.empCode);
           this.fetchMyStatus(user.empCode);
         } else {
           console.warn("[StaffViewStatus] ERROR: No empCode found in session user object.");
@@ -41,21 +44,25 @@ export class StaffViewStatus implements OnInit {
   }
 
   fetchMyBalances(empCode: number) {
-    this.http.get<any>(`http://localhost:5000/api/admin/employee-results/${empCode}`)
+    const url = `/api/admin/employee-results/${empCode}`;
+    this.syncService.getCachedObservable(url, `balances_${empCode}`)
       .subscribe({
         next: (res) => {
-          this.myBalances.set(res.balances);
-          this.activeSession.set(res.sessionName);
+          if (res) {
+            this.myBalances.set(res.balances);
+            this.activeSession.set(res.sessionName);
+          }
         },
         error: (err) => console.error("Error fetching balances:", err)
       });
   }
 
   fetchMyStatus(empCode: number) {
-    this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${empCode}`)
+    const url = `/api/leaves/staff/${empCode}`;
+    this.syncService.getCachedObservable(url, `leaves_${empCode}`)
       .subscribe({
         next: (res) => {
-          this.myLeaves.set(res); 
+          if (res) this.myLeaves.set(res); 
         },
         error: (err) => console.error("Error fetching leave history:", err)
       });

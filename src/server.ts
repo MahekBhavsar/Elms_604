@@ -12,6 +12,19 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
+// --- Backend API Integration ---
+// This mounts the existing Express logic from server.js into the SSR engine.
+// We only pass requests to backendApp if they are API calls or non-GET requests (like POST /login),
+// so that Angular SSR can handle the frontend page routes (like GET /login).
+// @ts-ignore
+import backendApp from './backend/server.js';
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.method !== 'GET') {
+    return backendApp(req, res, next);
+  }
+  next();
+});
+
 /**
  * Example Express Rest API endpoints can be defined here.
  * Uncomment and define endpoints as necessary.

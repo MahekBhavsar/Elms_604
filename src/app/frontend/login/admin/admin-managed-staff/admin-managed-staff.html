@@ -27,6 +27,10 @@
             </h5>
             <form (ngSubmit)="onSubmit()">
               <div class="mb-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">Employee Code (Optional - Auto generated if blank)</label>
+                <input type="number" name="Employee Code" [(ngModel)]="staffForm['Employee Code']" class="form-control bg-light border-0 py-2">
+              </div>
+              <div class="mb-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Full Name</label>
                 <input type="text" name="Name" [(ngModel)]="staffForm.Name" class="form-control bg-light border-0 py-2" required>
               </div>

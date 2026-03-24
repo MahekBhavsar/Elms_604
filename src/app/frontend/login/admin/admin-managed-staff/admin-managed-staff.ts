@@ -38,7 +38,7 @@ export class AdminManagedStaff implements OnInit {
   totalStaff = computed(() => this.rawStaff().length);
 
   staffForm: any = {
-    "Name": '', "Email": '', "Password": null,
+    "Name": '', "Email": '', "Employee Code": null, "Password": 1234,
     "role": 'Staff', "staffType": 'none',
     "department": '', "dept_code": 1
   };
@@ -74,14 +74,14 @@ export class AdminManagedStaff implements OnInit {
   }
 
   getAllStaff() {
-    this.http.get<any[]>('http://localhost:5000/api/staff').subscribe({
+    this.http.get<any[]>('/api/staff').subscribe({
       next: (res) => this.rawStaff.set(res),
       error: (err) => console.error("Error loading staff:", err)
     });
   }
 
   onSubmit() {
-    const url = this.isEditMode ? `http://localhost:5000/api/staff/${this.currentEditId}` : 'http://localhost:5000/api/staff';
+    const url = this.isEditMode ? `/api/staff/${this.currentEditId}` : '/api/staff';
     const request = this.isEditMode ? this.http.put(url, this.staffForm) : this.http.post(url, this.staffForm);
 
     request.subscribe({
@@ -103,7 +103,7 @@ export class AdminManagedStaff implements OnInit {
 
   onDelete(id: string) {
     if (confirm("⚠️ Delete this record?")) {
-      this.http.delete(`http://localhost:5000/api/staff/${id}`).subscribe({
+      this.http.delete(`/api/staff/${id}`).subscribe({
         next: () => {
           alert("🗑️ Staff Member Deleted!");
           this.getAllStaff();
@@ -116,7 +116,7 @@ export class AdminManagedStaff implements OnInit {
     this.isEditMode = false;
     this.currentEditId = '';
     this.staffForm = {
-      "Name": '', "Email": '', "Password": null,
+      "Name": '', "Email": '', "Employee Code": null, "Password": 1234,
       "role": 'Staff', "staffType": 'none',
       "department": '', "dept_code": 1
     };

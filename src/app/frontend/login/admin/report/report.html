@@ -140,12 +140,12 @@
               <td class="ps-4 py-3 fw-bold text-dark border-0">{{ i + 1 }}</td>
               <td class="py-3">
                 <div class="fw-bold text-dark">{{ s.Name }}</div>
-                <small class="text-muted">Code: {{ s['Employee Code'] || s.Employee_Code }}</small>
+                <small class="text-muted">Code: {{ s.Emp_CODE || s['Employee Code'] || s.Employee_Code }}</small>
               </td>
               <td>
                 <span class="badge border fw-bold px-3 py-2 rounded-pill shadow-sm"
                   style="background: rgba(30, 60, 114, 0.05); color: #1e3c72; border-color: rgba(30, 60, 114, 0.1) !important;">
-                  {{ s.department }} ({{ s.dept_code || s.Dept_Code }})
+                  {{ s.department }} ({{ s.Dept_Code || s.dept_code || s.dept || '-' }})
                 </span>
               </td>
               <td><span class="badge bg-light text-secondary border px-2 py-1 small fw-bold">{{ s.role | uppercase }}</span></td>
@@ -177,8 +177,8 @@
             </span>
             <span class="text-white fw-semibold">{{ group.applications.length }} Application(s)</span>
           </div>
-          <span class="badge bg-white bg-opacity-20 text-white fw-bold px-3 py-2 rounded-pill border border-white border-opacity-25">
-            <i class="bi bi-calendar-check me-1"></i>Total: {{ group.totalDays }} Days
+          <span class="badge border border-white border-opacity-25 text-white fw-bold px-3 py-1 rounded-pill shadow-sm" style="background: rgba(0, 0, 0, 0.15); font-size: 0.75rem;">
+            <i class="bi bi-calendar-check me-2"></i>Total: {{ group.totalDays }} Days
           </span>
         </div>
         <!-- Applications Table for this category -->
@@ -186,34 +186,97 @@
           <table class="table table-hover align-middle mb-0 bg-white">
             <thead style="background-color: #f8f9fa;">
               <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-                <th class="ps-4 py-3 border-0">Sr No</th>
+                <th class="ps-4 py-3 border-0">
+                  <div class="d-flex align-items-center gap-2">
+                    Sr No
+                    <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
+                      <button class="btn btn-sm p-0 border-0" [class.text-primary]="sortDirection() === 'asc'" (click)="sortDirection.set('asc')" title="Oldest First">
+                        <i class="bi bi-sort-numeric-down"></i>
+                      </button>
+                      <button class="btn btn-sm p-0 border-0 border-start ms-1 ps-1" [class.text-primary]="sortDirection() === 'desc'" (click)="sortDirection.set('desc')" title="Newest First">
+                        <i class="bi bi-sort-numeric-up-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                </th>
                 <th class="py-3 border-0">Staff Name</th>
                 <th class="py-3 border-0">Dept</th>
                 <th class="py-3 border-0">Leave Period</th>
                 <th class="text-center py-3 border-0">Days</th>
-                <th class="text-end pe-4 py-3 border-0">Status</th>
+                <th class="py-3 border-0">Status</th>
+                <th class="text-end pe-4 py-3 border-0">Actions</th>
               </tr>
             </thead>
             <tbody>
               @for (l of group.applications; track l._id; let idx = $index) {
               <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
                 style="transition: background-color 0.2s;">
-                <td class="ps-4 py-3 fw-bold text-dark">{{ l.sr_no || '-' }}</td>
+                <td class="ps-4 py-3 fw-bold text-dark">{{ getSrNo(l) }}</td>
                 <td class="py-3 fw-bold text-dark">{{ l.Name }}</td>
-                <td class="text-secondary small">{{ l.Dept_Code || l.dept_code }}</td>
-                <td class="text-secondary fw-medium small">{{ l.From | displayDate }} → {{ l.To | displayDate }}</td>
-                <td class="text-center fw-bold fs-6" style="color: #1e3c72;">{{ l['Total Days'] || l.Total_Days }}</td>
-                <td class="text-end pe-4">
-                  <span class="badge rounded-pill px-3 py-2 fw-bold"
-                    [ngClass]="{
-                      'bg-success text-white': l.Status === 'Final Approved' || l.Status === 'Approved',
-                      'bg-info text-white':    l.Status === 'HOD Approved',
-                      'bg-warning text-dark':  l.Status === 'Pending',
-                      'bg-danger text-white':  l.Status === 'Rejected'
-                    }">
-                    {{ l.Status | uppercase }}
-                  </span>
-                </td>
+                <td class="text-secondary small">{{ l.Dept_Code || l.dept_code || '-' }}</td>
+                
+                @if (editingLeave()?._id === l._id) {
+                  <!-- Edit Mode -->
+                  <td class="py-3">
+                    <div class="d-flex flex-column gap-1">
+                      <input type="date" class="form-control form-control-sm" [(ngModel)]="editLeaveFrom">
+                      <input type="date" class="form-control form-control-sm" [(ngModel)]="editLeaveTo">
+                    </div>
+                  </td>
+                  <td class="text-center py-3">
+                    <input type="number" class="form-control form-control-sm mx-auto" style="width: 60px;" [(ngModel)]="editLeaveDays">
+                    <select class="form-select form-select-sm mt-1" [(ngModel)]="editLeaveType" style="font-size: 0.7rem;">
+                      @for (name of leaveNames; track name) {
+                        <option [value]="name">{{ name }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td>
+                    <span class="badge rounded-pill px-3 py-2 fw-bold"
+                      [ngClass]="{
+                        'bg-success text-white': l.Status === 'Final Approved' || l.Status === 'Approved',
+                        'bg-info text-white':    l.Status === 'HOD Approved',
+                        'bg-warning text-dark':  l.Status === 'Pending' || l.Status === 'pending',
+                        'bg-danger text-white':  l.Status === 'Rejected' || l.Status === 'rejected'
+                      }">
+                      {{ l.Status === 'Final Approved' || l.Status === 'Approved' ? 'APPROVED' : (l.Status === 'HOD Approved' ? 'APPROVED HOD' : (l.Status | uppercase)) }}
+                    </span>
+                  </td>
+                  <td class="text-end pe-4">
+                    <div class="d-flex justify-content-end gap-1">
+                      <button class="btn btn-sm btn-success px-2 rounded-pill fw-bold" (click)="saveLeaveEdit()" title="Save Changes">
+                        <i class="bi bi-check-lg me-1"></i> Save
+                      </button>
+                      <button class="btn btn-sm btn-light px-2 rounded-pill border" (click)="cancelEditLeave()" title="Cancel">
+                        <i class="bi bi-x-lg me-1"></i> Cancel
+                      </button>
+                    </div>
+                  </td>
+                } @else {
+                  <!-- View Mode -->
+                  <td class="text-secondary fw-medium small">{{ l.From | displayDate }} → {{ l.To | displayDate }}</td>
+                  <td class="text-center">
+                    <div class="fw-bold fs-6" style="color: #2a5298;">{{ l['Total Days'] || l.Total_Days }}</div>
+                    <div class="badge bg-light text-primary border-0 small fw-bold" style="font-size: 0.65rem; padding: 2px 6px;">{{ (l['Type of Leave'] || l.Type_of_Leave) | uppercase }}</div>
+                  </td>
+                  <td>
+                    <span class="badge rounded-pill px-3 py-2 fw-bold"
+                      [ngClass]="{
+                        'bg-success text-white': l.Status === 'Final Approved' || l.Status === 'Approved',
+                        'bg-info text-white':    l.Status === 'HOD Approved',
+                        'bg-warning text-dark':  l.Status === 'Pending' || l.Status === 'pending',
+                        'bg-danger text-white':  l.Status === 'Rejected' || l.Status === 'rejected'
+                      }">
+                      {{ l.Status === 'Final Approved' || l.Status === 'Approved' ? 'APPROVED' : (l.Status === 'HOD Approved' ? 'APPROVED HOD' : (l.Status | uppercase)) }}
+                    </span>
+                  </td>
+                  <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-3 py-1 fw-bold d-flex align-items-center ms-auto" 
+                      (click)="startEditLeave(l)" style="font-size: 0.75rem; background: rgba(30, 60, 114, 0.05);">
+                      <i class="bi bi-pencil-square me-2"></i> Edit
+                    </button>
+                  </td>
+                }
               </tr>
               }
             </tbody>
@@ -272,6 +335,7 @@
                     <th class="text-center py-3 border-0">{{ name }}</th>
                   }
                 }
+                <th class="text-end pe-4 py-3 border-0">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -283,7 +347,7 @@
                   <div class="fw-bold text-dark">{{ s.name }}</div>
                   <small class="text-muted">Code: {{ s.empCode }}</small>
                 </td>
-                <td class="text-secondary small">{{ s.dept }}</td>
+                <td class="text-secondary small">{{ s.dept || '-' }}</td>
                 @for (name of leaveNames; track name) {
                   @if (!selectedCategory() || selectedCategory() === name) {
                   @let bal = getBalance(s.balances, name);
@@ -329,6 +393,12 @@
                   </td>
                   }
                 }
+                <td class="text-end pe-4 border-0">
+                  <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" (click)="printIndividualStaffReport(s)"
+                    style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none;">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Report
+                  </button>
+                </td>
               </tr>
               }
             </tbody>

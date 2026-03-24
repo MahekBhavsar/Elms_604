@@ -1,13 +1,60 @@
-/* Global Styles */
+/* Design System Foundation — ELMS v2.0 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Role-Based Color Tokens */
+  --admin-primary: #1e3c72;
+  --admin-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  --staff-primary: #008080;
+  --staff-gradient: linear-gradient(135deg, #008080 0%, #00a8a8 100%);
+  
+  /* Neutral Palette */
+  --bg-light: #f8f9fa;
+  --text-main: #334155;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+}
+
 html, body {
-  font-size: 14px; /* Default is usually 16px. Setting to 14px makes everything "small" as requested. */
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  height: 100%;
 }
 
-/* Optional: Ensure Bootstrap components respect the base font size */
-.card, .table, .form-control, .btn {
-  font-size: 0.9rem;
+/* Typography & Hierarchy */
+h1, h2, h3, h4 { font-weight: 700; color: #1e293b; }
+.text-muted { color: var(--text-muted) !important; }
+
+/* Dashboard Card System */
+.card {
+  border: 0 !important;
+  border-radius: 1rem !important; /* rounded-4 */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.badge {
+.card:hover { border-radius: 1rem; }
+
+/* Table Aesthetics */
+.table {
+  border-color: var(--border-color);
+  vertical-align: middle;
+}
+
+.table thead th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  text-transform: uppercase;
   font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
 }
+
+/* Button & UI Element Standard */
+.btn-primary { background: var(--admin-primary); border: 0; }
+.btn-staff { background: var(--staff-primary); border: 0; color: white; }
+
+.rounded-pill { border-radius: 50rem !important; }
+.badge { font-weight: 600; padding: 0.5em 0.8em; }

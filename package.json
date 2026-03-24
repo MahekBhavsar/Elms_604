@@ -5,6 +5,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "dev": "npm run electron:dev",
+    "all": "npm run electron:dev",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -79,6 +81,7 @@
     "express": "^5.2.1",
     "mongoose": "^9.2.4",
     "multer": "^2.1.1",
+    "nodemailer": "^8.0.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

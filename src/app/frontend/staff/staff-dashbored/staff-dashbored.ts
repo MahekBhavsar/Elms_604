@@ -66,9 +66,9 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     }
 
     forkJoin({
-      session: this.http.get<any>('http://localhost:5000/api/active-session').pipe(catchError(() => of({ sessionName: 'Not Set' }))),
-      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types').pipe(catchError(() => of([]))),
-      history: this.http.get<any[]>(`http://localhost:5000/api/leaves/staff/${this.user.empCode || this.user.Employee_Code}`).pipe(catchError(() => of([])))
+      session: this.http.get<any>('/api/active-session').pipe(catchError(() => of({ sessionName: 'Not Set' }))),
+      rules: this.http.get<any[]>('/api/leave-types').pipe(catchError(() => of([]))),
+      history: this.http.get<any[]>(`/api/leaves/staff/${this.user.empCode || this.user.Employee_Code}`).pipe(catchError(() => of([])))
     }).subscribe({
       next: (res) => {
         try {
@@ -143,7 +143,7 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
 
           // 4. Fetch balances specifically for THIS session
           const balanceRequests = currentRulesToUse.map(r => 
-            this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
+            this.http.get<any>(`/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
             .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
           );
 

@@ -69,10 +69,10 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
     }
     
     forkJoin({
-      session: this.http.get<any>('http://localhost:5000/api/active-session').pipe(catchError(() => of({ sessionName: "Not Set" }))),
-      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types').pipe(catchError(() => of([]))),
-      leaves: this.http.get<any[]>('http://localhost:5000/api/leaves/admin').pipe(catchError(() => of([]))),
-      staff: this.http.get<any[]>('http://localhost:5000/api/staff').pipe(catchError(() => of([])))
+      session: this.http.get<any>('/api/active-session').pipe(catchError(() => of({ sessionName: "Not Set" }))),
+      rules: this.http.get<any[]>('/api/leave-types').pipe(catchError(() => of([]))),
+      leaves: this.http.get<any[]>('/api/leaves/admin').pipe(catchError(() => of([]))),
+      staff: this.http.get<any[]>('/api/staff').pipe(catchError(() => of([])))
     }).subscribe({
       next: (res) => {
         try {
@@ -144,7 +144,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
 
           // 4. Fetch balances specifically for Admin as a staff member
           const balanceRequests = myCurrentRules.map(r => 
-            this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
+            this.http.get<any>(`/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
             .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
           );
 

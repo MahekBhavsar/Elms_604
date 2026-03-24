@@ -65,7 +65,7 @@ export class AdminLeaveApplication implements OnInit {
 
   fetchLastSrNo(empCode: any) {
     if (!empCode) return;
-    this.http.get<any>(`http://localhost:5000/api/leaves/next-sr-no/${empCode}`).subscribe({
+    this.http.get<any>(`/api/leaves/next-sr-no/${empCode}`).subscribe({
       next: (res) => { this.leaveForm.sr_no = String(res.nextSrNo); },
       error: () => { this.leaveForm.sr_no = '1'; }
     });
@@ -74,7 +74,7 @@ export class AdminLeaveApplication implements OnInit {
   onEmpCodeSearch() {
     if (!this.searchEmpCode) return;
     
-    this.http.get<any>(`http://localhost:5000/api/admin/employee-results/${this.searchEmpCode}`).subscribe({
+    this.http.get<any>(`/api/admin/employee-results/${this.searchEmpCode}`).subscribe({
       next: (res) => {
         this.isEmpFound.set(true);
         const user = res.user;
@@ -110,7 +110,7 @@ export class AdminLeaveApplication implements OnInit {
       this.leaveHistory.set([]);
     } else {
       this.expandedType.set(type);
-      this.http.get<any[]>(`http://localhost:5000/api/admin/leave-history/${this.leaveForm.Emp_CODE}/${type}`)
+      this.http.get<any[]>(`/api/admin/leave-history/${this.leaveForm.Emp_CODE}/${type}`)
         .subscribe({
           next: (res) => this.leaveHistory.set(res),
           error: (err) => console.error("Error fetching history", err)
@@ -120,8 +120,8 @@ export class AdminLeaveApplication implements OnInit {
 
   fetchLeaveTypes() {
     forkJoin({
-      session: this.http.get<any>('http://localhost:5000/api/active-session'),
-      rules: this.http.get<any[]>('http://localhost:5000/api/leave-types')
+      session: this.http.get<any>('/api/active-session'),
+      rules: this.http.get<any[]>('/api/leave-types')
     }).subscribe({
       next: (res) => {
         const currentSessionLabel = res.session.sessionName;
@@ -169,7 +169,7 @@ export class AdminLeaveApplication implements OnInit {
   fetchBalance() {
     if (!this.leaveForm.Emp_CODE || !this.leaveForm.Type_of_Leave) return;
 
-    this.http.get<any>(`http://localhost:5000/api/leaves/balance/${this.leaveForm.Emp_CODE}/${this.leaveForm.Type_of_Leave}`)
+    this.http.get<any>(`/api/leaves/balance/${this.leaveForm.Emp_CODE}/${this.leaveForm.Type_of_Leave}`)
       .subscribe({
         next: (res) => {
           this.isIncrementing.set(res.isIncrementing || false);

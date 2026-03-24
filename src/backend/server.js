@@ -4,18 +4,81 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const nodemailer = require('nodemailer'); // Added nodemailer
+
+// --- Environment Helper: Support both CommonJS and ESM/SSR environments ---
+// This prevents "ReferenceError: __dirname is not defined" when integrated with Angular SSR
+const _dirname = typeof __dirname !== 'undefined' 
+    ? __dirname 
+    : path.resolve(process.cwd(), 'src/backend');
 
 // Load .env file if present (for local development)
 try {
-    require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+    require('dotenv').config({ path: path.join(_dirname, '../../.env') });
 } catch (e) { /* dotenv optional */ }
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+// --- Email Notification Setup ---
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER || 'mahek.bhavsar29@gmail.com',
+        pass: process.env.EMAIL_PASS || 'jtwo znwb kkzt tvsl'
+    }
+});
+
+async function sendEmailNotification(to, subject, htmlContent) {
+    const fromEmail = process.env.EMAIL_USER || 'mahek.bhavsar29@gmail.com';
+    const fromPass = process.env.EMAIL_PASS || 'jtwo znwb kkzt tvsl';
+    
+    if (!fromEmail || !fromPass) {
+        console.warn('⚠️  Email credentials not set. Skipping notification.');
+        return;
+    }
+    try {
+        await transporter.sendMail({
+            from: `"ELMS Notification" <${fromEmail}>`,
+            to,
+            subject,
+            html: htmlContent
+        });
+        console.log(`📧 Email sent successfully to: ${to}`);
+    } catch (err) {
+        console.error('❌ Email sending failed:', err.message);
+    }
+}
+
+// Helper to generate a styled HTML email template
+function generateEmailTemplate(headerTitle, message, detailsHtml, color = '#1e3c72') {
+    return `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f9; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="background: ${color}; padding: 30px; text-align: center; color: white;">
+                <h1 style="margin: 0; font-size: 24px; letter-spacing: 1px;">ELMS</h1>
+                <p style="margin: 5px 0 0; opacity: 0.8; font-size: 14px;">${headerTitle}</p>
+            </div>
+            <div style="padding: 30px; line-height: 1.6;">
+                <div style="margin-bottom: 25px;">${message}</div>
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid ${color};">
+                    <h4 style="margin-top: 0; color: ${color}; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;">Application Details</h4>
+                    <div style="font-size: 14px;">${detailsHtml}</div>
+                </div>
+                <p style="margin-top: 30px; font-size: 13px; color: #777; text-align: center;">
+                    This is an automated notification from the Employee Leave Management System.
+                </p>
+            </div>
+            <div style="background: #eee; padding: 15px; text-align: center; font-size: 12px; color: #888;">
+                &copy; 2026 Employee Leave Management System
+            </div>
+        </div>
+    </div>`;
+}
+
 // --- File Storage Setup ---
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(_dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir, { recursive: true }); }
 app.use('/uploads', express.static(uploadDir));
 
@@ -74,7 +137,7 @@ const sessionSchema = new mongoose.Schema({
     endDate: { type: String, required: true }
 }, { timestamps: true }); // <--- CRITICAL: Adds createdAt and updatedAt automatically
 
-const Session = mongoose.model('Session', sessionSchema, 'active_sessions');
+const Session = mongoose.models.Session || mongoose.model('Session', sessionSchema, 'active_sessions');
 // Update the GET route to fetch the LATEST updated session
 
 // 2. Users
@@ -88,7 +151,7 @@ const userSchema = new mongoose.Schema({
     "dept_code": Number,
     "staffType": { type: String, default: 'Teaching' }
 }, { collection: 'users', versionKey: false });
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // 3. Leave Types (Integrated Session-Wise Logic)
 const leaveTypeSchema = new mongoose.Schema({
@@ -99,7 +162,7 @@ const leaveTypeSchema = new mongoose.Schema({
     can_carry_forward: { type: Boolean, default: false },
     sessionName: String // Links quota to a specific year
 }, { collection: 'leave_types', versionKey: false });
-const LeaveType = mongoose.model('LeaveType', leaveTypeSchema);
+const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', leaveTypeSchema);
 
 // 4. Leave Applications
 // 4. Leave Applications
@@ -120,7 +183,7 @@ const leaveSchema = new mongoose.Schema({
     document: String,
     VAL_working_dates: String  // 3 working dates required for VAL leave type
 }, { collection: 'leave_applications', versionKey: false });
-const Leave = mongoose.model('Leave', leaveSchema);
+const Leave = mongoose.models.Leave || mongoose.model('Leave', leaveSchema);
 
 // 5. Balance Adjustments (Manual edits by Admin)
 const balanceAdjustmentSchema = new mongoose.Schema({
@@ -130,7 +193,7 @@ const balanceAdjustmentSchema = new mongoose.Schema({
     adjustmentValue: Number, // The value the admin manually SETS as remaining
     updatedAt: { type: Date, default: Date.now }
 }, { collection: 'balance_adjustments', versionKey: false });
-const BalanceAdjustment = mongoose.model('BalanceAdjustment', balanceAdjustmentSchema);
+const BalanceAdjustment = mongoose.models.BalanceAdjustment || mongoose.model('BalanceAdjustment', balanceAdjustmentSchema);
 
 // --- ROUTES ---
 
@@ -362,6 +425,52 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+// NEW: Bulk Balance Calculation for high-performance reporting
+app.get('/api/leaves/balances/bulk', async (req, res) => {
+    try {
+        const { sessionName: querySession } = req.query;
+        let sessionName = querySession;
+        if (!sessionName) {
+            const activeSession = await Session.findOne().sort({ updatedAt: -1 });
+            sessionName = activeSession?.sessionName || "Not Set";
+        }
+
+        const users = await User.find({}).lean();
+        const leaveTypes = await LeaveType.distinct("leave_name", { sessionName });
+        
+        // Use Promise.all to compute all in parallel on the server
+        const summary = await Promise.all(users.map(async (user) => {
+            const empCode = user["Employee Code"];
+            if (!empCode) return null;
+
+            const balances = await Promise.all(leaveTypes.map(async (type) => {
+                const result = await calculateUserBalance(empCode, type, sessionName);
+                return {
+                    leave: type,
+                    balance: result.balance,
+                    used: result.usedThisYear,
+                    limit: result.limit,
+                    isIncrementing: result.isIncrementing,
+                    isManuallyAdjusted: result.isManuallyAdjusted
+                };
+            }));
+
+            return {
+                name: user.Name,
+                empCode: empCode,
+                dept: user.dept_code,
+                deptName: user.department,
+                balances: balances
+            };
+        }));
+
+        res.json(summary.filter(s => s !== null));
+    } catch (err) {
+        console.error("Bulk Balance Error:", err);
+        res.status(500).json({ error: "Bulk calculation failed" });
+    }
+});
 // Helper function to detect session from date strings like "6/18/2025"
 function isDateInSession(dateStr, sessionLabel) {
     if (!dateStr || !sessionLabel) return false;
@@ -479,6 +588,55 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
 
         await newLeave.save();
         res.json({ success: true, data: newLeave });
+
+        // --- Post-Save Email Notifications ---
+        try {
+            // Find employee email from User model
+            const userObj = await User.findOne({ "Employee Code": empCodeNum }).lean();
+            const userEmail = userObj?.Email || '';
+            const isAdminSubmission = req.body.Applied_By_Admin === 'true';
+            const finalStatus = isAdminSubmission ? 'Approved' : 'Pending';
+            
+            const color = isAdminSubmission ? '#2ecc71' : '#1e3c72'; 
+
+            const details = `
+                <p><b>Type of Leave:</b> ${Type_of_Leave}</p>
+                <p><b>From - To:</b> ${From} to ${To}</p>
+                <p><b>Total Days:</b> ${Total_Days}</p>
+                <p><b>Reason:</b> ${Reason || 'N/A'}</p>
+                <p><b>Submission:</b> ${isAdminSubmission ? 'Admin Direct Entry' : 'Manual Submission'}</p>
+            `;
+
+            // 1. Email to Staff (Confirmation)
+            if (userEmail) {
+                const message = isAdminSubmission 
+                    ? `<p>Hello <b>${Name}</b>,</p><p>Your leave has been <b>Directly Approved</b> by the Administrator. Your records have been updated automatically.</p>`
+                    : `<p>Hello <b>${Name}</b>,</p><p>Your leave application has been submitted successfully and is currently <b>Pending</b> review.</p>`;
+
+                await sendEmailNotification(
+                    userEmail,
+                    `Leave Application Update (${Type_of_Leave}) - ${finalStatus}`,
+                    generateEmailTemplate(`Status Update: ${finalStatus}`, message, details, color)
+                );
+            }
+
+            // 2. Email to Admin (Notification) - ONLY if NOT applied by Admin ourselves
+            if (!isAdminSubmission) {
+                const adminUsers = await User.find({ role: 'Admin' }).lean();
+                const adminEmails = adminUsers.map(u => u.Email).filter(e => e);
+                if (adminEmails.length > 0) {
+                    const adminMsg = `<p>A new leave application from <b>${Name}</b> requires your review.</p>`;
+                    await sendEmailNotification(
+                        adminEmails.join(','),
+                        `Action Required: ${Name} (${Type_of_Leave})`,
+                        generateEmailTemplate("New Application Pending", adminMsg, details, '#f39c12')
+                    );
+                }
+            }
+        } catch (mailErr) {
+            console.warn('⚠️  Could not send email:', mailErr.message);
+        }
+
     } catch (err) { 
         console.error("=== APPLY LEAVE ERROR 500 ===", err);
         res.status(500).json({ success: false, error: err.message || "Submission failed" }); 
@@ -519,6 +677,93 @@ app.post('/api/leaves/process/:id', async (req, res) => {
     if (status === 'Rejected' && reason) updateData.Reject_Reason = reason;
     const updated = await Leave.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json({ success: true, data: updated });
+
+    // --- Post-Process Email Notifications ---
+    try {
+        if (updated) {
+            const userObj = await User.findOne({ "Employee Code": updated.Emp_CODE }).lean();
+            const userEmail = userObj?.Email || '';
+            const staffName = userObj?.Name || 'Staff';
+
+            const color = status === 'Approved' || status === 'Final Approved' || status === 'Staff Approved' ? '#2ecc71' : 
+                          status === 'HOD Approved' ? '#3498db' : '#e74c3c';
+
+            const details = `
+                <p><b>Type of Leave:</b> ${updated["Type of Leave"]}</p>
+                <p><b>From - To:</b> ${updated.From} to ${updated.To}</p>
+                <p><b>Total Days:</b> ${updated["Total Days"]}</p>
+                <p><b>Current Status:</b> <b>${status}</b></p>
+                ${reason ? `<p><b>Admin Remark:</b> ${reason}</p>` : ''}
+            `;
+
+            if (userEmail) {
+                let message = '';
+                if (status === 'Approved' || status === 'Final Approved' || status === 'Staff Approved') {
+                    message = `<p>Congratulations <b>${staffName}</b>!</p><p>Your leave application has been <b>Final Approved</b>. Your balance has been updated in the system.</p>`;
+                } else if (status === 'HOD Approved') {
+                    message = `<p>Hello <b>${staffName}</b>,</p><p>Good news! Your leave request has been <b>HOD Approved</b> and is now pending final review by the Administrator.</p>`;
+                } else if (status === 'Rejected' || status === 'Rejected by HOD') {
+                    message = `<p>Hello <b>${staffName}</b>,</p><p>We regret to inform you that your leave application has been <b>Rejected</b>.</p>`;
+                } else {
+                    message = `<p>Hello <b>${staffName}</b>,</p><p>The status of your leave application has been updated to: <b>${status}</b>.</p>`;
+                }
+
+                await sendEmailNotification(
+                    userEmail,
+                    `Leave Application Outcome: ${status}`,
+                    generateEmailTemplate(`Decision: ${status}`, message, details, color)
+                );
+
+                // EXTRA: If HOD approves, notify Admin for final step
+                if (status === 'HOD Approved') {
+                    const adminUsers = await User.find({ role: 'Admin' }).lean();
+                    const adminEmails = adminUsers.map(u => u.Email).filter(e => e);
+                    if (adminEmails.length > 0) {
+                        const adminMsg = `<p><b>${staffName}</b>'s leave application has been HOD Approved and is waiting for your final decision.</p>`;
+                        await sendEmailNotification(
+                            adminEmails.join(','),
+                            `Final Action Needed: ${staffName} (HOD Approved)`,
+                            generateEmailTemplate("Final Approval Pending", adminMsg, details, '#3498db')
+                        );
+                    }
+                }
+            }
+        }
+    } catch (mailErr) {
+        console.warn('⚠️  Status Email failed:', mailErr.message);
+    }
+});
+
+// Update Leave Details (From, To, Type, Days, Status)
+app.put('/api/leaves/:id', async (req, res) => {
+    try {
+        const updateDataRaw = req.body;
+        const updateData = {};
+        
+        if (updateDataRaw.From) updateData.From = updateDataRaw.From;
+        if (updateDataRaw.To) updateData.To = updateDataRaw.To;
+        
+        const type = updateDataRaw["Type of Leave"] || updateDataRaw.Type_of_Leave || updateDataRaw.type;
+        if (type) {
+            updateData["Type of Leave"] = type;
+            updateData["Type_of_Leave"] = type;
+        }
+
+        const days = updateDataRaw["Total Days"] || updateDataRaw.Total_Days || updateDataRaw.days;
+        if (days !== undefined) {
+            updateData["Total Days"] = Number(days);
+            updateData["Total_Days"] = Number(days);
+        }
+
+        if (updateDataRaw.Status) updateData.Status = updateDataRaw.Status;
+        if (updateDataRaw.Reason) updateData.Reason = updateDataRaw.Reason;
+
+        const updated = await Leave.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        res.json({ success: true, data: updated });
+    } catch (err) {
+        console.error("Update Leave Error:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // 6. MANUAL BALANCE ADJUSTMENT
@@ -616,7 +861,7 @@ app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
 });
 
 // 6. LOGIN & STAFF MANAGEMENT
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
     try {
         const password = Number(req.body.password);
         if (isNaN(password)) return res.status(401).json({ success: false, error: "Invalid password format" });
@@ -644,16 +889,40 @@ app.get('/api/leaves/admin', async (req, res) => { res.json(await Leave.find({})
 app.get('/api/staff', async (req, res) => { res.json(await User.find({})); });
 
 app.post('/api/staff', async (req, res) => {
-    const latest = await User.findOne().sort({ "Employee Code": -1 });
-    const nextCode = latest ? latest["Employee Code"] + 1 : 101;
-    const newUser = new User({ ...req.body, "Employee Code": nextCode });
-    await newUser.save();
-    res.json(newUser);
+    try {
+        let empCode;
+        if (req.body["Employee Code"]) {
+            empCode = Number(req.body["Employee Code"]);
+        } else {
+            const latest = await User.findOne().sort({ "Employee Code": -1 });
+            empCode = latest ? latest["Employee Code"] + 1 : 101;
+        }
+        
+        // Ensure a default password if not provided (Schema requires Password as Number)
+        const password = req.body.Password || 1234;
+
+        const newUser = new User({ 
+            ...req.body, 
+            "Employee Code": empCode,
+            "Password": Number(password)
+        });
+        
+        await newUser.save();
+        res.json(newUser);
+    } catch (err) {
+        console.error("❌ Staff Creation Error:", err);
+        res.status(500).json({ error: "Creation failed", details: err.message });
+    }
 });
 
 app.put('/api/staff/:id', async (req, res) => {
-    const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updated);
+    try {
+        const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updated);
+    } catch (err) {
+        console.error("❌ Staff Update Error:", err);
+        res.status(500).json({ error: "Update failed", details: err.message });
+    }
 });
 
 app.delete('/api/staff/:id', async (req, res) => {
@@ -747,5 +1016,8 @@ app.get('/api/admin/leave-history/:empCode/:type', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
 });
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 5000;
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
+module.exports = app;

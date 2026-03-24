@@ -17,7 +17,7 @@ export class Login {
   constructor(private http: HttpClient, private router: Router) {}
 
   onLogin() {
-    this.http.post('http://localhost:5000/login', this.loginForm).subscribe({
+    this.http.post('/api/login', this.loginForm).subscribe({
       next: (res: any) => {
         sessionStorage.setItem('user', JSON.stringify(res));
 
