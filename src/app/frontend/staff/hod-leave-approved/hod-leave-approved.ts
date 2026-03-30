@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
+import { OfflineSyncService } from '../../../offline-sync.service';
+import { OnDestroy } from '@angular/core';
 
 @Component({
   selector: 'app-hod-leave-approved',
@@ -11,13 +13,15 @@ import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
   templateUrl: './hod-leave-approved.html',
   styleUrl: './hod-leave-approved.css',
 })
-export class HodLeaveApproved implements OnInit {
+export class HodLeaveApproved implements OnInit, OnDestroy {
   myDeptLeaves: any[] = [];
   hodData: any = {};
+  private pollInterval: any;
 
   constructor(
     private http: HttpClient, 
     private cdr: ChangeDetectorRef,
+    private offlineSync: OfflineSyncService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
@@ -28,30 +32,47 @@ export class HodLeaveApproved implements OnInit {
       if (savedUser) {
         this.hodData = JSON.parse(savedUser);
         this.fetchLeaves();
+        // Poll for new requests in HOD's department
+        this.pollInterval = setInterval(() => this.fetchLeaves(true), 120000); // 2 mins
+        this.requestNotificationPermission();
       }
     }
   }
 
-  fetchLeaves() {
+  fetchLeaves(isPoll = false) {
     this.http.get<any[]>('/api/leaves/admin').subscribe({
       next: (data) => {
-        setTimeout(() => {
-          // 1. Filter by Department Code
-          // 2. EXCLUSION: Ensure HOD does NOT see their own application (Emp_CODE check)
-          this.myDeptLeaves = data.filter(l => 
-            Number(l.Dept_Code) === Number(this.hodData.dept_code) && 
-            Number(l.Emp_CODE) !== Number(this.hodData.empCode)
-          );
-          
-          this.cdr.detectChanges(); 
-        }, 0);
+        // --- OFFLINE MERGE LOGIC ---
+        this.offlineSync.getQueue().then(queue => {
+          const deptOffline = queue.filter(q => 
+            Number(q.payload.Dept_Code) === Number(this.hodData.dept_code) &&
+            Number(q.payload.Emp_CODE) !== Number(this.hodData.empCode)
+          ).map(q => ({
+            ...q.payload,
+            _id: 'offline_' + q.id,
+            Status: 'Offline Sync Pending',
+            isOfflineRecord: true
+          }));
+
+          const combinedData = [...deptOffline, ...data];
+
+          setTimeout(() => {
+            this.myDeptLeaves = combinedData.filter(l => 
+              Number(l.Dept_Code) === Number(this.hodData.dept_code) && 
+              Number(l.Emp_CODE) !== Number(this.hodData.empCode)
+            );
+            
+            this.cdr.detectChanges(); 
+            this.checkNewDepartmentLeaves(this.myDeptLeaves);
+          }, 0);
+        });
       },
       error: (err) => console.error("Error fetching department leaves:", err)
     });
   }
 
   getPending() {
-    return this.myDeptLeaves.filter(l => l.Status === 'Pending');
+    return this.myDeptLeaves.filter(l => l.Status === 'Pending' || l.Status === 'Offline Sync Pending');
   }
 
   getProcessed() {
@@ -59,6 +80,10 @@ export class HodLeaveApproved implements OnInit {
   }
 
   processLeave(id: string, decision: 'HOD Approved' | 'Rejected') {
+    if (id.startsWith('offline_')) {
+      alert("This application is still syncing from the local database. Please wait until it is uploaded to MongoDB.");
+      return;
+    }
     let remark = '';
     
     if (decision === 'Rejected') {
@@ -86,5 +111,50 @@ export class HodLeaveApproved implements OnInit {
         }
       });
     }
+  }
+
+  ngOnDestroy() {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+  }
+
+  // --- HOD NOTIFICATION LOGIC ---
+  private requestNotificationPermission() {
+    if (isPlatformBrowser(this.platformId) && 'Notification' in window) {
+      if (Notification.permission === 'default') Notification.requestPermission();
+    }
+  }
+
+  private checkNewDepartmentLeaves(leaves: any[]) {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const storageKey = `elms_hod_notified_${this.hodData.empCode}`;
+    const previousKnownIdsStr = localStorage.getItem(storageKey);
+    const previousKnownIds: string[] = previousKnownIdsStr ? JSON.parse(previousKnownIdsStr) : [];
+    
+    let currentIds: string[] = [];
+    const pending = leaves.filter(l => l.Status === 'Pending');
+
+    pending.forEach(l => {
+      currentIds.push(l._id);
+      if (!previousKnownIds.includes(l._id)) {
+        this.triggerHodNotification(l);
+      }
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(currentIds));
+  }
+
+  private triggerHodNotification(l: any) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    new Notification('🆕 New Department Leave Request', {
+      body: `${l.Name} applied for ${this.getLeaveTypeName(l)} (${l.Total_Days} days)`,
+      icon: 'assets/favicon.ico'
+    });
+  }
+
+  private getLeaveTypeName(l: any) {
+    const n = l['Type of Leave'] || l.Type_of_Leave || l.leave_name || l.Type || '';
+    return n.toString().trim().toUpperCase();
   }
 }

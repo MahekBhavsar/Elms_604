@@ -1,5 +1,5 @@
 # UI/UX DESIGN DOCUMENT
-## Education Leave Management System
+## Employee Leave Management System
 ### ELMS v2.0 — Multi-Role Leave Management Web & Desktop Application
 **Partnered with VNSGU, Surat  •  Prepared by: Mahek Bhavsar  •  March 2026**
 
@@ -20,7 +20,7 @@
 
 ## 1. Project Brief
 ### Introduction / Purpose
-The Education Leave Management System (ELMS) is designed to replace traditional paper-based leave applications with a digital, real-time platform. It centralizes the lifecycle of leave requests — from application and HOD approval to administrative record-keeping — while ensuring data availability through offline synchronization.
+The Employee Leave Management System (ELMS) is designed to replace traditional paper-based leave applications with a digital, real-time platform. It centralizes the lifecycle of leave requests — from application and HOD approval to administrative record-keeping — while ensuring data availability through offline synchronization.
 
 ### Primary Purposes
 - Provide **Admin** with a control panel to manage staff directories, leave policies, and institutional reports.
@@ -151,5 +151,5 @@ The interface follows a **Fixed Sidebar + Sticky Topbar** layout for maximum eff
 
 ---
 *Document prepared for: Minor Project — ELMS v2.0*
-*Education Leave Management System  •  Partnered with VNSGU, Surat*
+*Employee Leave Management System  •  Partnered with VNSGU, Surat*
 *Prepared by: Mahek Bhavsar  •  March 2026*

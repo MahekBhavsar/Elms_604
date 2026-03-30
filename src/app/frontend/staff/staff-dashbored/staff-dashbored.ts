@@ -25,6 +25,7 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
   leaveStats = { approved: 0, pending: 0, rejected: 0 };
   dataReady = false;
   private viewReady = false;
+  private pollInterval: any;
 
   @ViewChild('statusChart') statusChartRef!: ElementRef;
   @ViewChild('leaveTypeChart') leaveTypeChartRef!: ElementRef;
@@ -48,6 +49,9 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
         // Ensure we have a valid empCode before fetching
         if (this.user.empCode || this.user.Employee_Code) {
           this.fetchDashboardData();
+          // Start polling for real-time desktop notifications
+          this.pollInterval = setInterval(() => this.fetchDashboardData(true), 120000); // Poll every 2 mins
+          this.requestNotificationPermission();
         } else {
           console.error("[StaffDashbored] ERROR: No employee code found in user session.");
           this.dataReady = true; // Stop skeleton/loader
@@ -56,8 +60,8 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  fetchDashboardData() {
-    this.dataReady = false;
+  fetchDashboardData(isPoll = false) {
+    if (!isPoll) this.dataReady = false;
     if (!this.user) return;
 
     let cachedSession = null;
@@ -167,6 +171,9 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
             this.dataReady = true;
             this.cdr.detectChanges();
             this.tryRenderCharts();
+
+            // Check for status changes (Desktop Notifications)
+            this.checkStatusChanges(res.history);
           });
 
         } catch (e) {
@@ -265,5 +272,52 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy() {
     if (this.statusChart) this.statusChart.destroy();
     if (this.leaveTypeChart) this.leaveTypeChart.destroy();
+    if (this.pollInterval) clearInterval(this.pollInterval);
+  }
+
+  // --- DESKTOP NOTIFICATION LOGIC ---
+  private requestNotificationPermission() {
+    if (isPlatformBrowser(this.platformId) && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }
+
+  private checkStatusChanges(history: any[]) {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const storageKey = `elms_last_statuses_${this.user.empCode || this.user.Employee_Code}`;
+    const previousStatusesStr = localStorage.getItem(storageKey);
+    const previousStatuses: Record<string, string> = previousStatusesStr ? JSON.parse(previousStatusesStr) : {};
+    
+    let currentStatuses: Record<string, string> = {};
+    let notificationTriggered = false;
+
+    history.forEach(l => {
+      const id = l._id;
+      const current = l.Status;
+      currentStatuses[id] = current;
+
+      // Only notify if we already had data about this leave AND status changed
+      if (previousStatuses[id] && previousStatuses[id] !== current) {
+        this.triggerDesktopNotification(l);
+        notificationTriggered = true;
+      }
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(currentStatuses));
+  }
+
+  private triggerDesktopNotification(l: any) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const title = 'Leave Update: ' + (l.Status || 'Status Changed');
+    const options = {
+      body: `Your ${this.getLeaveTypeName(l)} from ${l.From} to ${l.To} is now ${l.Status}.`,
+      icon: 'assets/favicon.ico' // Ensure assets directory exists or use a web link
+    };
+
+    new Notification(title, options);
   }
 }

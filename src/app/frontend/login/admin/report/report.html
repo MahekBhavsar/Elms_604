@@ -126,7 +126,7 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="border-bottom" style="background-color: #f8f9fa;">
             <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-              <th class="ps-4 py-4 border-0">Sr No</th>
+              <th class="ps-4 py-4 border-0" style="width: 80px;">Sr No</th>
               <th class="py-4 border-0">Employee Member</th>
               <th class="py-4 border-0">Department Info</th>
               <th class="py-4 border-0">Role</th>
@@ -137,7 +137,8 @@
             @for (s of filteredStaff(); track s._id; let i = $index) {
             <tr style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'"
               onmouseout="this.style.backgroundColor='transparent'">
-              <td class="ps-4 py-3 fw-bold text-dark border-0">{{ i + 1 }}</td>
+              <td class="ps-4 py-3 fw-bold text-primary border-0" style="width: 80px;">{{ i + 1 }}</td>
+
               <td class="py-3">
                 <div class="fw-bold text-dark">{{ s.Name }}</div>
                 <small class="text-muted">Code: {{ s.Emp_CODE || s['Employee Code'] || s.Employee_Code }}</small>
@@ -186,7 +187,7 @@
           <table class="table table-hover align-middle mb-0 bg-white">
             <thead style="background-color: #f8f9fa;">
               <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-                <th class="ps-4 py-3 border-0">
+                <th class="ps-4 py-3 border-0" style="width: 100px;">
                   <div class="d-flex align-items-center gap-2">
                     Sr No
                     <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
@@ -211,7 +212,8 @@
               @for (l of group.applications; track l._id; let idx = $index) {
               <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
                 style="transition: background-color 0.2s;">
-                <td class="ps-4 py-3 fw-bold text-dark">{{ getSrNo(l) }}</td>
+                <td class="ps-4 py-3 fw-bold text-primary" style="width: 100px;">{{ idx + 1 }}</td>
+
                 <td class="py-3 fw-bold text-dark">{{ l.Name }}</td>
                 <td class="text-secondary small">{{ l.Dept_Code || l.dept_code || '-' }}</td>
                 
@@ -324,30 +326,30 @@
           </div>
         </div>
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead style="background-color: #f8f9fa;">
-              <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-                <th class="ps-4 py-3 border-0">Sr No</th>
-                <th class="py-3 border-0">Staff</th>
-                <th class="py-3 border-0">Dept</th>
+          <table class="table table-bordered table-hover align-middle mb-0" style="white-space: nowrap;">
+            <thead class="table-light">
+              <tr class="text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                <th class="text-center py-2">Sr No</th>
+                <th class="py-2">Staff</th>
+                <th class="text-center py-2">Dept</th>
                 @for (name of leaveNames; track name) {
                   @if (!selectedCategory() || selectedCategory() === name) {
-                    <th class="text-center py-3 border-0">{{ name }}</th>
+                    <th class="text-center py-2" style="min-width: 100px;">{{ name }}</th>
                   }
                 }
-                <th class="text-end pe-4 py-3 border-0">Action</th>
+                <th class="text-center py-2">Action</th>
               </tr>
             </thead>
             <tbody>
               @for (s of filteredBalanceSummary(); track s.empCode; let index = $index) {
-              <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
-                style="transition: background-color 0.2s;">
-                <td class="ps-4 py-3 fw-bold text-dark border-0">{{ index + 1 }}</td>
-                <td class="py-3">
+              <tr style="transition: background-color 0.2s; font-size: 0.85rem;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
+                <td class="text-center py-2 fw-bold text-primary">{{ index + 1 }}</td>
+
+                <td class="py-2">
                   <div class="fw-bold text-dark">{{ s.name }}</div>
-                  <small class="text-muted">Code: {{ s.empCode }}</small>
+                  <small class="text-muted" style="font-size: 0.7rem;">Code: {{ s.empCode }}</small>
                 </td>
-                <td class="text-secondary small">{{ s.dept || '-' }}</td>
+                <td class="text-center text-secondary py-2">{{ s.dept || '-' }}</td>
                 @for (name of leaveNames; track name) {
                   @if (!selectedCategory() || selectedCategory() === name) {
                   @let bal = getBalance(s.balances, name);
@@ -372,31 +374,37 @@
 
                         <!-- Remaining Badge -->
                         <div class="d-flex align-items-center gap-2">
-                          @if (bal.isIncrementing) {
-                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold small"
+                          @if (bal.isEligible === false) {
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1 rounded-pill fw-bold" style="font-size: 0.7rem;">
+                              N/A
+                            </span>
+                          } @else if (bal.isIncrementing) {
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill fw-bold" style="font-size: 0.7rem;"
                               [style.border]="bal.isManuallyAdjusted ? '1px dashed #1e3c72' : 'none'">
-                              {{ bal.balance }} Accumulated
+                              {{ bal.balance }} Accum
                             </span>
                           } @else {
-                            <span class="badge px-3 py-2 rounded-pill fw-bold small"
+                            <span class="badge px-2 py-1 rounded-pill fw-bold" style="font-size: 0.7rem;"
                               [style.border]="bal.isManuallyAdjusted ? '1px dashed currentColor' : 'none'"
                               [ngClass]="bal.balance <= 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'">
                               {{ bal.balance }} Left
                             </span>
                           }
-                          <button class="btn btn-link btn-sm p-0 text-muted opacity-50 edit-icon" (click)="startEdit(s, name, bal.balance)">
-                            <i class="bi bi-pencil-square"></i>
-                          </button>
+                          @if (bal.isEligible !== false) {
+                            <button class="btn btn-link btn-sm p-0 text-muted opacity-50 edit-icon ms-1" (click)="startEdit(s, name, bal.balance)">
+                              <i class="bi bi-pencil-square"></i>
+                            </button>
+                          }
                         </div>
                       </div>
                     }
                   </td>
                   }
                 }
-                <td class="text-end pe-4 border-0">
+                <td class="text-center py-2">
                   <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" (click)="printIndividualStaffReport(s)"
-                    style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none;">
-                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Report
+                    style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none;" title="Print Staff Report">
+                    <i class="bi bi-file-earmark-pdf-fill"></i>
                   </button>
                 </td>
               </tr>

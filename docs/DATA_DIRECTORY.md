@@ -1,11 +1,11 @@
 # Project Data Directory: ELMS v2.0
-## Education Leave Management System — Full-Stack Desktop & Web Application
+## Employee Leave Management System — Full-Stack Desktop & Web Application
 **Prepared by**: Mahek Bhavsar  •  March 2026
 
 ---
 
 ### 1. Project Overview
-ELMS (Education Leave Management System) is a comprehensive, offline-capable platform designed to automate the process of leave application, approval, and management within an educational institution. It features an offline-first architecture for resilience and server-side synchronization for real-time updates.
+ELMS (Employee Leave Management System) is a comprehensive, offline-capable platform designed to automate the process of leave application, approval, and management within an educational institution. It features an offline-first architecture for resilience and server-side synchronization for real-time updates.
 
 ### 2. Technical Stack
 - **Frontend Framework**: Angular ^21.0.3 (Universal/SSR)

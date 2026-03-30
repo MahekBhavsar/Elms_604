@@ -4,6 +4,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { DisplayDatePipe } from '../../../shared/pipes/display-date.pipe';
 import { OfflineSyncService } from '../../../offline-sync.service';
+import { API_BASE } from '../../../api.config';
 
 @Component({
   selector: 'app-staff-view-status',
@@ -13,6 +14,7 @@ import { OfflineSyncService } from '../../../offline-sync.service';
   styleUrl: './staff-view-status.css',
 })
 export class StaffViewStatus implements OnInit {
+  apiBase = API_BASE;
   myLeaves = signal<any[]>([]); // Using Signals for better performance/SSR stability
   userName = signal<string>('');
   myBalances = signal<any[]>([]);

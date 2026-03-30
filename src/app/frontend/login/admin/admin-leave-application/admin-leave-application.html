@@ -95,8 +95,15 @@
                   Sr. No.
                   <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Auto · Editable</span>
                 </label>
-                <input type="text" class="form-control bg-light border-0 py-3 shadow-none" 
-                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="e.g. 1" required>
+                <input type="text" 
+                       [ngClass]="{'form-control bg-light border-0 py-3 shadow-none': !srNoAlreadyExists(), 'form-control border-danger py-3 shadow-none bg-danger bg-opacity-10': srNoAlreadyExists()}"
+                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="e.g. 1" required
+                       (blur)="checkSrNoDuplicate()" (change)="srNoAlreadyExists.set(false)">
+                @if (srNoAlreadyExists()) {
+                  <div class="text-danger small mt-1 fw-semibold">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Sr. No. already exists!
+                  </div>
+                }
               </div>
 
               <div class="col-md-8">
@@ -272,7 +279,7 @@
                                      <tbody>
                                        @for (h of leaveHistory(); track h._id) {
                                          <tr>
-                                           <td class="fw-bold">{{ h.sr_no || h.Sr?.NO?.[''] || h.Sr?.NO || '' }}</td>
+                                           <td class="fw-bold text-primary">{{ getSrNo(h) }}</td>
                                            <td>{{ h.From | date:'dd MMM' }} - {{ h.To | date:'dd MMM' }}</td>
                                            <td class="text-center"><span class="badge bg-dark rounded-pill">{{ h["Total Days"] || h.Total_Days }}</span></td>
                                            <td class="text-end">

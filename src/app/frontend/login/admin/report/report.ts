@@ -4,7 +4,8 @@ import { CommonModule, UpperCasePipe, DatePipe, isPlatformBrowser } from '@angul
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { DisplayDatePipe } from '../../../../shared/pipes/display-date.pipe';
-import { forkJoin } from 'rxjs';
+import { forkJoin, catchError, of } from 'rxjs';
+import { OfflineSyncService } from '../../../../offline-sync.service';
 
 @Component({
   selector: 'app-report',
@@ -66,17 +67,18 @@ export class Report implements OnInit {
 
   constructor(
     private http: HttpClient,
+    private offlineSync: OfflineSyncService,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.loadData();
   }
 
   loadData() {
-    this.http.get<any[]>('/api/staff').subscribe(res => this.allStaff.set(res));
-    this.http.get<any[]>('/api/leaves/admin').subscribe(res => this.allLeaves.set(res));
-    this.http.get<any[]>('/api/leave-types').subscribe(res => this.allLeaveTypes.set(res));
+    this.offlineSync.getCachedObservable('/api/staff', 'admin_all_staff').subscribe(res => this.allStaff.set(res));
+    this.offlineSync.getCachedObservable('/api/leaves/admin', 'admin_all_leaves').subscribe(res => this.allLeaves.set(res));
+    this.offlineSync.getCachedObservable('/api/leave-types', 'admin_leave_types').subscribe(res => this.allLeaveTypes.set(res));
     
     // Fetch active session AND all available session labels
     let cachedSession = null;
@@ -134,27 +136,34 @@ export class Report implements OnInit {
     });
   });
 
-  /** Extract Sr No robustly - prioritizes CSV format 'sr_no' */
+  /** Extract Serial Number robustly across all known database field variants */
   getSrNo(l: any): any {
-    if (l.sr_no !== undefined && l.sr_no !== null) {
-      if (typeof l.sr_no === 'object') {
-        // Handle MongoDB object formats if they still exist
-        if (l.sr_no.$numberLong !== undefined) return l.sr_no.$numberLong;
-        if (l.sr_no.$numberInt !== undefined) return l.sr_no.$numberInt;
-        return l.sr_no[''] ?? Object.values(l.sr_no)[0];
+    if (!l) return '-';
+    
+    // 1. Standard Keys (Case Insensitive)
+    const val = l.sr_no ?? l.srNo ?? l.SrNo ?? l['Sr No'] ?? l['sr no'] ?? 
+                l.Sr_No ?? l['Sr. No'] ?? l['Sr.No'] ?? l.SR_NO ?? l.sr_No;
+    
+    if (val !== undefined && val !== null && val !== '') {
+      if (typeof val === 'object') {
+        if (val.$numberLong !== undefined) return val.$numberLong;
+        if (val.$numberInt !== undefined) return val.$numberInt;
+        // Handle common Excel-to-Mongo import object wrappers
+        return val[''] ?? val.No ?? val.no ?? val.Value ?? Object.values(val)[0];
       }
-      return l.sr_no;
+      return val;
     }
     
-    // Fallbacks for older data
-    const sr = l.Sr || l.sr || l.SR || l.srno;
-    if (sr) {
+    // 2. Direct Fallbacks
+    const sr = l.Sr ?? l.sr ?? l.SR ?? l.srno ?? l.No ?? l.no ?? l.index;
+    if (sr !== undefined && sr !== null && sr !== '') {
       if (typeof sr === 'object') {
-        const val = sr.NO ?? sr.no ?? sr.No ?? sr[''] ?? Object.values(sr)[0];
-        return val;
+        return sr.NO ?? sr.no ?? sr.No ?? sr[''] ?? sr.Value ?? Object.values(sr)[0];
       }
       return sr;
     }
+
+    // 3. Last Resort: Show dash as requested if truly missing
     return '-';
   }
 
@@ -241,7 +250,7 @@ export class Report implements OnInit {
     this.balanceLoading.set(true);
     const session = this.selectedSession() || this.activeSession();
 
-    this.http.get<any[]>(`/api/leaves/balances/bulk?sessionName=${session}`).subscribe({
+    this.offlineSync.getCachedObservable(`/api/leaves/balances/bulk?sessionName=${session}`, `admin_balance_summary_${session}`).subscribe({
       next: (summary) => {
         this.staffBalanceSummary.set(summary);
         this.balanceLoading.set(false);
@@ -271,11 +280,27 @@ export class Report implements OnInit {
   /** Unique leave names across configured types (for balance table header) */
   get leaveNames(): string[] {
     const session = this.selectedSession() || this.activeSession();
-    return [...new Set(
+    const allNames = [...new Set(
       this.allLeaveTypes()
         .filter((lt: any) => !session || lt.sessionName === session)
         .map((lt: any) => lt.leave_name as string)
     )] as string[];
+
+    // If we have loaded balances, ONLY show columns for leaves that are eligible for AT LEAST ONE visible staff
+    const visibleStaff = this.filteredBalanceSummary();
+    if (visibleStaff.length > 0) {
+      const applicableLeaves = new Set<string>();
+      for (const staff of visibleStaff) {
+        for (const bal of staff.balances) {
+           if (bal.isEligible !== false) {
+               applicableLeaves.add(bal.leave);
+           }
+        }
+      }
+      return allNames.filter(name => applicableLeaves.has(name));
+    }
+
+    return allNames;
   }
 
   getBalance(balances: any[], leaveName: string) {
@@ -462,7 +487,7 @@ export class Report implements OnInit {
 
         <div class="section-title">Leave Balance Overview</div>
         <div class="balance-box-container">
-          ${s.balances.map((bal: any) => `
+          ${s.balances.filter((bal: any) => bal.isEligible !== false).map((bal: any) => `
             <div class="balance-box">
               <span class="leave-name">${bal.leave}</span>
               <div class="balance-details">
@@ -485,7 +510,7 @@ export class Report implements OnInit {
         <table>
           <thead>
             <tr>
-              <th width="50">Sr.</th>
+              <th width="50">Sr No</th>
               <th>Leave Period</th>
               <th>Leave Type</th>
               <th style="text-align: center;">Days</th>
@@ -497,6 +522,7 @@ export class Report implements OnInit {
             ${staffLeaves.length > 0 ? staffLeaves.map((l: any, i: number) => `
               <tr>
                 <td>${i + 1}</td>
+
                 <td><strong>${formatDate(l.From)}</strong><br><span style="color: #888; font-size: 11px;">to</span><br><strong>${formatDate(l.To)}</strong></td>
                 <td>${l['Type of Leave'] || l.Type_of_Leave}</td>
                 <td style="text-align: center; font-weight: 600;">${l['Total Days'] || l.Total_Days}</td>
@@ -523,17 +549,7 @@ export class Report implements OnInit {
     </html>
     `;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContents);
-      printWindow.document.close();
-      printWindow.focus();
-      
-      setTimeout(() => {
-        printWindow.print();
-        // printWindow.close(); // Optional: user might want to save it as PDF manually
-      }, 500);
-    }
+    this.executePrint(printContents, `Leave_Report_${s.name}_${session}.pdf`);
   }
 
   /** 8. Print Balance Summary to PDF (Entire staff list) - PREMIUM VERSION */
@@ -585,7 +601,7 @@ export class Report implements OnInit {
         <table>
           <thead>
             <tr>
-              <th class="sr-col">Sr.</th>
+              <th class="sr-col">Sr No</th>
               <th class="staff-col">Employee Name</th>
               <th class="code-col">Code</th>
               <th class="dept-col">Dept</th>
@@ -599,6 +615,7 @@ export class Report implements OnInit {
       printContents += `
         <tr>
           <td class="sr-col">${i + 1}</td>
+
           <td class="staff-col">${s.name}</td>
           <td class="code-col">${s.empCode}</td>
           <td class="dept-col">${s.dept}</td>
@@ -625,16 +642,35 @@ export class Report implements OnInit {
     </html>
     `;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContents);
-      printWindow.document.close();
-      printWindow.focus();
+    this.executePrint(printContents, `Master_Balance_Summary_${session}.pdf`);
+  }
+
+  private executePrint(html: string, filename: string) {
+    if (isPlatformBrowser(this.platformId)) {
+      // Check if we are in Electron
+      const isElectron = (window as any).process && (window as any).process.type === 'renderer';
       
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+      if (isElectron) {
+        try {
+          const { ipcRenderer } = (window as any).require('electron');
+          ipcRenderer.send('print-to-pdf', { html, filename });
+          return; // Native handler takes over
+        } catch (e) {
+          console.warn('Electron IPC failed, falling back to browser print', e);
+        }
+      }
+
+      // Fallback for Web Browser
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          // printWindow.close();
+        }, 500);
+      }
     }
   }
 }

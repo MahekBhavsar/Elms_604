@@ -61,6 +61,43 @@ export class StaffSidebar implements OnInit {
     }
   }
 
+  async viewOfflineQueue() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      const leafTable = this.offlineSync.table('offlineLeaves');
+      if (!leafTable) {
+        alert("⚠️ Offline queue table not found.");
+        return;
+      }
+
+      const leaves = await leafTable.toArray();
+      if (!leaves || leaves.length === 0) {
+        alert("✅ Your Offline Sync Queue is empty.");
+      } else {
+        const count = leaves.length;
+        if (confirm(`🛑 You have ${count} pending applications.\n\nDo you want to DELETE them all?\n(Click 'Cancel' if you'd rather try to SYNC.)`)) {
+          // DELETE PATH
+          if (confirm("Permanently delete local queue?")) {
+            await this.offlineSync.clearQueue();
+            this.checkPendingCount();
+            alert("🗑️ Queue cleared.");
+          }
+        } else {
+          // SYNC PATH
+          if (confirm(`Attempt to SYNC these ${count} records?`)) {
+            alert("🔄 Attempting manual sync...");
+            await this.offlineSync.syncNow();
+            this.checkPendingCount();
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("[ELMS DB ERROR]:", err);
+      const errorMsg = err?.message || JSON.stringify(err) || "Unknown Error";
+      alert("❌ Error reading local database:\n" + errorMsg);
+    }
+  }
+
   // Case-insensitive check for HOD or hod
   isHOD(): boolean {
     return this.userRoles.includes('hod');

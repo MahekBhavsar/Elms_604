@@ -13,6 +13,32 @@ import { OfflineSyncService } from '../../../../offline-sync.service';
   styleUrl: './admin-leave-application.css',
 })
 export class AdminLeaveApplication implements OnInit {
+  // Helper to extract Sr No robustly
+  getSrNo(l: any): any {
+    if (!l) return '-';
+    // 1. Standard Keys
+    const val = l.sr_no ?? l.srNo ?? l.SrNo ?? l['Sr No'] ?? l['sr no'] ?? 
+                l.Sr_No ?? l['Sr. No'] ?? l['Sr.No'] ?? l.SR_NO ?? l.sr_No;
+    if (val !== undefined && val !== null && val !== '') {
+      if (typeof val === 'object') {
+        if (val.$numberLong !== undefined) return val.$numberLong;
+        if (val.$numberInt !== undefined) return val.$numberInt;
+        return val[''] ?? val.No ?? val.no ?? val.Value ?? Object.values(val)[0];
+      }
+      return val;
+    }
+    // 2. Fallbacks
+    const sr = l.Sr ?? l.sr ?? l.SR ?? l.srno ?? l.No ?? l.no;
+    if (sr !== undefined && sr !== null && sr !== '') {
+      if (typeof sr === 'object') {
+        return sr.NO ?? sr.no ?? sr.No ?? sr[''] ?? sr.Value ?? Object.values(sr)[0];
+      }
+      return sr;
+    }
+    // 3. Last Resort: Show dash as requested if truly missing
+    return '-';
+  }
+
   staffData = signal<any>({});
   remainingBalance = signal<number>(0);
   displayValue = signal<number>(0);
@@ -23,6 +49,7 @@ export class AdminLeaveApplication implements OnInit {
   employeeBalances = signal<any[]>([]);
   expandedType = signal<string | null>(null);
   leaveHistory = signal<any[]>([]);
+  srNoAlreadyExists = signal<boolean>(false);
   
   leaveTypes = signal<any[]>([]);
   
@@ -66,8 +93,27 @@ export class AdminLeaveApplication implements OnInit {
   fetchLastSrNo(empCode: any) {
     if (!empCode) return;
     this.http.get<any>(`/api/leaves/next-sr-no/${empCode}`).subscribe({
-      next: (res) => { this.leaveForm.sr_no = String(res.nextSrNo); },
+      next: (res) => {
+        this.leaveForm.sr_no = String(res.nextSrNo);
+        this.srNoAlreadyExists.set(false);
+      },
       error: () => { this.leaveForm.sr_no = '1'; }
+    });
+  }
+
+  checkSrNoDuplicate() {
+    const srNo = (this.leaveForm.sr_no || '').toString().trim();
+    if (!srNo) return;
+    this.http.get<any>(`/api/leaves/check-sr-no/${srNo}`).subscribe({
+      next: (res) => {
+        if (res.exists) {
+          this.srNoAlreadyExists.set(true);
+          alert(`⚠️ Sr. No. "${srNo}" Already Exists! Please use a different serial number.`);
+        } else {
+          this.srNoAlreadyExists.set(false);
+        }
+      },
+      error: () => { this.srNoAlreadyExists.set(false); }
     });
   }
 
@@ -227,6 +273,11 @@ export class AdminLeaveApplication implements OnInit {
       return;
     }
 
+    if (this.srNoAlreadyExists()) {
+      alert(`⚠️ Sr. No. "${this.leaveForm.sr_no}" Already Exists! Please use a different serial number.`);
+      return;
+    }
+
     // VAL working dates check
     if (this.leaveForm.Type_of_Leave === 'VAL' && !this.leaveForm.VAL_working_dates.trim()) {
       alert("⚠️ Please mention the 3 working dates during vacation for VAL leave.");
@@ -285,6 +336,7 @@ export class AdminLeaveApplication implements OnInit {
     this.leaveForm.VAL_working_dates = '';
     this.leaveForm.Reason = '';
     this.selectedFile.set(null);
+    this.srNoAlreadyExists.set(false);
     this.fetchBalance(); 
   }
 }

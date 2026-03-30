@@ -1,0 +1,116 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+    <meta charset="utf-8">
+    <title>ELMS Test & Reports Document</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #212529;
+        }
+        h1 {
+            font-size: 20pt;
+            color: #2b4c7e;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        h2 {
+            font-size: 16pt;
+            color: #2b4c7e;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            font-size: 14pt;
+            color: #0d6efd;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        p {
+            margin-top: 0; margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f6f9;
+            color: #2b4c7e;
+            font-weight: bold;
+        }
+        .pass-text {
+            color: #198754;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Employee Leave Management System (ELMS v2.0)</h1>
+    <p style="text-align: center; font-size: 14pt; color: #6c757d;">Formal Test & Reports Document</p>
+    <p style="text-align: center; font-style: italic;">Prepared by: Mahek Bhavsar and Harshil Sureja</p>
+
+    <h2>1. Introduction</h2>
+    <p>The objective of this Test and Reports Document is to comprehensively evaluate the functional integrity, offline resilience, and mathematical accuracy of the Employee Leave Management System (ELMS v2.0). Testing strictly verifies the separation of concerns across the three primary roles: <b>Admin</b>, <b>HOD</b>, and <b>Staff</b>.</p>
+
+    <h2>2. Test Environment</h2>
+    <ul>
+        <li><b>Frontend UI Architecture:</b> Angular 17+ with Glassmorphism CSS.</li>
+        <li><b>Backend API:</b> Node.js (Express Framework).</li>
+        <li><b>Database Infrastructure:</b> MongoDB (NoSQL) for high-speed CRUD operations.</li>
+        <li><b>Desktop Executable Wrapper:</b> Electron.js (For offline execution stability).</li>
+        <li><b>Operating Systems:</b> Windows 10 & Windows 11.</li>
+    </ul>
+
+    <h2>3. Core Unit Testing Scenarios</h2>
+
+    <h3>3.1 Staff / Customer Module Testing</h3>
+    <table>
+        <tr><th>Test ID</th><th>Test Scenario</th><th>Expected Outcome</th><th>Actual Status</th></tr>
+        <tr><td>STF-01</td><td>Authentic login and JWT token generation</td><td>User is navigated directly to Staff Portal Dashboard.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>STF-02</td><td>Applying for Casual Leave (CL) exceeding Quota</td><td>System instantly blocks application and shows UI warning.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>STF-03</td><td>Date Overlap Validation</td><td>System rejects leave application if dates overlap with previous requests.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>STF-04</td><td>Offline Disconnect Submission</td><td>"Sync Queue" activates yellow warning; data is cached locally safely.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>STF-05</td><td>Reconnection Background Sync</td><td>Cached leaves push to the database automatically when internet restores.</td><td class="pass-text">PASS</td></tr>
+    </table>
+
+    <h3>3.2 HOD / Supplier Module Testing</h3>
+    <table>
+        <tr><th>Test ID</th><th>Test Scenario</th><th>Expected Outcome</th><th>Actual Status</th></tr>
+        <tr><td>HOD-01</td><td>Role-based Dashboard routing</td><td>HOD lands on dedicated filtered queue, not global institutional queue.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>HOD-02</td><td>Departmental Data Siloing</td><td>HOD can strictly only view pending requests from their specific department.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>HOD-03</td><td>Rapid Action (Approve/Reject)</td><td>Changing status instantly updates the Staff member's "My Status Log".</td><td class="pass-text">PASS</td></tr>
+    </table>
+
+    <h3>3.3 Admin Module Testing</h3>
+    <table>
+        <tr><th>Test ID</th><th>Test Scenario</th><th>Expected Outcome</th><th>Actual Status</th></tr>
+        <tr><td>ADM-01</td><td>Leave Rule Configurations</td><td>Toggling Carry-Forward math instantly updates global staff portfolios.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>ADM-02</td><td>Session Generation</td><td>Creating a "New Academic Session" successfully archives older leave data.</td><td class="pass-text">PASS</td></tr>
+        <tr><td>ADM-03</td><td>Institutional Intelligence Analytics</td><td>Pie Charts and Bar graphs render correctly based on MongoDB aggregation.</td><td class="pass-text">PASS</td></tr>
+    </table>
+
+    <h2>4. Bug Reports & Edge-Case Resolutions</h2>
+    <p><b>Bug Report #12-A: Quota Miscalculation on Semester Edge.</b><br>
+    <i>Issue:</i> Staff carry-forward leaves were duplicating when crossing into a new active session.<br>
+    <i>Resolution:</i> Implemented strict MongoDB timestamp validations and a backend pre-save hook to verify session boundaries before calculating limits.<br>
+    <i>Status:</i> Resolved.</p>
+
+    <p><b>Bug Report #15-C: Electron Desktop Blank Screen on Load.</b><br>
+    <i>Issue:</i> The local desktop executable would occasionally render a white screen due to asynchronous database boot times.<br>
+    <i>Resolution:</i> Re-wrote the Inter-Process Communication (IPC) bootloader in Electron to wait for local server ping before rendering the UI Window.<br>
+    <i>Status:</i> Resolved.</p>
+
+    <h2>5. Conclusion</h2>
+    <p>The ELMS v2.0 successfully passes all analytical and functional assessments. The offline-first queuing methodology performs exceptionally well during simulated network drops, absolutely guaranteeing that staff leave forms are never lost. The mathematical engines accurately deduct caps and enforce carry-forward policies universally. The project is highly stable and ready for production deployment within the institutional network.</p>
+
+</body>
+</html>

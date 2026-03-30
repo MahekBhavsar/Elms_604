@@ -20,6 +20,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
   user: any = null;
   activeSession: any = null;
   quotaCards: any[] = [];
+  private pollInterval: any;
   
   stats = {
     totalLeaves: 0,
@@ -57,12 +58,15 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
       if (savedUser) {
         this.user = JSON.parse(savedUser);
         this.fetchDashboardData();
+        // Start polling for real-time admin notifications
+        this.pollInterval = setInterval(() => this.fetchDashboardData(true), 120000); // 2 mins
+        this.requestNotificationPermission();
       }
     }
   }
 
-  fetchDashboardData() {
-    this.dataReady = false;
+  fetchDashboardData(isPoll = false) {
+    if (!isPoll) this.dataReady = false;
     let cachedSession = null;
     if (isPlatformBrowser(this.platformId)) {
       cachedSession = sessionStorage.getItem('activeSessionName');
@@ -170,6 +174,9 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
             this.dataReady = true;
             this.cdr.detectChanges();
             this.tryRenderCharts();
+
+            // Check for new applications/HOD approvals
+            this.checkActionableLeaves(res.leaves);
           });
         } catch (e) {
           console.error("Dashboard calculation error:", e);
@@ -256,5 +263,48 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() { this.viewReady = true; this.tryRenderCharts(); }
-  ngOnDestroy() { if (this.leaveChart) this.leaveChart.destroy(); if (this.staffChart) this.staffChart.destroy(); }
+  ngOnDestroy() { 
+    if (this.leaveChart) this.leaveChart.destroy(); 
+    if (this.staffChart) this.staffChart.destroy(); 
+    if (this.pollInterval) clearInterval(this.pollInterval);
+  }
+
+  // --- ADMIN NOTIFICATION LOGIC ---
+  private requestNotificationPermission() {
+    if (isPlatformBrowser(this.platformId) && 'Notification' in window) {
+      if (Notification.permission === 'default') Notification.requestPermission();
+    }
+  }
+
+  private checkActionableLeaves(leaves: any[]) {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const storageKey = `elms_admin_notified_${this.user.empCode}`;
+    const previousKnownIdsStr = localStorage.getItem(storageKey);
+    const previousKnown: Record<string, string> = previousKnownIdsStr ? JSON.parse(previousKnownIdsStr) : {};
+    
+    let currentKnown: Record<string, string> = {};
+    
+    leaves.forEach(l => {
+      const id = l._id;
+      const status = l.Status;
+      currentKnown[id] = status;
+
+      // Notify if it's a NEW Pending or NEW HOD Approved that we haven't seen in this state yet
+      if (['Pending', 'HOD Approved'].includes(status) && previousKnown[id] !== status) {
+        this.triggerAdminNotification(l);
+      }
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(currentKnown));
+  }
+
+  private triggerAdminNotification(l: any) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const title = l.Status === 'Pending' ? '🆕 New Leave Application' : '✅ HOD Approved Leave';
+    const body = `${l.Name} (${l.Emp_CODE || l.Employee_Code || 'N/A'}) applied for ${this.getLeaveTypeName(l)} | Status: ${l.Status}`;
+    
+    new Notification(title, { body, icon: 'assets/favicon.ico' });
+  }
 }

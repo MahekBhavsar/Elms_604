@@ -7,7 +7,7 @@
   --admin-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   --staff-primary: #008080;
   --staff-gradient: linear-gradient(135deg, #008080 0%, #00a8a8 100%);
-  
+
   /* Neutral Palette */
   --bg-light: #f8f9fa;
   --text-main: #334155;
@@ -15,7 +15,8 @@
   --border-color: #e2e8f0;
 }
 
-html, body {
+html,
+body {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   background-color: var(--bg-light);
@@ -24,18 +25,30 @@ html, body {
 }
 
 /* Typography & Hierarchy */
-h1, h2, h3, h4 { font-weight: 700; color: #1e293b; }
-.text-muted { color: var(--text-muted) !important; }
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  color: #fff
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
 
 /* Dashboard Card System */
 .card {
   border: 0 !important;
-  border-radius: 1rem !important; /* rounded-4 */
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  border-radius: 1rem !important;
+  /* rounded-4 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card:hover { border-radius: 1rem; }
+.card:hover {
+  border-radius: 1rem;
+}
 
 /* Table Aesthetics */
 .table {
@@ -53,8 +66,22 @@ h1, h2, h3, h4 { font-weight: 700; color: #1e293b; }
 }
 
 /* Button & UI Element Standard */
-.btn-primary { background: var(--admin-primary); border: 0; }
-.btn-staff { background: var(--staff-primary); border: 0; color: white; }
+.btn-primary {
+  background: var(--admin-primary);
+  border: 0;
+}
 
-.rounded-pill { border-radius: 50rem !important; }
-.badge { font-weight: 600; padding: 0.5em 0.8em; }
+.btn-staff {
+  background: var(--staff-primary);
+  border: 0;
+  color: white;
+}
+
+.rounded-pill {
+  border-radius: 50rem !important;
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.5em 0.8em;
+}

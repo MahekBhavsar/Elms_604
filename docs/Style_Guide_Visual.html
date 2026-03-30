@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELMS v2.0 - Multi-Slide Visual Style Guide</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        :root {
+            /* Structural Backgrounds */
+            --bg-body: #2d3748; /* Dark backdrop for the viewer */
+            --bg-slide: #f4f6f9;
+            --bg-card: #ffffff;
+            
+            /* Thematics */
+            --admin-navy: #2b4c7e;
+            --accent-cyan: #0dcaf0;
+            --action-blue: #0d6efd;
+            --success-green: #198754;
+            --warning-yellow: #ffc107;
+            --danger-red: #dc3545;
+            
+            /* Quotas */
+            --quota-el: #fb8c00;
+            --quota-val: #e91e63;
+            --quota-cl: #673ab7;
+            
+            --text-dark: #212529;
+            --text-muted: #6c757d;
+        }
+
+        body {
+            margin: 0; padding: 40px; background-color: var(--bg-body);
+            font-family: 'Inter', sans-serif; color: var(--text-dark);
+            display: flex; flex-direction: column; align-items: center; gap: 60px;
+        }
+
+        /* 16:9 PPT Slide Dimension: 1920x1080 scaled down slightly */
+        .slide {
+            width: 1600px;
+            height: 900px;
+            background: var(--bg-slide);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header for each slide */
+        .slide-header {
+            padding: 40px 60px;
+            background: var(--admin-navy);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .slide-header h1 { font-family: 'Outfit', sans-serif; font-size: 48px; margin: 0; font-weight: 800; }
+        .slide-header .brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; opacity: 0.8; }
+
+        /* Content area for each slide */
+        .slide-content {
+            padding: 60px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* === SLIDE 1: COLOR SCHEMA === */
+        .color-group { display: flex; gap: 40px; margin-bottom: 50px; justify-content: center; }
+        .color-card { 
+            background: white; border-radius: 16px; overflow: hidden; 
+            width: 200px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+        }
+        .color-swatch { height: 120px; }
+        .color-info { padding: 20px; text-align: center; }
+        .color-info h3 { margin: 0 0 5px 0; font-size: 18px; color: var(--text-dark); }
+        .color-info p { margin: 0; font-family: monospace; font-size: 14px; color: var(--text-muted); }
+
+        /* === SLIDE 2: TYPOGRAPHY === */
+        .typo-spec {
+            background: white; border-radius: 20px; padding: 40px; margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); border-left: 8px solid var(--admin-navy);
+        }
+        .typo-meta { font-size: 16px; font-weight: 700; color: var(--action-blue); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; }
+        .t-massive { font-size: 72px; font-weight: 400; line-height: 1; margin: 0; }
+        .t-h1 { font-family: 'Outfit', sans-serif; font-size: 56px; font-weight: 800; margin: 0; }
+        .t-h2 { font-size: 32px; font-weight: 700; margin: 0; }
+        .t-body { font-size: 20px; font-weight: 500; color: var(--text-muted); margin: 0; }
+        .t-micro { font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+
+        /* === SLIDE 3: ICONS === */
+        .icon-grid {
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 30px;
+        }
+        .icon-box {
+            background: white; border-radius: 24px; padding: 40px 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); transition: transform 0.3s ease;
+        }
+        .icon-box i { font-size: 64px; color: var(--admin-navy); display: block; margin-bottom: 20px; }
+        .icon-box p { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+
+        /* === SLIDE 4: LAYOUT (NO CONTENT) === */
+        .layout-wireframe {
+            width: 100%; height: 100%; border: 4px dashed #ced4da; border-radius: 20px;
+            display: flex; overflow: hidden; background: #e9ecef;
+        }
+        .wf-sidebar {
+            width: 280px; height: 100%; background: rgba(43, 76, 126, 0.1); 
+            border-right: 4px dashed #adb5bd; display: flex; align-items: center; justify-content: center;
+        }
+        .wf-main { flex-grow: 1; display: flex; flex-direction: column; }
+        .wf-header {
+            height: 90px; background: rgba(255,255,255,0.5); border-bottom: 4px dashed #adb5bd;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .wf-content {
+            padding: 40px; flex-grow: 1; display: grid; gap: 30px;
+            grid-template-columns: 1fr 1fr 1fr 1fr; grid-template-rows: 200px 1fr;
+        }
+        .wf-card {
+            background: white; border-radius: 16px; border: 4px solid #ced4da;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .wf-chart { grid-column: span 2; }
+        .wf-label { font-family: monospace; font-size: 24px; font-weight: bold; color: #6c757d; }
+    </style>
+</head>
+<body>
+
+    <!-- SLIDE 1: COLOR SCHEMA -->
+    <div class="slide">
+        <div class="slide-header">
+            <h1>Color Schema UI/UX</h1>
+            <div class="brand">ELMS v2.0</div>
+        </div>
+        <div class="slide-content">
+            <h2 style="text-align: center; margin-bottom: 40px; font-weight: 800; color: var(--admin-navy); font-size: 28px;">Primary Administrative & Action Palette</h2>
+            <div class="color-group">
+                <div class="color-card"><div class="color-swatch" style="background: var(--admin-navy);"></div><div class="color-info"><h3>Admin Navy</h3><p>#2b4c7e</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--accent-cyan);"></div><div class="color-info"><h3>Cyan Accent</h3><p>#0dcaf0</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--action-blue);"></div><div class="color-info"><h3>Hyper Blue</h3><p>#0d6efd</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--bg-body);"></div><div class="color-info"><h3>Slate Form</h3><p>#2d3748</p></div></div>
+            </div>
+
+            <h2 style="text-align: center; margin-bottom: 40px; font-weight: 800; color: var(--admin-navy); font-size: 28px;">Leave Quota Functional Borders & System Status</h2>
+            <div class="color-group">
+                <div class="color-card"><div class="color-swatch" style="background: var(--quota-el);"></div><div class="color-info"><h3>EL / Pending</h3><p>#fb8c00</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--quota-val);"></div><div class="color-info"><h3>VAL Base</h3><p>#e91e63</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--quota-cl);"></div><div class="color-info"><h3>CL Base</h3><p>#673ab7</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--success-green);"></div><div class="color-info"><h3>SL / Approved</h3><p>#198754</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--warning-yellow);"></div><div class="color-info"><h3>Sync Queue</h3><p>#ffc107</p></div></div>
+                <div class="color-card"><div class="color-swatch" style="background: var(--danger-red);"></div><div class="color-info"><h3>Rejected</h3><p>#dc3545</p></div></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SLIDE 2: TYPOGRAPHY -->
+    <div class="slide">
+        <div class="slide-header">
+            <h1>Typography Structure</h1>
+            <div class="brand">ELMS v2.0</div>
+        </div>
+        <div class="slide-content" style="padding: 60px 120px;">
+            <div class="typo-spec">
+                <div class="typo-meta">Inter • Regular • 72px • Data Metrics</div>
+                <p class="t-massive">24</p>
+            </div>
+            <div class="typo-spec" style="border-left-color: var(--action-blue);">
+                <div class="typo-meta">Outfit • Extra Bold • 56px • Dashboard Headers</div>
+                <p class="t-h1">Command Center</p>
+            </div>
+            <div class="typo-spec">
+                <div class="typo-meta">Inter • Bold • 32px • Card Titles</div>
+                <p class="t-h2">Personal Leave Portfolio</p>
+            </div>
+            <div class="typo-spec" style="border-left-color: var(--success-green);">
+                <div class="typo-meta">Inter • Medium • 20px • Body Labels</div>
+                <p class="t-body">Tracking Applications for: Institutional Staff Members</p>
+            </div>
+            <div class="typo-spec" style="border-left-color: var(--warning-yellow);">
+                <div class="typo-meta">Inter • Bold (Uppercase) • 14px • Micro Math Labels</div>
+                <p class="t-micro">USED: 0 &nbsp;&nbsp;&nbsp;&nbsp; CAP: 20</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SLIDE 3: ICONS -->
+    <div class="slide">
+        <div class="slide-header">
+            <h1>Iconography System</h1>
+            <div class="brand">ELMS v2.0</div>
+        </div>
+        <div class="slide-content">
+            <div class="icon-grid">
+                <div class="icon-box"><i class="bi bi-grid-1x2-fill"></i><p>Dashboard</p></div>
+                <div class="icon-box"><i class="bi bi-people-fill"></i><p>Staff Portal</p></div>
+                <div class="icon-box"><i class="bi bi-calendar-check-fill" style="color:var(--action-blue);"></i><p>Leaves</p></div>
+                <div class="icon-box"><i class="bi bi-envelope-paper"></i><p>Requests</p></div>
+                <div class="icon-box"><i class="bi bi-gear-wide-connected"></i><p>Configs</p></div>
+                <div class="icon-box"><i class="bi bi-cloud-arrow-up-fill" style="color:var(--warning-yellow);"></i><p>Sync Queue</p></div>
+                
+                <div class="icon-box"><i class="bi bi-shield-check" style="color:var(--action-blue);"></i><p>Admin Queue</p></div>
+                <div class="icon-box"><i class="bi bi-check-circle-fill" style="color:var(--success-green);"></i><p>Approved</p></div>
+                <div class="icon-box"><i class="bi bi-x-circle-fill" style="color:var(--danger-red);"></i><p>Rejected</p></div>
+                <div class="icon-box"><i class="bi bi-clock-history"></i><p>History Log</p></div>
+                <div class="icon-box"><i class="bi bi-arrow-up-right-circle"></i><p>Accumulating</p></div>
+                <div class="icon-box"><i class="bi bi-door-open-fill"></i><p>Authentication</p></div>
+                
+                <div class="icon-box"><i class="bi bi-building" style="color:var(--action-blue);"></i><p>Institution</p></div>
+                <div class="icon-box"><i class="bi bi-pc-display"></i><p>Desktop</p></div>
+                <div class="icon-box"><i class="bi bi-file-earmark-bar-graph-fill"></i><p>Analytics</p></div>
+                <div class="icon-box"><i class="bi bi-pie-chart-fill" style="color:var(--quota-el);"></i><p>Distribution</p></div>
+                <div class="icon-box"><i class="bi bi-bar-chart-fill" style="color:var(--action-blue);"></i><p>Metrics</p></div>
+                <div class="icon-box"><i class="bi bi-box-arrow-right" style="color:var(--danger-red);"></i><p>Sign Out</p></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SLIDE 4: LAYOUT -->
+    <div class="slide">
+        <div class="slide-header">
+            <h1>Wireframe & Layout Geometry</h1>
+            <div class="brand">ELMS v2.0</div>
+        </div>
+        <div class="slide-content">
+            <div class="layout-wireframe">
+                <!-- Sidebar -->
+                <div class="wf-sidebar">
+                    <span class="wf-label">SIDEBAR<br><br>260px Width</span>
+                </div>
+                <!-- Main Area -->
+                <div class="wf-main">
+                    <!-- Topnav -->
+                    <div class="wf-header">
+                        <span class="wf-label" style="font-size:18px;">TOP NAVIGATION HEADER (70px Height)</span>
+                    </div>
+                    <!-- Workspace -->
+                    <div class="wf-content">
+                        <!-- Top Row Cards -->
+                        <div class="wf-card"><span class="wf-label">CARD 1</span></div>
+                        <div class="wf-card"><span class="wf-label">CARD 2</span></div>
+                        <div class="wf-card"><span class="wf-label">CARD 3</span></div>
+                        <div class="wf-card"><span class="wf-label">CARD 4</span></div>
+                        
+                        <!-- Bottom Row Charts -->
+                        <div class="wf-card wf-chart"><span class="wf-label">CHART CONTAINER (col-lg-6)<br><br>border-radius: 16px;<br>box-shadow: 0 4px 15px;</span></div>
+                        <div class="wf-card wf-chart"><span class="wf-label">DATA CONTAINER (col-lg-6)<br><br>border-radius: 16px;<br>box-shadow: 0 4px 15px;</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

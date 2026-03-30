@@ -14,6 +14,7 @@ import { signal } from '@angular/core';
 export class AdminSidebar {
   isCollapsed = false;
   offlineCount = signal(0);
+  isOnline = signal(true);
 
   constructor(
     private router: Router,
@@ -21,10 +22,12 @@ export class AdminSidebar {
     @Inject(PLATFORM_ID) private platformId: Object
   ) { 
     if (isPlatformBrowser(this.platformId)) {
+      this.isOnline.set(navigator.onLine);
       setInterval(async () => {
         try {
           const count = await this.offlineSync.offlineLeaves.count();
           this.offlineCount.set(count);
+          this.isOnline.set(navigator.onLine);
         } catch (e) {}
       }, 2000);
     }
@@ -33,19 +36,38 @@ export class AdminSidebar {
   async viewOfflineQueue() {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
-      const leaves = await this.offlineSync.offlineLeaves.toArray();
-      if (leaves.length === 0) {
-        alert("✅ Your Offline Queue is currently empty.\nAll data is perfectly synced with MongoDB!");
-      } else {
-        let message = `🛑 You have ${leaves.length} applications securely waiting in the Local Database!\n\n`;
-        leaves.forEach((l: any, idx: number) => {
-          message += `${idx + 1}. Sr: ${l.payload.sr_no} | Name: ${l.payload.Name} | Leave: ${l.payload.Type_of_Leave} (${l.payload.Total_Days} days)\n`;
-        });
-        message += "\nThese will automatically sync the invisible second you reconnect to Wi-Fi.";
-        alert(message);
+      // Ensure we have a valid reference to the table
+      const leafTable = this.offlineSync.table('offlineLeaves');
+      if (!leafTable) {
+        alert("⚠️ Local database table 'offlineLeaves' not found.");
+        return;
       }
-    } catch (err) {
-      alert("Error reading local database.");
+
+      const leaves = await leafTable.toArray();
+      
+      if (!leaves || leaves.length === 0) {
+        alert("✅ Your Offline Sync Queue is empty.");
+      } else {
+        const count = leaves.length;
+        if (confirm(`🛑 You have ${count} applications pending locally.\n\nDo you want to DELETE these records permanently?\n(Click 'Cancel' if you'd rather try to SYNC them.)`)) {
+          // DELETE PATH
+          if (confirm("FINAL WARNING: Are you sure you want to permanently DELETE these offline records?")) {
+            await this.offlineSync.clearQueue();
+            alert("🗑️ Offline queue cleared successfully.");
+          }
+        } else {
+          // SYNC PATH (User clicked Cancel/No to delete)
+          if (confirm(`Do you want to attempt to SYNC these ${count} records now?`)) {
+            alert("🔄 Attempting manual sync...");
+            await this.offlineSync.syncNow();
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("[ELMS DB ERROR]:", err);
+      // Show more helpful error info
+      const errorMsg = err?.message || JSON.stringify(err) || "Unknown Error";
+      alert("❌ Error reading local database:\n" + errorMsg);
     }
   }
 

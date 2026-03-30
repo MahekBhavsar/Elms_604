@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { OfflineSyncService } from '../../../../offline-sync.service';
+import { API_BASE } from '../../../../api.config';
 
 @Component({
   selector: 'app-admin-leave',
@@ -13,6 +15,7 @@ import { catchError } from 'rxjs/operators';
   templateUrl: './admin-leave.html'
 })
 export class AdminLeave implements OnInit {
+  apiBase = API_BASE;
   private allLeaves = signal<any[]>([]);
 
   searchStaff = signal('');
@@ -22,6 +25,7 @@ export class AdminLeave implements OnInit {
 
   constructor(
     private http: HttpClient,
+    private offlineSync: OfflineSyncService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
@@ -65,27 +69,43 @@ export class AdminLeave implements OnInit {
   fetchLeaves(roleMap: Map<number, string>) {
     this.http.get<any[]>('/api/leaves/admin').subscribe({
       next: (data) => {
-        if (data.length === 0) {
-          this.allLeaves.set([]);
-          return;
-        }
-
-        // Create balance requests for every single leave item
-        const session = this.activeSessionName() || 'Active';
-        const balanceRequests = data.map(leave => 
-          this.http.get<any>(`/api/leaves/balance/${leave.Emp_CODE}/${leave['Type of Leave'] || leave.Type_of_Leave}?sessionName=${session}`)
-          .pipe(catchError(() => of({ balance: 0, isIncrementing: false })))
-        );
-
-        forkJoin(balanceRequests).subscribe(balances => {
-          const enrichedLeaves = data.map((leave, index) => ({
-            ...leave,
-            role: leave.role || leave.Role || roleMap.get(leave.Emp_CODE) || 'Staff',
-            liveBalance: balances[index].balance,
-            isIncrementing: balances[index].isIncrementing
+        // --- OFFLINE MERGE LOGIC ---
+        this.offlineSync.getQueue().then((queue: any[]) => {
+          const offlineDecorated = queue.map((q: any) => ({
+            ...q.payload,
+            _id: 'offline_' + q.id,
+            Status: 'Offline Sync Pending', // Custom status for UI
+            role: 'Staff', 
+            liveBalance: 0,
+            isOfflineRecord: true
           }));
-          
-          this.allLeaves.set(enrichedLeaves.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0)));
+
+          const combinedData = [...offlineDecorated, ...data];
+
+          if (combinedData.length === 0) {
+            this.allLeaves.set([]);
+            return;
+          }
+
+          // Create balance requests for every single leave item (only for those already in DB)
+          const session = this.activeSessionName() || 'Active';
+          const balanceRequests = combinedData.map(leave => {
+            if (leave.isOfflineRecord) return of({ balance: 0, isIncrementing: false });
+            const typeKey = leave['Type of Leave'] || leave.Type_of_Leave;
+            return this.http.get<any>(`/api/leaves/balance/${leave.Emp_CODE}/${typeKey}?sessionName=${session}`)
+            .pipe(catchError(() => of({ balance: 0, isIncrementing: false })));
+          });
+
+          forkJoin(balanceRequests).subscribe(balances => {
+            const enrichedLeaves = combinedData.map((leave, index) => ({
+              ...leave,
+              role: leave.role || leave.Role || roleMap.get(leave.Emp_CODE) || 'Staff',
+              liveBalance: (balances[index] as any).balance,
+              isIncrementing: (balances[index] as any).isIncrementing
+            }));
+            
+            this.allLeaves.set(enrichedLeaves.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0)));
+          });
         });
       }
     });
@@ -109,7 +129,7 @@ export class AdminLeave implements OnInit {
       const roleLower = (l.role || '').toLowerCase();
       const rowDept = l.Dept_Code ?? l.dept_code;
       const isDirect = roleLower === 'hod' || roleLower === 'admin' || [0, "0", null, undefined, ''].includes(rowDept);
-      return l.Status === 'Pending' && !isDirect;
+      return (l.Status === 'Pending' || l.Status === 'Offline Sync Pending') && !isDirect;
     });
   });
 
@@ -119,7 +139,7 @@ export class AdminLeave implements OnInit {
       const roleLower = (l.role || '').toLowerCase();
       const rowDept = l.Dept_Code ?? l.dept_code;
       const isDirect = roleLower === 'hod' || roleLower === 'admin' || [0, "0", null, undefined, ''].includes(rowDept);
-      return l.Status === 'Pending' && isDirect;
+      return (l.Status === 'Pending' || l.Status === 'Offline Sync Pending') && isDirect;
     });
   });
 
@@ -128,6 +148,11 @@ export class AdminLeave implements OnInit {
   });
 
   processLeave(id: string, decision: 'Approved' | 'Rejected') {
+    if (id.startsWith('offline_')) {
+      alert("This application is still syncing from the local database. Please wait until it is uploaded to MongoDB.");
+      return;
+    }
+
     let remark = '';
     if (decision === 'Rejected') {
       const input = prompt("Enter rejection reason:");

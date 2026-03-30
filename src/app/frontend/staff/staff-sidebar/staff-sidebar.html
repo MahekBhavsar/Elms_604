@@ -28,8 +28,8 @@
           </span>
 
           @if (pendingCount() > 0) {
-            <span class="badge bg-warning text-dark rounded-pill ms-2 shadow-sm animate-pulse" 
-                  style="font-size: 0.75rem;">
+            <span class="badge bg-warning text-dark rounded-pill ms-2 shadow-sm animate-pulse cursor-pointer" 
+                  style="font-size: 0.75rem;" (click)="viewOfflineQueue()" title="Click to MANAGE Offline Sync">
               <i class="bi bi-arrow-repeat me-1"></i> {{ pendingCount() }} Syncing...
             </span>
           }

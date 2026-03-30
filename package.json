@@ -12,7 +12,8 @@
     "test": "ng test",
     "serve:ssr:elms": "node dist/elms/server/server.mjs",
     "electron:dev": "concurrently \"npm run start\" \"wait-on http://localhost:4200 && electron .\"",
-    "electron:build": "ng build && electron-builder build --win --x64"
+    "bundle:backend": "ncc build src/backend/server.js -o dist/backend",
+    "electron:build": "npm run bundle:backend && ng build && electron-builder build --win --x64"
   },
   "build": {
     "appId": "com.elms.app",
@@ -20,17 +21,20 @@
     "directories": {
       "output": "release"
     },
+    "asar": true,
+    "asarUnpack": [
+      "dist/**/*"
+    ],
     "files": [
       "electron/**/*",
       "src/backend/**/*",
       "dist/**/*",
       "uploads",
-      "node_modules/**/*",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "src/backend",
+        "from": "dist/backend",
         "to": "backend"
       },
       {
@@ -91,6 +95,7 @@
     "@angular/compiler-cli": "^21.0.0",
     "@types/express": "^5.0.1",
     "@types/node": "^20.17.19",
+    "@vercel/ncc": "^0.38.4",
     "concurrently": "^9.2.1",
     "electron": "^41.0.3",
     "electron-builder": "^26.8.1",

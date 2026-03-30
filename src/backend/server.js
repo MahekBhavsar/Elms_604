@@ -8,14 +8,20 @@ const nodemailer = require('nodemailer'); // Added nodemailer
 
 // --- Environment Helper: Support both CommonJS and ESM/SSR environments ---
 // This prevents "ReferenceError: __dirname is not defined" when integrated with Angular SSR
-const _dirname = typeof __dirname !== 'undefined' 
-    ? __dirname 
-    : path.resolve(process.cwd(), 'src/backend');
+const os = require('os');
 
-// Load .env file if present (for local development)
-try {
-    require('dotenv').config({ path: path.join(_dirname, '../../.env') });
-} catch (e) { /* dotenv optional */ }
+// --- Windows Data Directory Helper ---
+// Ensures we don't try to write to Program Files (which causes Code 1 crash)
+function getDataDir() {
+    const appName = 'ELMS-Desktop';
+    const baseDir = process.env.APPDATA || (process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Preferences') : path.join(os.homedir(), '.local', 'share'));
+    const dataDir = path.join(baseDir, appName);
+    if (!fs.existsSync(dataDir)) { fs.mkdirSync(dataDir, { recursive: true }); }
+    return dataDir;
+}
+
+const _dirname = getDataDir();
+console.log('📂 Safe Data Directory:', _dirname);
 
 const app = express();
 app.use(express.json());
@@ -47,9 +53,46 @@ async function sendEmailNotification(to, subject, htmlContent) {
         });
         console.log(`📧 Email sent successfully to: ${to}`);
     } catch (err) {
-        console.error('❌ Email sending failed:', err.message);
+        console.error('❌ Email sending failed (Offline?):', err.message);
+        // Save to Queue if failure seems network related
+        try {
+            await new PendingEmail({ to, subject, html: htmlContent }).save();
+            console.log('📝 Email added to offline queue.');
+        } catch (dbErr) {
+            console.error('❌ Failed to queue email:', dbErr.message);
+        }
     }
 }
+
+// Background Worker: Retry Pending Emails every 30 seconds
+setInterval(async () => {
+    try {
+        const pending = await PendingEmail.find({});
+        if (pending.length === 0) return;
+
+        console.log(`🔄 Retrying ${pending.length} queued emails...`);
+        for (const mail of pending) {
+            try {
+                await transporter.sendMail({
+                    from: `"ELMS Notification" <${process.env.EMAIL_USER || 'mahek.bhavsar29@gmail.com'}>`,
+                    to: mail.to,
+                    subject: mail.subject,
+                    html: mail.html
+                });
+                await PendingEmail.findByIdAndDelete(mail._id);
+                console.log(`✅ Queued email sent to: ${mail.to}`);
+            } catch (err) {
+                // Still offline or other error
+                await PendingEmail.findByIdAndUpdate(mail._id, { 
+                    $inc: { attempts: 1 }, 
+                    lastAttempt: new Date() 
+                });
+            }
+        }
+    } catch (err) {
+        // DB error or similar
+    }
+}, 30000);
 
 // Helper to generate a styled HTML email template
 function generateEmailTemplate(headerTitle, message, detailsHtml, color = '#1e3c72') {
@@ -104,24 +147,22 @@ async function connectDB() {
     // 1. Try Atlas first (only if URI configured)
     if (ATLAS_URI) {
         try {
-            await mongoose.connect(ATLAS_URI, { serverSelectionTimeoutMS: 5000 });
+            await mongoose.connect(ATLAS_URI, { serverSelectionTimeoutMS: 2000 });
             dbMode = 'atlas';
-            console.log('✅ Connected to MongoDB Atlas (Cloud)');
+            console.log('🌐 CLOUD ACTIVE: Connected to MongoDB Atlas');
             return;
         } catch (err) {
-            console.warn('⚠️  Atlas connection failed:', err.message);
-            console.log('🔄 Falling back to Local MongoDB...');
+            console.log('🔌 OFFLINE MODE: Cloud unavailable. Switching to local...');
         }
     }
 
     // 2. Fallback to Local MongoDB
     try {
-        await mongoose.connect(LOCAL_URI, { serverSelectionTimeoutMS: 5000 });
+        await mongoose.connect(LOCAL_URI, { serverSelectionTimeoutMS: 2000 });
         dbMode = 'local';
-        console.log('✅ Connected to Local MongoDB');
+        console.log('🏠 LOCAL ACTIVE: Connected to Local Database');
     } catch (err) {
-        console.error('❌ Local MongoDB also failed:', err.message);
-        console.error('   Make sure MongoDB is installed and running on this PC.');
+        console.error('❌ DATABASE ERROR: Local MongoDB is not running.');
     }
 }
 
@@ -142,6 +183,7 @@ const Session = mongoose.models.Session || mongoose.model('Session', sessionSche
 
 // 2. Users
 const userSchema = new mongoose.Schema({
+    "sr_no": String, // Added to support real serial numbers
     "Employee Code": Number,
     "Name": String,
     "Email": { type: String, required: true },
@@ -195,7 +237,15 @@ const balanceAdjustmentSchema = new mongoose.Schema({
 }, { collection: 'balance_adjustments', versionKey: false });
 const BalanceAdjustment = mongoose.models.BalanceAdjustment || mongoose.model('BalanceAdjustment', balanceAdjustmentSchema);
 
-// --- ROUTES ---
+// 6. Pending Emails (Offline Queue)
+const pendingEmailSchema = new mongoose.Schema({
+    to: String,
+    subject: String,
+    html: String,
+    attempts: { type: Number, default: 0 },
+    lastAttempt: { type: Date, default: Date.now }
+}, { timestamps: true });
+const PendingEmail = mongoose.models.PendingEmail || mongoose.model('PendingEmail', pendingEmailSchema, 'pending_emails');
 
 // 1. ADMIN SESSION CONTROL
 app.post('/api/admin/set-session', async (req, res) => {
@@ -298,20 +348,60 @@ async function calculateUserBalance(empCode, type, sessionName) {
     if (!emp) return { balance: 0, error: "User not found" };
     
     const userDept = String(emp.dept_code || '');
+    const userStaffType = String(emp.staffType || 'Teaching').toLowerCase().trim();
 
     // 2. Fetch Rules
     const allRulesForType = await LeaveType.find({ leave_name: leaveTypeUpper }).lean();
+    
     const userRules = allRulesForType.filter(r => 
-        String(r.dept_code) === userDept || String(r.dept_code) === '0'
+        (String(r.dept_code) === userDept || String(r.dept_code) === '0' || !r.dept_code)
     );
 
-    let currentRule = userRules.find(r => r.sessionName === currentSessionName);
+    // Filter matching dept and session 
+    const applicableRules = userRules.filter(r => r.sessionName === currentSessionName);
+
+    let currentRule = null;
+    if (applicableRules.length > 0) {
+        // Favor perfect staffType match, fallback to 'All'
+        const perfectMatch = applicableRules.find(r => String(r.staffType || 'All').toLowerCase().trim() === userStaffType);
+        if (perfectMatch) {
+            currentRule = perfectMatch;
+        } else {
+            const genericMatch = applicableRules.find(r => String(r.staffType || 'All').toLowerCase().trim() === 'all');
+            currentRule = genericMatch || null;
+        }
+    }
+
+    let isEligible = true;
+
     if (!currentRule) {
-        currentRule = {
-            leave_name: leaveTypeUpper,
-            total_yearly_limit: (['AL', 'VAL', 'DL'].includes(leaveTypeUpper)) ? 0 : 12,
-            can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'),
-            sessionName: currentSessionName
+        // If other departments or staffTypes have a rule for this session, but this user doesn't,
+        // it means this person is NOT ELIGIBLE for this leave.
+        const ruleExistsForOthers = allRulesForType.some(r => r.sessionName === currentSessionName);
+        if (ruleExistsForOthers) {
+            isEligible = false;
+        } else {
+            // Unconfigured system fallback
+            currentRule = {
+                leave_name: leaveTypeUpper,
+                total_yearly_limit: (['AL', 'VAL', 'DL'].includes(leaveTypeUpper)) ? 0 : 12,
+                can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'),
+                sessionName: currentSessionName
+            };
+        }
+    }
+
+    if (!isEligible) {
+        return {
+            balance: '-',
+            isIncrementing: false,
+            sessionName: currentSessionName,
+            limit: '-',
+            carryForward: 0,
+            currentLimit: 0,
+            usedThisYear: '-',
+            isManuallyAdjusted: false,
+            isEligible: false
         };
     }
 
@@ -452,13 +542,15 @@ app.get('/api/leaves/balances/bulk', async (req, res) => {
                     used: result.usedThisYear,
                     limit: result.limit,
                     isIncrementing: result.isIncrementing,
-                    isManuallyAdjusted: result.isManuallyAdjusted
+                    isManuallyAdjusted: result.isManuallyAdjusted,
+                    isEligible: result.isEligible
                 };
             }));
 
             return {
                 name: user.Name,
                 empCode: empCode,
+                sr_no: user.sr_no || user.Sr || user.sr || user.SR || user.srno, // Support all variants
                 dept: user.dept_code,
                 deptName: user.department,
                 balances: balances
@@ -530,6 +622,25 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             
             // Check for date range overlap
             if (newStart <= existEnd && newEnd >= existStart) {
+                // --- IDEMPOTENCY FIX ---
+                // If it's the exact same leave type, start date, end date, and sr_no, this means the offline sync 
+                // is trying to push a record that already successfully saved previously (but the client missed the 200 OK).
+                // Just silently return success so the client deletes it from the queue without an overlapping error!
+                const existingType = String(leave["Type of Leave"] || leave.Type_of_Leave).toUpperCase();
+                const incomingType = String(Type_of_Leave).toUpperCase();
+                
+                if (existingType === incomingType && 
+                    existStart.getTime() === newStart.getTime() && 
+                    existEnd.getTime() === newEnd.getTime() &&
+                    String(leave.sr_no) === String(sr_no)) {
+                    
+                    return res.json({ 
+                        success: true, 
+                        data: leave, 
+                        message: "Duplicate offline sync ignored securely." 
+                    });
+                }
+
                 return res.status(400).json({
                     success: false,
                     error: `You already have a leave scheduled between ${leave.From} and ${leave.To}. Dates cannot overlap.`
@@ -818,6 +929,11 @@ app.post('/api/admin/sync-all-balances', async (req, res) => {
                     sessionName: sessionName
                 };
 
+                if (result.isEligible === false) {
+                    await BalanceAdjustment.deleteMany(query);
+                    continue; // Skip inserting NaN rules
+                }
+
                 await BalanceAdjustment.findOneAndUpdate(
                     query,
                     { adjustmentValue: Number(result.balance), updatedAt: new Date() },
@@ -836,6 +952,17 @@ app.post('/api/admin/sync-all-balances', async (req, res) => {
     }
 });
 
+
+// Check if a SR No already exists in any leave record
+app.get('/api/leaves/check-sr-no/:srNo', async (req, res) => {
+    try {
+        const srNo = String(req.params.srNo).trim();
+        const existing = await Leave.findOne({ sr_no: srNo }).lean();
+        res.json({ exists: !!existing });
+    } catch (err) {
+        res.json({ exists: false });
+    }
+});
 
 // Get next GLOBAL Sr. No (continuous across all staff — 1, 2, 3, ...)
 app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {

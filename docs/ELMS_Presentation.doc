@@ -1,0 +1,228 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+    <meta charset="utf-8">
+    <title>ELMS UI/UX Presentation</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #212529;
+        }
+        h1 {
+            font-size: 20pt;
+            color: #2b4c7e;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 16pt;
+            color: #2b4c7e;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            font-size: 13pt;
+            color: #0d6efd;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+        p {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        ul {
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        b, strong {
+            color: #000000;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>UI/UX Design Document - ELMS v2.0</h1>
+    <p style="text-align: center; color: #6c757d;">Employee Leave Management System (Multi-Role Web & Desktop Architecture)</p>
+
+    <h2>1.1 Brief</h2>
+
+    <p><b>Project Title:</b> Employee Leave Management System (ELMS v2.0)</p>
+
+    <p><b>Introduction/ Purpose(s):</b><br>
+    To architect a centralized, digital platform that completely automates the institutional leave lifecycle. The system is purpose-built to eliminate paper-based auditing by strictly segmenting complex administrative oversight from streamlined employee self-service, while solving critical network drops via local background synchronization.</p>
+
+    <p><b>Goals/ Objectives:</b></p>
+    <ul>
+        <li>Build a high-density, automated 'Command Center' for Institutional Admins.</li>
+        <li>Provide a filtered, rapid-approval pipeline for Departmental HODs.</li>
+        <li>Design a zero-anxiety, real-time application portal for Teaching Staff.</li>
+        <li>Guarantee offline data resilience via an automatic Sync Queue caching architecture.</li>
+    </ul>
+
+    <p><b>Responsible person for the website:</b><br>
+    Dr. Snehal Joshi | System Administrator | Admin Name</p>
+
+    <p><b>Tasks to reach product's purposes:</b><br>
+    Configure overarching academic sessions, define global leave policies (SL, CL, VAL, EL), enforce limits versus accumulating logic, and monitor institutional health via macro-level pie charts and bar charts.</p>
+
+    <p><b>Responsible person from the product owner's side:</b><br>
+    VNSGU Representative | Project Stakeholder | Supplier Name</p>
+
+    <p><b>Software benefits:</b></p>
+    <ul>
+        <li><b>Staff</b> gain immediate mathematical certainty over their available quotas without HR intervention.</li>
+        <li><b>HODs</b> eliminate inbox clutter by possessing a dedicated, explicitly filtered departmental queue.</li>
+        <li><b>Admins</b> save hundreds of hours by viewing live pie charts and bar graphs instead of manually auditing spreadsheets and physical ledgers.</li>
+    </ul>
+
+    <p><b>Functions by Role:</b></p>
+    <ul>
+        <li><b>Admin Tasks:</b> Manage 'Active Academic Cycles', define global Leave Policies scoped to specific departments, toggle Carry Forward rules, and review top-level 'Institutional Intelligence' data visualizations natively on the dashboard.</li>
+        <li><b>HOD Tasks:</b> Review internal departmental constraints rapidly, approve or deny first-level staff leaves with a single click, and monitor their department's specific absence rates.</li>
+        <li><b>Staff Tasks:</b> Authenticate securely, review real-time leave quotas (AL, CL, DL, EL, LWP, SL, VAL), and submit instantaneous leave applications backed by robust offline save-states.</li>
+    </ul>
+
+    <p><b>Target users/ audience:</b><br>
+    Institutional Network | End Users | Customer Name: VNSGU Faculty</p>
+
+    <p><b>Limitations:</b><br>
+    Rapid semester transitions require strict database timestamps. Campus network drops and low connectivity zones strictly mandate an offline-capable (Electron.js) synced architecture.</p>
+
+    <p><b>Technical requirements:</b><br>
+    Web Application & Windows Desktop executable. Windows 10/11. Browsers: Chrome, Edge. Angular 17+ (Frontend UI framework), Node.js/Express (Backend API), MongoDB (Database).</p>
+
+    <h2>1.2 User Personas – The Three Roles</h2>
+
+    <h3>Persona 1: The Admin System Operator</h3>
+    <p><b>Name:</b> Dr. Snehal Joshi<br>
+    <b>Age:</b> 45 &nbsp;&nbsp;&nbsp; <b>Gender:</b> Female<br>
+    <b>Location:</b> Surat, Gujarat<br>
+    <b>Occupation:</b> Institutional Administrator</p>
+    <ul>
+        <li><b>Expectation:</b> Needs a visually dense, extremely clear breakdown of global data. She expects to control logic configurations (like hard caps vs accumulating leaves) with simple toggle switches directly in the dashboard.</li>
+        <li><b>Need and Problems:</b> Tracking hundreds of different staff conditions manually leads to massive auditing errors. Her need is a "Command Center" that automatically calculates carrying-forward leaves and limit caps.</li>
+    </ul>
+
+    <h3>Persona 2: The Departmental HOD</h3>
+    <p><b>Name:</b> Dr. R. Patel<br>
+    <b>Age:</b> 52 &nbsp;&nbsp;&nbsp; <b>Gender:</b> Male<br>
+    <b>Location:</b> Surat, Gujarat<br>
+    <b>Occupation:</b> Head of Computer Department</p>
+    <ul>
+        <li><b>Expectation:</b> Wants his dashboard filtered explicitly. He doesn't want to see leaves from the Chemistry department, only his own direct reports.</li>
+        <li><b>Need and Problems:</b> Reviewing paper applications interrupts his academic workflow. He needs a dedicated "Queue (HOD)" tile that turns yellow (#ffc107) when his immediate attention is required for a quick approval.</li>
+    </ul>
+
+    <h3>Persona 3: The Teaching Staff / Customer</h3>
+    <p><b>Name:</b> Mahek<br>
+    <b>Age:</b> 28 &nbsp;&nbsp;&nbsp; <b>Gender:</b> Female<br>
+    <b>Location:</b> Surat, Gujarat<br>
+    <b>Occupation:</b> Teaching Faculty</p>
+    <ul>
+        <li><b>Expectation:</b> Expects to apply for a 2-day Casual Leave in under 60 seconds from her laptop without having to walk across campus.</li>
+        <li><b>Need and Problems:</b> Suffers from status anxiety (did the admin receive the paper?). Needs a "My Leave Status" history log featuring distinct "APPROVED" / "PENDING" green labels and a bright explicit "Online/Offline" connection pill.</li>
+    </ul>
+
+    <h2>2 Define - State Users' Needs and Problems</h2>
+
+    <h3>2.1 Admin Tasks in Project Development</h3>
+    <ul>
+        <li><b>Problem:</b> Monitoring the entire institution's leave limits is visually exhausting and mathematically error-prone.</li>
+        <li><b>Need:</b> The "Control Panel". A layout that maps explicit border colors to leave types (EL = Orange, VAL = Pink, CL = Purple) for rapid visual scanning. Needs dynamic data visualizations (Pie/Bar charts) to pinpoint institutional stress immediately.</li>
+    </ul>
+
+    <h3>2.2 Customer (Staff) Tasks in Project Development</h3>
+    <ul>
+        <li><b>Problem:</b> Complete lack of real-time visibility into quota limits or approval status, compounded by failed web requests when the campus internet drops.</li>
+        <li><b>Need:</b> A split-screen 'Apply Leave' portal that anchors her dynamic 'My Leave Balance' reference table statically on the right while she fills the form on the left. Highly visible Offline "Sync Queue" badges so she knows her actions are safely cached.</li>
+    </ul>
+
+    <h3>2.3 Supplier’s (HOD) Tasks in Project Development</h3>
+    <ul>
+        <li><b>Problem:</b> HODs get bogged down approving leaves and filtering out their department's data from the whole college system.</li>
+        <li><b>Need:</b> A strict, compartmentalized workflow block. The design must feature a single-click 'Approve/Reject' table explicitly scoped to their session and department parameters, eliminating all macro-level institutional noise.</li>
+    </ul>
+
+    <h2>3 Ideate - Design Think Process</h2>
+    <ul>
+        <li><b>Empathize:</b> Staff find forms tedious. HODs find approvals disruptive. Admins find spreadsheets overwhelming.</li>
+        <li><b>Define:</b> The three roles require drastically different grid systems. Admins need 'Density' (charts, multiple color-coded cards). HODs need 'Actionability' (single-click tables). Staff need 'Simplicity' (split-screen forms, highly explicit status tags).</li>
+        <li><b>Ideate & Prototype:</b> Admin Side utilizes a stark Navy layout (#2b4c7e) with severe Cyan active markers to project precise authority. Staff/HOD Side utilizes soft Light-Blue and White Glassmorphism styling creating an approachable, stress-free self-service interface.</li>
+        <li><b>Test:</b> Validated that the Yellow Sync Queue badge aggressively catches the eye preventing data loss, while the Green 'Online' pill massively reduces Staff submission anxiety.</li>
+    </ul>
+
+    <h2>4.3 Perfect Visual Style Guide</h2>
+
+    <h3>• Color Scheme</h3>
+    <p><b>Role Profiles:</b></p>
+    <ul>
+        <li><b>Admin Command Base:</b> Muted Navy (#2b4c7e) with Cyan Accents (#0dcaf0).</li>
+        <li><b>Staff/HOD Portal Base:</b> Soft Grays (#f4f6f9) pushing heavy White Glass Cards.</li>
+    </ul>
+    <p><b>Active Status & Configuration Borders:</b></p>
+    <ul>
+        <li><b>Earned/Pending:</b> Warning Orange #fb8c00</li>
+        <li><b>Sync Queue Warning:</b> Golden Yellow #ffc107</li>
+        <li><b>Approved/SL:</b> Emerald Green #198754</li>
+        <li><b>Rejected:</b> Rose Red #dc3545</li>
+    </ul>
+
+    <h3>• Typography</h3>
+    <p>Strictly governed to maximize legibility.</p>
+    <ul>
+        <li><b>Primary Font:</b> Inter, sans-serif (Engineered for perfect grid alignment for data).</li>
+        <li><b>Display Weights:</b> Huge data numbers (32px-40px) rest at Regular 400 weight to prevent ink-bleeding, while Dashboard headers (Command Center) use massive 800 Black weights for hierarchy.</li>
+    </ul>
+
+    <h3>• Icons & Layout (Perfect Layout)</h3>
+    <ul>
+        <li><b>Bootstrap Iconography:</b> bi-grid-1x2-fill (Dashboard), bi-arrow-up-right-circle (Accumulating Logic), bi-cloud-arrow-up-fill (Offline Sync).</li>
+        <li><b>Layout Math:</b> Fixed 260px wide Navigation Sidebar opposed by a floating-card workspace. Cards utilize heavily rounded geometries (border-radius: 12px/16px) and soft CSS drop shadows (0 4px 15px) rather than hard borders, generating an incredibly premium, modern application aesthetic.</li>
+    </ul>
+
+    <h2>Conclusion</h2>
+    <ul>
+        <li>The Employee Leave Management System (ELMS) successfully transitioned an outdated, manual institutional process into a highly efficient, mathematically sound digital workflow.</li>
+        <li>By strictly dividing the user experience into an analytical Admin Command Center, a filtered HOD Queue, and a streamlined Staff self-service portal, the system drastically reduced overall cognitive load.</li>
+        <li>The implementation of an offline-first architecture ensured zero applications were lost during campus network outages, guaranteeing absolute data reliability.</li>
+        <li>The intelligent UI/UX design—utilizing distinct color-coded borders, dynamic accumulation logic, and clear visual "Sync" indicators—established a premium, zero-anxiety environment for both administrators and faculty.</li>
+    </ul>
+
+    <h2>Future Scope</h2>
+    <ul>
+        <li><b>AI-Powered Analytics:</b> Implementing machine learning algorithms to predict and graph institutional absence trends during peak academic periods.</li>
+        <li><b>Mobile Application Porting:</b> Expanding the responsive web framework into native Android and iOS applications utilizing frameworks like Ionic or React Native.</li>
+        <li><b>Automated Payroll Integration:</b> Directly connecting accumulating and deducted leave quotas (e.g., LWP deductions) into the institution's financial or HR payroll software via dedicated APIs.</li>
+        <li><b>Advanced Notification System:</b> Scaling beyond basic dashboard pills to integrate real-time WhatsApp Business API and automated SMS alerts for instant approval notifications.</li>
+    </ul>
+
+    <h2>References</h2>
+    
+    <h3>Recommended Books & Literature</h3>
+    <ul>
+        <li><i>Don't Make Me Think, Revisited: A Common Sense Approach to Web Usability</i> by Steve Krug — Foundational theory for structuring the zero-anxiety Staff self-service portal.</li>
+        <li><i>Pro Angular</i> by Adam Freeman — Referenced for advanced component routing and RxJS state management.</li>
+        <li><i>Designing Data-Intensive Applications</i> by Martin Kleppmann — Referenced for handling offline-sync queuing logic.</li>
+    </ul>
+
+    <h3>Official Documentation & Links</h3>
+    <ul>
+        <li><b>Frontend Architecture:</b> Angular Official Documentation 17+ (https://angular.dev)</li>
+        <li><b>UI Grid Systems:</b> Bootstrap 5.3 Framework Docs (https://getbootstrap.com/docs/5.3/)</li>
+        <li><b>Desktop Wrapping:</b> Electron.js Architecture Guidelines (https://www.electronjs.org/docs/latest/)</li>
+        <li><b>Design Aesthetics:</b> Google Fonts specifically for 'Inter' and 'Outfit' typographic hierarchies (https://fonts.google.com).</li>
+        <li><b>Institutional Logistics:</b> VNSGU Surat Official Faculty By-Laws for calculating explicit leave quotas (https://vnsgu.ac.in).</li>
+    </ul>
+
+    <h2>Acknowledgments</h2>
+    <p>We would like to express our profound gratitude to everyone who supported the development of the Employee Leave Management System (ELMS v2.0).<br><br>
+    This project was conceptualized, mathematically designed, and comprehensively engineered by <b>Mahek Bhavsar</b> and <b>Harshil Sureja</b>.<br><br>
+    We extend our sincere thanks to the institutional staff and administrators who provided invaluable real-world feedback during the UI/UX prototyping phases, thoroughly ensuring the application meets the absolute demands of a modern academic environment.</p>
+
+</body>
+</html>
