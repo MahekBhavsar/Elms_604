@@ -85,8 +85,20 @@
                   Sr. No.
                   <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Auto · Editable</span>
                 </label>
-                <input type="text" class="form-control bg-light border-0 py-3 shadow-none"
-                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="e.g. 1" required>
+                <input type="text" 
+                       class="form-control bg-light border-0 py-3 shadow-none"
+                       [class.border-danger]="srNoError()"
+                       [class.border-2]="srNoError()"
+                       [(ngModel)]="leaveForm.sr_no" 
+                       name="sr_no" 
+                       placeholder="e.g. 1" 
+                       required
+                       (blur)="checkSrNoDuplicate()">
+                @if (srNoError()) {
+                  <div class="text-danger small mt-1 fw-semibold">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ srNoError() }}
+                  </div>
+                }
               </div>
 
               <!-- Leave Type -->

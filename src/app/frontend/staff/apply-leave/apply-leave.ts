@@ -20,6 +20,7 @@ export class ApplyLeave implements OnInit {
   activeSession = signal<string>('');
   selectedFile = signal<File | null>(null);
   leaveTypes = signal<any[]>([]);
+  srNoError = signal<string>('');   // Shows duplicate SR error inline
 
   // Balance Panel (same as Admin)
   employeeBalances = signal<any[]>([]);
@@ -66,8 +67,26 @@ export class ApplyLeave implements OnInit {
     const empCode = this.leaveForm.Emp_CODE;
     if (!empCode) return;
     this.http.get<any>(`/api/leaves/next-sr-no/${empCode}`).subscribe({
-      next: (res) => { this.leaveForm.sr_no = String(res.nextSrNo); },
+      next: (res) => { 
+        this.leaveForm.sr_no = String(res.nextSrNo);
+        this.srNoError.set(''); // Clear error when auto-filled
+      },
       error: () => { this.leaveForm.sr_no = '1'; }
+    });
+  }
+
+  checkSrNoDuplicate() {
+    const srNo = String(this.leaveForm.sr_no).trim();
+    if (!srNo) return;
+    this.http.get<any>(`/api/leaves/check-sr-no/${srNo}`).subscribe({
+      next: (res) => {
+        if (res.exists) {
+          this.srNoError.set(`⚠️ SR No. "${srNo}" is already used. Please enter a different number.`);
+        } else {
+          this.srNoError.set('');
+        }
+      },
+      error: () => this.srNoError.set('')
     });
   }
 
@@ -209,6 +228,7 @@ export class ApplyLeave implements OnInit {
     const days = this.leaveForm.Total_Days();
 
     if (!this.leaveForm.sr_no) { alert('⚠️ Serial Number is required.'); return; }
+    if (this.srNoError()) { alert(this.srNoError()); return; }
     if (this.leaveForm.Type_of_Leave === 'VAL' && !this.leaveForm.VAL_working_dates.trim()) {
       alert('⚠️ Please mention the 3 working dates during vacation for VAL leave.'); return;
     }
