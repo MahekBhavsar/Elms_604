@@ -40,7 +40,7 @@ export class AdminManagedStaff implements OnInit {
   staffForm: any = {
     "Name": '', "Email": '', "Employee Code": null, "Password": 1234,
     "role": 'Staff', "staffType": 'none',
-    "department": '', "dept_code": 1
+    "department": '', "dept_code": 1, "managed_depts": ''
   };
   
   isEditMode = false;
@@ -50,6 +50,21 @@ export class AdminManagedStaff implements OnInit {
 
   ngOnInit() {
     this.getAllStaff();
+  }
+
+  isRoleSelected(roleName: string): boolean {
+    const roles = (this.staffForm.role || '').split(',').map((r: string) => r.trim());
+    return roles.includes(roleName);
+  }
+
+  toggleRole(roleName: string) {
+    let roles = (this.staffForm.role || '').split(',').map((r: string) => r.trim()).filter((r: string) => r);
+    if (roles.includes(roleName)) {
+      roles = roles.filter((r: string) => r !== roleName);
+    } else {
+      roles.push(roleName);
+    }
+    this.staffForm.role = roles.join(', ');
   }
 
   // Map staff types to your specific department code table
@@ -118,7 +133,7 @@ export class AdminManagedStaff implements OnInit {
     this.staffForm = {
       "Name": '', "Email": '', "Employee Code": null, "Password": 1234,
       "role": 'Staff', "staffType": 'none',
-      "department": '', "dept_code": 1
+      "department": '', "dept_code": 1, "managed_depts": ''
     };
   }
 }

@@ -43,8 +43,8 @@ export class StaffSidebar implements OnInit {
           this.userName = user.name;
           
           // Convert roles to a flat array of lowercase strings
-          const rawRoles = Array.isArray(user.role) ? user.role : [user.role];
-          this.userRoles = rawRoles.map((r: string) => r ? r.toLowerCase() : '');
+          const rawRoles = typeof user.role === 'string' ? user.role.split(',') : (Array.isArray(user.role) ? user.role : [user.role]);
+          this.userRoles = rawRoles.map((r: string) => r ? r.trim().toLowerCase() : '');
         } catch (e) {
           console.error("Error parsing user data from sessionStorage", e);
         }

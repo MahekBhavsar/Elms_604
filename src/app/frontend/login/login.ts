@@ -39,7 +39,7 @@ export class Login {
         }
 
         // Use exact role names from your MongoDB image (e.g., "Admin")
-        if (res.role === 'Admin') {
+        if (res.role?.includes('Admin')) {
           this.router.navigate(['/admin-dashboard']);
         } else {
           this.router.navigate(['/staff-dashboard']);

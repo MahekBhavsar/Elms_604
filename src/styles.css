@@ -85,3 +85,291 @@ h4 {
   font-weight: 600;
   padding: 0.5em 0.8em;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES — ELMS v2.0
+   Pure CSS, zero logic changes
+   ============================================ */
+
+/* --- Sidebar: Mobile Overlay --- */
+@media (max-width: 767.98px) {
+
+  /* Navbar always above everything */
+  .navbar.sticky-top {
+    z-index: 1060 !important;
+  }
+
+  /* Sidebar slides over content on mobile, below the navbar */
+  .d-flex.flex-column.min-vh-100 > .d-flex.flex-grow-1.overflow-hidden {
+    position: relative;
+  }
+
+  /* When sidebar is open on mobile, overlay the content but below navbar */
+  .d-flex.flex-grow-1.overflow-hidden > div[style*="width"]:not(.flex-grow-1) {
+    position: fixed !important;
+    top: 65px;          /* below the navbar */
+    left: 0;
+    height: calc(100vh - 65px) !important;
+    z-index: 1050;
+    overflow-y: auto;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+  }
+
+  /* When sidebar is collapsed/hidden, slide it off screen */
+  .d-flex.flex-grow-1.overflow-hidden > div.d-none:not(.flex-grow-1) {
+    transform: translateX(-100%);
+  }
+
+  /* Make all table-responsive containers scrollable */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+  }
+
+  /* Reduce main content padding on mobile */
+  .main-content,
+  .container-fluid.py-4,
+  .container-fluid.py-5 {
+    padding: 1rem !important;
+  }
+
+  /* Compact cards on mobile */
+  .card-body.p-4,
+  .card-body.p-5,
+  .card-body.p-md-5 {
+    padding: 1rem !important;
+  }
+
+  /* Reduce hero section padding */
+  .p-4.p-md-5 {
+    padding: 1rem !important;
+  }
+
+  /* Full width buttons on mobile */
+  .btn.rounded-pill.px-4 {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Navbar compaction */
+  .navbar.px-4.px-md-5 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* Dropdown menu full-width on mobile */
+  .dropdown-menu {
+    min-width: 180px !important;
+    right: 0 !important;
+  }
+
+  /* Stack flex rows on mobile */
+  .d-flex.justify-content-between {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Reduce display font sizes */
+  .display-4, .display-5, .display-6 {
+    font-size: 1.5rem !important;
+  }
+
+  h3.fw-bold {
+    font-size: 1.1rem !important;
+  }
+
+  /* Dashboard stat cards — 2 column grid on mobile */
+  .row.g-4 > .col-md-3,
+  .row.g-4 > .col-md-4 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  /* Form fields full-width on mobile */
+  .row.g-4 > .col-md-6,
+  .row.g-4 > .col-md-8,
+  .row.g-4 > .col-md-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Tab buttons stack on mobile */
+  .nav.nav-pills {
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+  }
+
+  .nav.nav-pills .nav-link {
+    text-align: left !important;
+  }
+
+  /* Balance summary right column — full width on mobile */
+  .col-md-5 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .col-md-7 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Sticky balance panel — no longer sticky on mobile */
+  .sticky-top {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  /* Report filters — stack on mobile */
+  .row.g-3 > .col-md-3,
+  .row.g-3 > .col-md-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Table: hide less important columns on small screens */
+  .table .d-none-xs {
+    display: none !important;
+  }
+
+  /* PDF/Print button — compact */
+  .btn.btn-danger.rounded-pill {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+  }
+}
+
+/* --- Tablet (768px – 991px) --- */
+@media (min-width: 768px) and (max-width: 991.98px) {
+
+  /* Reduce sidebar width on tablet */
+  .d-flex.flex-grow-1.overflow-hidden > div[style*="280px"] {
+    width: 220px !important;
+  }
+
+  /* Compact main content padding */
+  .container-fluid.py-4.p-md-5 {
+    padding: 1.5rem !important;
+  }
+
+  /* 2-col stat cards on tablet */
+  .row.g-4 > .col-md-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  /* Tab navigation horizontal scroll on tablet */
+  .nav.nav-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav.nav-pills::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* --- Navigation: Ensure hamburger visible on mobile --- */
+@media (max-width: 575.98px) {
+
+  /* Brand text fully hidden on very small screens, keep logo */
+  .navbar-brand span.d-none.d-sm-inline {
+    display: none !important;
+  }
+
+  /* Online/Offline badge text hidden — show dot only */
+  .badge.rounded-pill[style*="font-size: 0.75rem"] {
+    font-size: 0 !important;
+    padding: 0.4rem !important;
+    border-radius: 50% !important;
+  }
+
+  /* Profile button - avatar only */
+  .profile-btn-hover span.d-none.d-md-inline {
+    display: none !important;
+  }
+
+  /* Hero card content stack */
+  .d-flex.align-items-center.text-white.p-4 {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Table text smaller on XS */
+  .table {
+    font-size: 0.78rem;
+  }
+
+  .table th, .table td {
+    padding: 0.4rem 0.5rem;
+  }
+
+  /* Login card */
+  .card.shadow.rounded-4 {
+    margin: 0.5rem;
+  }
+
+  /* Form submit button touch friendly */
+  .btn.py-3 {
+    padding-top: 0.875rem !important;
+    padding-bottom: 0.875rem !important;
+    font-size: 1rem;
+  }
+
+  /* Force all col- to be full width */
+  [class*="col-md-"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* --- Touch-friendly improvements for all mobile --- */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase tap target size */
+  .nav-link {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    min-height: 48px;
+  }
+
+  .input-group-text {
+    min-height: 48px;
+  }
+
+  /* Bigger dropdown items */
+  .dropdown-item {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* --- Report Balance Summary Table: horizontal scroll always --- */
+.table[style*="white-space: nowrap"] {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Login Page Mobile --- */
+@media (max-width: 767.98px) {
+  .vh-100.d-flex.align-items-center.justify-content-center {
+    align-items: flex-start !important;
+    padding-top: 2rem;
+  }
+
+  .card.shadow.border-0.rounded-4 {
+    margin: 0 0.5rem;
+  }
+}

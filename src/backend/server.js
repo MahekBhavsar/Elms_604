@@ -191,6 +191,7 @@ const userSchema = new mongoose.Schema({
     "role": String,
     "department": String,
     "dept_code": Number,
+    "managed_depts": String,
     "staffType": { type: String, default: 'Teaching' }
 }, { collection: 'users', versionKey: false });
 const User = mongoose.models.User || mongoose.model('User', userSchema);
@@ -343,12 +344,13 @@ async function calculateUserBalance(empCode, type, sessionName) {
     const leaveTypeUpper = type.toUpperCase().trim();
     const currentSessionName = sessionName;
 
-    // 1. Fetch User
-    const emp = await User.findOne({ "Employee Code": employeeCode });
+    // 1. Fetch User with .lean() to access non-schema fields like "Department Code" safely
+    const emp = await User.findOne({ "Employee Code": employeeCode }).lean();
     if (!emp) return { balance: 0, error: "User not found" };
     
-    const userDept = String(emp.dept_code || '');
-    const userStaffType = String(emp.staffType || 'Teaching').toLowerCase().trim();
+    // Safely parse department fields
+    const userDept = String(emp.dept_code ?? emp["Dept_Code"] ?? emp["Department Code"] ?? '');
+    const userStaffType = String(emp.staffType || emp["Staff Type"] || 'Teaching').toLowerCase().trim();
 
     // 2. Fetch Rules
     const allRulesForType = await LeaveType.find({ leave_name: leaveTypeUpper }).lean();
@@ -993,12 +995,15 @@ app.post('/api/login', async (req, res) => {
         const password = Number(req.body.password);
         if (isNaN(password)) return res.status(401).json({ success: false, error: "Invalid password format" });
         
-        const user = await User.findOne({ "Email": req.body.email, "Password": password });
+        const user = await User.findOne({ "Email": req.body.email, "Password": password }).lean();
         if (user) {
             res.json({
                 success: true, name: user["Name"], empCode: user["Employee Code"],
-                role: user["role"], dept: user["department"], dept_code: user["dept_code"],
-                staffType: user["staffType"] || 'Teaching'
+                role: user["role"] || user["Role"], 
+                dept: user["department"] || user["Department"], 
+                dept_code: user["dept_code"] ?? user["Dept_Code"] ?? user["Department Code"],
+                managed_depts: user["managed_depts"],
+                staffType: user["staffType"] || user["Staff Type"] || 'Teaching'
             });
         } else { res.status(401).json({ success: false }); }
     } catch (err) { res.status(500).json({ success: false }); }
@@ -1086,7 +1091,7 @@ app.put('/api/profile/:empCode', async (req, res) => {
 app.get('/api/admin/employee-results/:empCode', async (req, res) => {
     try {
         const empCode = Number(req.params.empCode);
-        const user = await User.findOne({ "Employee Code": empCode });
+        const user = await User.findOne({ "Employee Code": empCode }).lean();
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const activeSession = await Session.findOne().sort({ updatedAt: -1 });
@@ -1109,12 +1114,13 @@ app.get('/api/admin/employee-results/:empCode', async (req, res) => {
         
         res.json({
             user: {
-                name: user.Name,
-                empCode: user["Employee Code"],
-                role: user.role,
-                dept_code: user.dept_code,
-                department: user.department,
-                staffType: user.staffType
+                name: user.Name || user.name,
+                empCode: user["Employee Code"] || user.empCode,
+                role: user.role || user.Role,
+                dept_code: user.dept_code ?? user["Dept_Code"] ?? user["Department Code"],
+                managed_depts: user.managed_depts || "",
+                department: user.department || user.Department,
+                staffType: user.staffType || user["Staff Type"]
             },
             balances,
             sessionName

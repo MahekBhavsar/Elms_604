@@ -39,13 +39,22 @@ export class HodLeaveApproved implements OnInit, OnDestroy {
     }
   }
 
+  isDeptManaged(deptCode: any): boolean {
+    if (!this.hodData.managed_depts) {
+      // Fallback for older configurations
+      return Number(deptCode) === Number(this.hodData.dept_code);
+    }
+    const depts = String(this.hodData.managed_depts).split(',').map(d => d.trim());
+    return depts.includes(String(deptCode).trim());
+  }
+
   fetchLeaves(isPoll = false) {
     this.http.get<any[]>('/api/leaves/admin').subscribe({
       next: (data) => {
         // --- OFFLINE MERGE LOGIC ---
         this.offlineSync.getQueue().then(queue => {
           const deptOffline = queue.filter(q => 
-            Number(q.payload.Dept_Code) === Number(this.hodData.dept_code) &&
+            this.isDeptManaged(q.payload.Dept_Code) &&
             Number(q.payload.Emp_CODE) !== Number(this.hodData.empCode)
           ).map(q => ({
             ...q.payload,
@@ -58,7 +67,7 @@ export class HodLeaveApproved implements OnInit, OnDestroy {
 
           setTimeout(() => {
             this.myDeptLeaves = combinedData.filter(l => 
-              Number(l.Dept_Code) === Number(this.hodData.dept_code) && 
+              this.isDeptManaged(l.Dept_Code) && 
               Number(l.Emp_CODE) !== Number(this.hodData.empCode)
             );
             

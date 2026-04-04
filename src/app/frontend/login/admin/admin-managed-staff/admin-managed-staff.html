@@ -39,15 +39,24 @@
                 <input type="email" name="Email" [(ngModel)]="staffForm.Email" class="form-control bg-light border-0 py-2" required>
               </div>
               <div class="row g-2 mb-3">
-                <div class="col-6">
+                <div class="col-12">
                   <label class="form-label small fw-bold text-muted text-uppercase">Role</label>
-                  <select name="role" [(ngModel)]="staffForm.role" class="form-select bg-light border-0 py-2">
-                    <option value="Staff">Staff</option>
-                    <option value="HOD">HOD</option>
-                    <option value="Admin">Admin</option>
-                  </select>
+                  <div class="d-flex gap-3 mt-1">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="roleStaff" [checked]="isRoleSelected('Staff')" (change)="toggleRole('Staff')">
+                      <label class="form-check-label" for="roleStaff">Staff</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="roleHOD" [checked]="isRoleSelected('HOD')" (change)="toggleRole('HOD')">
+                      <label class="form-check-label" for="roleHOD">HOD</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="roleAdmin" [checked]="isRoleSelected('Admin')" (change)="toggleRole('Admin')">
+                      <label class="form-check-label" for="roleAdmin">Admin</label>
+                    </div>
+                  </div>
                 </div>
-                <div class="col-6">
+                <div class="col-12">
                   <label class="form-label small fw-bold text-muted text-uppercase">Type</label>
                   <select name="staffType" [(ngModel)]="staffForm.staffType" (change)="onStaffTypeChange()" class="form-select bg-light border-0 py-2">
                     <option value="none">Select Type</option>
@@ -57,6 +66,15 @@
                   </select>
                 </div>
               </div>
+              
+              @if(isRoleSelected('HOD')) {
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted text-uppercase text-warning">Managed Departments (HOD)</label>
+                <input type="text" name="managed_depts" [(ngModel)]="staffForm.managed_depts" class="form-control border border-warning py-2 shadow-sm" placeholder="e.g. 1, 2, 3">
+                <div class="form-text mt-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i>Comma-separated dept codes this HOD manages.</div>
+              </div>
+              }
+              
               <div class="p-3 bg-light rounded-3 mb-4">
                 <div class="row g-2">
                   <div class="col-8">
@@ -110,15 +128,26 @@
                     </div>
                   </td>
                   <td>
-                    <span class="badge rounded-pill fw-medium px-2 py-1 mb-1 shadow-sm"
-                          [ngClass]="{'bg-info text-dark': s.role === 'Staff', 'bg-warning text-dark': s.role === 'HOD', 'bg-danger text-white': s.role === 'Admin'}">
-                      {{ s.role }}
-                    </span>
+                    <div class="d-flex flex-wrap gap-1 mb-1">
+                      @for(r of (s.role || '').split(','); track r) {
+                        @if (r.trim()) {
+                          <span class="badge rounded-pill fw-medium shadow-sm"
+                                [ngClass]="{'bg-info text-dark': r.trim() === 'Staff', 'bg-warning text-dark': r.trim() === 'HOD', 'bg-danger text-white': r.trim() === 'Admin', 'bg-secondary text-white': !['Staff', 'HOD', 'Admin'].includes(r.trim()) }">
+                            {{ r.trim() }}
+                          </span>
+                        }
+                      }
+                    </div>
                     <small class="text-muted d-block">{{ s.staffType }}</small>
                   </td>
                   <td class="text-center">
                     @if (s.department !== 'N/A') {
-                      <div class="fw-bold text-primary small">{{ s.department }} ({{ s.dept_code }})</div>
+                      <div class="fw-bold text-primary small mb-1">{{ s.department }} ({{ s.dept_code }})</div>
+                      @if (s.managed_depts) {
+                        <div class="badge border border-warning text-warning-emphasis bg-warning bg-opacity-10 d-inline-block rounded-pill fw-medium" style="font-size: 0.65rem;" title="Managed Departments">
+                          <i class="bi bi-diagram-3 me-1"></i>HOD of: {{ s.managed_depts }}
+                        </div>
+                      }
                     } @else {
                       <span class="text-muted small fst-italic">N/A</span>
                     }

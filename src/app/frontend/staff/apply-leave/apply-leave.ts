@@ -97,15 +97,20 @@ export class ApplyLeave implements OnInit {
     }).subscribe({
       next: (res) => {
         const currentSessionLabel = res.session.sessionName;
-        const normalize = (v: any) => String(v || '').trim();
+        // FIX: use ?? '' so that numeric 0 is preserved as '0', not converted to ''
+        const normalize = (v: any) => String(v ?? '').trim();
         const userDept = normalize(this.staffData().dept_code !== undefined ? this.staffData().dept_code : this.staffData().Dept_Code);
         const userStaffType = normalize(this.staffData().staffType || 'Teaching').toLowerCase();
 
-        const allApplicableRules = res.rules.filter(r => {
+        const allApplicableRules = res.rules.filter((r: any) => {
           const rSession = normalize(r.sessionName);
           if (rSession !== normalize(currentSessionLabel)) return false;
           const rDept = normalize(r.dept_code);
-          return userDept === rDept || rDept === '0' || rDept === '';
+          // '0' or '' = global (all depts), otherwise must match user's dept
+          if (!(rDept === '0' || rDept === '' || userDept === rDept)) return false;
+
+          const rStaffType = normalize(r.staffType || 'All').toLowerCase();
+          return rStaffType === userStaffType || rStaffType === 'all';
         });
 
         const bestRulesMap = new Map<string, any>();

@@ -128,7 +128,7 @@ export class AdminLeave implements OnInit {
     return this.filteredLeaves().filter(l => {
       const roleLower = (l.role || '').toLowerCase();
       const rowDept = l.Dept_Code ?? l.dept_code;
-      const isDirect = roleLower === 'hod' || roleLower === 'admin' || [0, "0", null, undefined, ''].includes(rowDept);
+      const isDirect = roleLower.includes('hod') || roleLower.includes('admin') || [0, "0", null, undefined, ''].includes(rowDept);
       return (l.Status === 'Pending' || l.Status === 'Offline Sync Pending') && !isDirect;
     });
   });
@@ -138,7 +138,7 @@ export class AdminLeave implements OnInit {
       if (l.Status === 'HOD Approved') return true;
       const roleLower = (l.role || '').toLowerCase();
       const rowDept = l.Dept_Code ?? l.dept_code;
-      const isDirect = roleLower === 'hod' || roleLower === 'admin' || [0, "0", null, undefined, ''].includes(rowDept);
+      const isDirect = roleLower.includes('hod') || roleLower.includes('admin') || [0, "0", null, undefined, ''].includes(rowDept);
       return (l.Status === 'Pending' || l.Status === 'Offline Sync Pending') && isDirect;
     });
   });

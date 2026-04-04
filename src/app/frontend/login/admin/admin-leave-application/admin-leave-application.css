@@ -29,6 +29,9 @@
 .bg-al { background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%); }
 .bg-val { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .bg-el { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.bg-dl { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+.bg-lwp { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+.bg-sat { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
 
 .bg-success-subtle { background-color: #e8f5e9 !important; }
 .bg-danger-subtle { background-color: #ffebee !important; }

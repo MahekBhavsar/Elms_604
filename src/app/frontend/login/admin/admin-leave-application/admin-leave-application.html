@@ -91,17 +91,25 @@
               </div>
 
               <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
-                  Sr. No.
-                  <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Auto · Editable</span>
-                </label>
-                <input type="text" 
-                       [ngClass]="{'form-control bg-light border-0 py-3 shadow-none': !srNoAlreadyExists(), 'form-control border-danger py-3 shadow-none bg-danger bg-opacity-10': srNoAlreadyExists()}"
-                       [(ngModel)]="leaveForm.sr_no" name="sr_no" placeholder="e.g. 1" required
-                       (blur)="checkSrNoDuplicate()" (change)="srNoAlreadyExists.set(false)">
+                <label class="form-label small fw-bold text-muted text-uppercase">Sr. No.</label>
+                <div class="input-group">
+                  <input type="text"
+                         class="form-control border-0 py-3 shadow-none fw-bold rounded-start-3"
+                         [style.background]="srNoAlreadyExists() ? '#fef2f2' : '#eff6ff'"
+                         [(ngModel)]="leaveForm.sr_no"
+                         name="sr_no"
+                         placeholder="e.g. 1"
+                         required
+                         (blur)="checkSrNoDuplicate()"
+                         (change)="srNoAlreadyExists.set(false)">
+                  <span class="input-group-text border-0 text-muted" style="font-size: 0.7rem;"
+                        [style.background]="srNoAlreadyExists() ? '#fef2f2' : '#eff6ff'">
+                    {{ srNoAlreadyExists() ? 'Taken!' : 'Auto' }}
+                  </span>
+                </div>
                 @if (srNoAlreadyExists()) {
                   <div class="text-danger small mt-1 fw-semibold">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Sr. No. already exists!
+                    <i class="bi bi-exclamation-circle-fill me-1"></i>Already used. Enter another number.
                   </div>
                 }
               </div>
@@ -238,7 +246,8 @@
                                  'bi-bookmark-star': b.type === 'EL',
                                  'bi-briefcase': b.type === 'DL',
                                  'bi-calendar-week': b.type === 'SAT',
-                                 'bi-dot': !['CL', 'SL', 'AL', 'VAL', 'EL', 'DL', 'SAT'].includes(b.type)
+                                 'bi-pause-circle': b.type === 'LWP',
+                                 'bi-dot': !['CL', 'SL', 'AL', 'VAL', 'EL', 'DL', 'SAT', 'LWP'].includes(b.type)
                                }"></i>
                              </div>
                              <div>

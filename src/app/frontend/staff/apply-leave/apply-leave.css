@@ -1,0 +1,24 @@
+.border-bottom-custom {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.balance-icon-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.bg-cl { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
+.bg-sl { background: linear-gradient(135deg, #f85032 0%, #e73827 100%); }
+.bg-al { background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%); }
+.bg-val { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.bg-el { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.bg-dl { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+.bg-lwp { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+.bg-sat { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }

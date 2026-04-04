@@ -128,6 +128,8 @@ export class AdminLeaveApplication implements OnInit {
         this.leaveForm.Name = user.name;
         this.leaveForm.Dept_Code = user.dept_code;
         this.leaveForm.Role = user.role;
+        (this as any).searchedStaffType = user.staffType;
+        
         this.employeeBalances.set(res.balances || []);
         
         // Auto-fill Sr. No. for this employee and fetch leave types
@@ -171,16 +173,23 @@ export class AdminLeaveApplication implements OnInit {
     }).subscribe({
       next: (res) => {
         const currentSessionLabel = res.session.sessionName;
-        const normalize = (v: any) => String(v || '').trim();
-        const userDept = normalize(this.staffData().dept_code !== undefined ? this.staffData().dept_code : this.staffData().Dept_Code);
-        const userStaffType = normalize(this.staffData().staffType || 'Teaching').toLowerCase();
+        // FIX: use ?? '' so that numeric 0 is preserved as '0', not converted to ''
+        const normalize = (v: any) => String(v ?? '').trim();
+        
+        // FIX: Admin is applying for a specific employee. Use the employee's Dept_Code, NOT the admin's!
+        const userDept = normalize(this.leaveForm.Dept_Code);
+        const userStaffType = normalize((this as any).searchedStaffType || 'Teaching').toLowerCase();
 
         const allApplicableRules = res.rules.filter(r => {
           const rSession = normalize(r.sessionName);
           if (rSession !== normalize(currentSessionLabel)) return false;
 
           const rDept = normalize(r.dept_code);
-          return userDept === rDept || rDept === '0' || rDept === '';
+          // '0' or '' = global (all depts), otherwise must match employee's dept
+          if (!(rDept === '0' || rDept === '' || userDept === rDept)) return false;
+
+          const rStaffType = normalize(r.staffType || 'All').toLowerCase();
+          return rStaffType === userStaffType || rStaffType === 'all';
         });
 
         const bestRulesMap = new Map<string, any>();
@@ -203,9 +212,12 @@ export class AdminLeaveApplication implements OnInit {
 
         const uniqueNames = [...new Set(Array.from(bestRulesMap.values()).map(r => r.leave_name))];
         this.leaveTypes.set(uniqueNames);
-        if (uniqueNames.length > 0) {
+        // Only auto-select EL if it's the first time and we have rules
+        if (uniqueNames.length > 0 && !this.leaveForm.Type_of_Leave) {
           this.leaveForm.Type_of_Leave = uniqueNames[0];
           this.fetchBalance(); 
+        } else if (this.leaveForm.Type_of_Leave) {
+           this.fetchBalance();
         }
       },
       error: (err) => console.error("Error fetching leave types", err)

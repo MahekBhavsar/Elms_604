@@ -81,22 +81,25 @@
 
               <!-- SR. No (auto-incremented, editable) -->
               <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
-                  Sr. No.
-                  <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Auto · Editable</span>
-                </label>
-                <input type="text" 
-                       class="form-control bg-light border-0 py-3 shadow-none"
-                       [class.border-danger]="srNoError()"
-                       [class.border-2]="srNoError()"
-                       [(ngModel)]="leaveForm.sr_no" 
-                       name="sr_no" 
-                       placeholder="e.g. 1" 
-                       required
-                       (blur)="checkSrNoDuplicate()">
+                <label class="form-label small fw-bold text-muted text-uppercase">Sr. No.</label>
+                <div class="input-group">
+                  <input type="text"
+                         class="form-control border-0 py-3 shadow-none fw-bold rounded-start-3"
+                         [style.background]="srNoError() ? '#fef2f2' : '#eff6ff'"
+                         [(ngModel)]="leaveForm.sr_no"
+                         name="sr_no"
+                         placeholder="e.g. 1"
+                         required
+                         (blur)="checkSrNoDuplicate()">
+                  <span class="input-group-text border-0 text-muted"
+                        style="font-size: 0.7rem;"
+                        [style.background]="srNoError() ? '#fef2f2' : '#eff6ff'">
+                    {{ srNoError() ? 'Taken!' : 'Auto' }}
+                  </span>
+                </div>
                 @if (srNoError()) {
                   <div class="text-danger small mt-1 fw-semibold">
-                    <i class="bi bi-exclamation-circle me-1"></i>{{ srNoError() }}
+                    <i class="bi bi-exclamation-circle-fill me-1"></i>Already used. Enter another number.
                   </div>
                 }
               </div>
@@ -220,7 +223,23 @@
                                   [class.text-primary]="expandedType() === b.type">
                             <i class="bi" [ngClass]="expandedType() === b.type ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                           </button>
-                          <div class="fw-bold text-dark">{{ b.type }}</div>
+                          <div class="balance-icon-circle me-3" [ngClass]="'bg-' + b.type.toLowerCase()">
+                               <i class="bi" [ngClass]="{
+                                 'bi-calendar-event': b.type === 'CL',
+                                 'bi-heart-pulse': b.type === 'SL',
+                                 'bi-sun': b.type === 'AL',
+                                 'bi-umbrella': b.type === 'VAL',
+                                 'bi-bookmark-star': b.type === 'EL',
+                                 'bi-briefcase': b.type === 'DL',
+                                 'bi-calendar-week': b.type === 'SAT',
+                                 'bi-pause-circle': b.type === 'LWP',
+                                 'bi-dot': !['CL', 'SL', 'AL', 'VAL', 'EL', 'DL', 'SAT', 'LWP'].includes(b.type)
+                               }"></i>
+                          </div>
+                          <div>
+                            <div class="fw-bold text-dark">{{ b.type }}</div>
+                            <small class="text-muted" style="font-size: 0.70rem;">{{ b.isIncrementing ? 'Accumulating' : 'Quota-based' }}</small>
+                          </div>
                         </div>
                       </td>
                       <td class="text-center py-3">
