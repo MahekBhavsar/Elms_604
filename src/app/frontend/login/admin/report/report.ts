@@ -521,7 +521,7 @@ export class Report implements OnInit {
           <tbody>
             ${staffLeaves.length > 0 ? staffLeaves.map((l: any, i: number) => `
               <tr>
-                <td>${i + 1}</td>
+                <td>${this.getSrNo(l)}</td>
 
                 <td><strong>${formatDate(l.From)}</strong><br><span style="color: #888; font-size: 11px;">to</span><br><strong>${formatDate(l.To)}</strong></td>
                 <td>${l['Type of Leave'] || l.Type_of_Leave}</td>

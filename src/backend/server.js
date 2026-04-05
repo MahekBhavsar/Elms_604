@@ -210,7 +210,7 @@ const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', leave
 // 4. Leave Applications
 // 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
-    sr_no: String,
+    sr_no: mongoose.Schema.Types.Mixed,
     Emp_CODE: Number,
     Name: String,
     Dept_Code: Number,
@@ -684,7 +684,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
         }
 
         const newLeave = new Leave({
-            sr_no: sr_no,
+            sr_no: (!isNaN(Number(sr_no)) && String(sr_no).trim() !== '') ? Number(sr_no) : sr_no,
             Emp_CODE: empCodeNum,
             Name: Name,
             Dept_Code: isNaN(deptCodeNum) ? null : deptCodeNum,
@@ -1147,6 +1147,47 @@ app.get('/api/admin/leave-history/:empCode/:type', async (req, res) => {
 
         res.json(history);
     } catch (err) { res.status(500).json({ error: "Fetch failed" }); }
+});
+app.get('/api/admin/clean-srnos', async (req, res) => {
+    try {
+        const leaves = await Leave.find({});
+        let updatedCount = 0;
+        
+        for (let l of leaves) {
+            let documentNeedsUpdate = false;
+            let newSrNo = null;
+
+            if (l.sr_no && typeof l.sr_no === 'string') {
+                const num = Number(l.sr_no.trim());
+                if (!isNaN(num) && l.sr_no.trim() !== '') {
+                    newSrNo = num;
+                    documentNeedsUpdate = true;
+                }
+            }
+
+            if (!documentNeedsUpdate && l['Sr No']) {
+                const num2 = Number(String(l['Sr No']).trim());
+                if (!isNaN(num2) && String(l['Sr No']).trim() !== '') {
+                   newSrNo = num2;
+                   documentNeedsUpdate = true;
+                }
+            }
+
+            if (documentNeedsUpdate && newSrNo !== null) {
+                await Leave.updateOne(
+                    { _id: l._id }, 
+                    { 
+                        $set: { sr_no: newSrNo },
+                        $unset: { 'Sr No': "", 'srNo': "", 'SrNo': "", 'SR_NO': "" } 
+                    }
+                );
+                updatedCount++;
+            }
+        }
+        res.json({ success: true, updatedCount, message: `Successfully converted ${updatedCount} sr_no values to clean numbers.` });
+    } catch (err) {
+        res.status(500).json({ error: "Migration failed", details: err.message });
+    }
 });
 
 const PORT = process.env.PORT || 5000;
