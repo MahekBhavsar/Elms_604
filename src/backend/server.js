@@ -183,7 +183,7 @@ const Session = mongoose.models.Session || mongoose.model('Session', sessionSche
 
 // 2. Users
 const userSchema = new mongoose.Schema({
-    "sr_no": String, // Added to support real serial numbers
+    "sr_no": Number, // Enforced as Number
     "Employee Code": Number,
     "Name": String,
     "Email": { type: String, required: true },
@@ -210,7 +210,7 @@ const LeaveType = mongoose.models.LeaveType || mongoose.model('LeaveType', leave
 // 4. Leave Applications
 // 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
-    sr_no: mongoose.Schema.Types.Mixed,
+    sr_no: Number, // Enforced as Number for consistency
     Emp_CODE: Number,
     Name: String,
     Dept_Code: Number,
@@ -552,7 +552,7 @@ app.get('/api/leaves/balances/bulk', async (req, res) => {
             return {
                 name: user.Name,
                 empCode: empCode,
-                sr_no: user.sr_no || user.Sr || user.sr || user.SR || user.srno, // Support all variants
+                sr_no: user.sr_no, // Strictly use the standardized field
                 dept: user.dept_code,
                 deptName: user.department,
                 balances: balances
@@ -684,7 +684,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
         }
 
         const newLeave = new Leave({
-            sr_no: (!isNaN(Number(sr_no)) && String(sr_no).trim() !== '') ? Number(sr_no) : sr_no,
+            sr_no: Number(sr_no) || 0, // Force strict Number
             Emp_CODE: empCodeNum,
             Name: Name,
             Dept_Code: isNaN(deptCodeNum) ? null : deptCodeNum,
@@ -958,7 +958,7 @@ app.post('/api/admin/sync-all-balances', async (req, res) => {
 // Check if a SR No already exists in any leave record
 app.get('/api/leaves/check-sr-no/:srNo', async (req, res) => {
     try {
-        const srNo = String(req.params.srNo).trim();
+        const srNo = Number(req.params.srNo);
         const existing = await Leave.findOne({ sr_no: srNo }).lean();
         res.json({ exists: !!existing });
     } catch (err) {
@@ -969,21 +969,14 @@ app.get('/api/leaves/check-sr-no/:srNo', async (req, res) => {
 // Get next GLOBAL Sr. No (continuous across all staff — 1, 2, 3, ...)
 app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
     try {
-        // Search ALL leaves (global sequence, not per-employee)
-        const leaves = await Leave.find({}).lean();
+        // High-performance search for latest numeric Sr No across ALL leaves
+        const latest = await Leave.findOne({ sr_no: { $exists: true, $ne: null } })
+                                 .sort({ sr_no: -1 })
+                                 .select('sr_no')
+                                 .lean();
         
-        let maxSr = 0;
-        for (const l of leaves) {
-            // Parse the sr_no — handles "5", "2025/003", "001" etc.
-            const raw = String(l.sr_no || l['Sr No'] || '0');
-            const match = raw.match(/(\d+)$/);
-            if (match) {
-                const num = parseInt(match[1], 10);
-                if (num > maxSr) maxSr = num;
-            }
-        }
-        
-        res.json({ nextSrNo: maxSr + 1 });
+        const nextSrNo = latest && latest.sr_no ? Number(latest.sr_no) + 1 : 1;
+        res.json({ nextSrNo });
     } catch (err) {
         res.json({ nextSrNo: 1 });
     }
@@ -1153,38 +1146,42 @@ app.get('/api/admin/clean-srnos', async (req, res) => {
         const leaves = await Leave.find({});
         let updatedCount = 0;
         
-        for (let l of leaves) {
-            let documentNeedsUpdate = false;
+        for (let doc of leaves) {
             let newSrNo = null;
+            // Robust extraction variants
+            const variants = [
+                doc.sr_no, doc.srNo, doc.SrNo, doc['Sr No'], doc['sr no'],
+                doc.Sr_No, doc['Sr. No'], doc['Sr.No'], doc['Sr.NO.'], doc.SR_NO,
+                doc.Sr, doc.sr, doc.SR
+            ];
 
-            if (l.sr_no && typeof l.sr_no === 'string') {
-                const num = Number(l.sr_no.trim());
-                if (!isNaN(num) && l.sr_no.trim() !== '') {
-                    newSrNo = num;
-                    documentNeedsUpdate = true;
+            for (let v of variants) {
+                if (v !== undefined && v !== null && v !== '') {
+                    if (typeof v === 'object') {
+                        const val = v[''] ?? v.NO ?? v.no ?? v.No ?? v.Value ?? v.$numberInt ?? Object.values(v)[0];
+                        if (!isNaN(Number(val))) { newSrNo = Number(val); break; }
+                    } else {
+                        const num = Number(String(v).trim());
+                        if (!isNaN(num)) { newSrNo = num; break; }
+                    }
                 }
             }
 
-            if (!documentNeedsUpdate && l['Sr No']) {
-                const num2 = Number(String(l['Sr No']).trim());
-                if (!isNaN(num2) && String(l['Sr No']).trim() !== '') {
-                   newSrNo = num2;
-                   documentNeedsUpdate = true;
-                }
-            }
-
-            if (documentNeedsUpdate && newSrNo !== null) {
+            if (newSrNo !== null) {
                 await Leave.updateOne(
-                    { _id: l._id }, 
+                    { _id: doc._id }, 
                     { 
                         $set: { sr_no: newSrNo },
-                        $unset: { 'Sr No': "", 'srNo': "", 'SrNo': "", 'SR_NO': "" } 
+                        $unset: { 
+                            'Sr No': "", 'srNo': "", 'SrNo': "", 'SR_NO': "", 'Sr': "", 'sr': "", 
+                            'Sr. No': "", 'Sr.No': "", 'Sr.NO.': "" 
+                        } 
                     }
                 );
                 updatedCount++;
             }
         }
-        res.json({ success: true, updatedCount, message: `Successfully converted ${updatedCount} sr_no values to clean numbers.` });
+        res.json({ success: true, updatedCount, message: `Successfully synchronized ${updatedCount} records to numeric sr_no.` });
     } catch (err) {
         res.status(500).json({ error: "Migration failed", details: err.message });
     }

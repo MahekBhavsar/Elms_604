@@ -15,28 +15,7 @@ import { OfflineSyncService } from '../../../../offline-sync.service';
 export class AdminLeaveApplication implements OnInit {
   // Helper to extract Sr No robustly
   getSrNo(l: any): any {
-    if (!l) return '-';
-    // 1. Standard Keys
-    const val = l.sr_no ?? l.srNo ?? l.SrNo ?? l['Sr No'] ?? l['sr no'] ?? 
-                l.Sr_No ?? l['Sr. No'] ?? l['Sr.No'] ?? l.SR_NO ?? l.sr_No;
-    if (val !== undefined && val !== null && val !== '') {
-      if (typeof val === 'object') {
-        if (val.$numberLong !== undefined) return val.$numberLong;
-        if (val.$numberInt !== undefined) return val.$numberInt;
-        return val[''] ?? val.No ?? val.no ?? val.Value ?? Object.values(val)[0];
-      }
-      return val;
-    }
-    // 2. Fallbacks
-    const sr = l.Sr ?? l.sr ?? l.SR ?? l.srno ?? l.No ?? l.no;
-    if (sr !== undefined && sr !== null && sr !== '') {
-      if (typeof sr === 'object') {
-        return sr.NO ?? sr.no ?? sr.No ?? sr[''] ?? sr.Value ?? Object.values(sr)[0];
-      }
-      return sr;
-    }
-    // 3. Last Resort: Show dash as requested if truly missing
-    return '-';
+    return l?.sr_no ?? '-';
   }
 
   staffData = signal<any>({});
@@ -307,7 +286,7 @@ export class AdminLeaveApplication implements OnInit {
     }
 
     const payload: any = {
-      sr_no: this.leaveForm.sr_no,
+      sr_no: Number(this.leaveForm.sr_no), // Strict Number
       Emp_CODE: String(this.leaveForm.Emp_CODE),
       Name: this.leaveForm.Name,
       Dept_Code: String(this.leaveForm.Dept_Code),

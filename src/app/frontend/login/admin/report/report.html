@@ -212,7 +212,7 @@
               @for (l of group.applications; track l._id; let idx = $index) {
               <tr onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'"
                 style="transition: background-color 0.2s;">
-                <td class="ps-4 py-3 fw-bold text-primary" style="width: 100px;">{{ idx + 1 }}</td>
+                <td class="ps-4 py-3 fw-bold text-primary" style="width: 100px;">{{ l.sr_no || '—' }}</td>
 
                 <td class="py-3 fw-bold text-dark">{{ l.Name }}</td>
                 <td class="text-secondary small">{{ l.Dept_Code || l.dept_code || '-' }}</td>

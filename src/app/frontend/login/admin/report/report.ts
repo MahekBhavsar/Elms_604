@@ -138,33 +138,7 @@ export class Report implements OnInit {
 
   /** Extract Serial Number robustly across all known database field variants */
   getSrNo(l: any): any {
-    if (!l) return '-';
-    
-    // 1. Standard Keys (Case Insensitive)
-    const val = l.sr_no ?? l.srNo ?? l.SrNo ?? l['Sr No'] ?? l['sr no'] ?? 
-                l.Sr_No ?? l['Sr. No'] ?? l['Sr.No'] ?? l.SR_NO ?? l.sr_No;
-    
-    if (val !== undefined && val !== null && val !== '') {
-      if (typeof val === 'object') {
-        if (val.$numberLong !== undefined) return val.$numberLong;
-        if (val.$numberInt !== undefined) return val.$numberInt;
-        // Handle common Excel-to-Mongo import object wrappers
-        return val[''] ?? val.No ?? val.no ?? val.Value ?? Object.values(val)[0];
-      }
-      return val;
-    }
-    
-    // 2. Direct Fallbacks
-    const sr = l.Sr ?? l.sr ?? l.SR ?? l.srno ?? l.No ?? l.no ?? l.index;
-    if (sr !== undefined && sr !== null && sr !== '') {
-      if (typeof sr === 'object') {
-        return sr.NO ?? sr.no ?? sr.No ?? sr[''] ?? sr.Value ?? Object.values(sr)[0];
-      }
-      return sr;
-    }
-
-    // 3. Last Resort: Show dash as requested if truly missing
-    return '-';
+    return l?.sr_no ?? '-';
   }
 
   toggleSort() {

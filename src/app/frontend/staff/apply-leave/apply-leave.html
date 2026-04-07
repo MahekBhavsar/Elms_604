@@ -274,7 +274,7 @@
                                   <tbody>
                                     @for (h of leaveHistory(); track h._id) {
                                       <tr>
-                                        <td class="fw-bold">{{ h.sr_no || h.Sr?.NO?.[''] || h.Sr?.NO || '' }}</td>
+                                        <td class="fw-bold">{{ h.sr_no || '-' }}</td>
                                         <td>{{ h.From | date:'dd MMM' }} – {{ h.To | date:'dd MMM' }}</td>
                                         <td class="text-center"><span class="badge bg-dark rounded-pill">{{ h["Total Days"] || h.Total_Days }}</span></td>
                                         <td class="text-end">
