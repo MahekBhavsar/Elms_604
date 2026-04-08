@@ -650,19 +650,8 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             }
         }
 
-        // --- 2. SATURDAY LEAVE VALIDATION ---
-        if (Type_of_Leave?.toUpperCase() === 'SAT') {
-            let current = new Date(newStart);
-            while (current <= newEnd) {
-                if (current.getDay() !== 6) { // 6 = Saturday
-                    return res.status(400).json({
-                        success: false,
-                        error: "SAT leaves can only be applied on Saturdays. Please select valid Saturday dates."
-                    });
-                }
-                current.setDate(current.getDate() + 1);
-            }
-        }
+        // --- 2. SATURDAY LEAVE VALIDATION (Removed as per user request to allow SAT leave on any day) ---
+
         
         // --- 3. SL DOCUMENT VALIDATION ---
         if (Type_of_Leave?.toUpperCase() === 'SL' && Number(Total_Days) > 3 && !req.file) {

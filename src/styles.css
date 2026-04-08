@@ -30,7 +30,7 @@ h2,
 h3,
 h4 {
   font-weight: 700;
-  color: #fff
+  color: var(--text-main);
 }
 
 .text-muted {
