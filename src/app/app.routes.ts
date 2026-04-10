@@ -11,6 +11,8 @@ import { StaffViewStatus } from './frontend/staff/staff-view-status/staff-view-s
 import { Report } from './frontend/login/admin/report/report';
 import { AdminLeaveApplication } from './frontend/login/admin/admin-leave-application/admin-leave-application';
 import { ProfileUpdate } from './profile-update/profile-update';
+import { AdminPolicy } from './frontend/login/admin/admin-policy/admin-policy';
+import { StaffPolicy } from './frontend/staff/staff-policy/staff-policy';
 
 export const routes: Routes = [
   // 1. Default Route
@@ -26,12 +28,14 @@ export const routes: Routes = [
   { path: 'admin-leave-type', component: AdminLeaveType },
   { path: 'admin-report', component: Report },
   { path: 'admin-leave-application', component: AdminLeaveApplication },
+  { path: 'admin-policy', component: AdminPolicy },
 
   // 4. Staff/HOD Dashboard
   { path: 'staff-dashboard', component: StaffDashbored },
   { path: 'apply-leave', component: ApplyLeave },
   { path: 'hod-leave-approved', component: HodLeaveApproved },
   { path: 'staff-view-status', component: StaffViewStatus },
+  { path: 'staff-policy', component: StaffPolicy },
 
   // 5. Shared Profile Update
   { path: 'profile-update', component: ProfileUpdate },

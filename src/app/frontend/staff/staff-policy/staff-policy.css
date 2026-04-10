@@ -1,0 +1,58 @@
+.policy-card-staff {
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+  background: #ffffff;
+}
+
+.policy-card-staff:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;
+}
+
+.category-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.category-pill.general { background: #f8f9fa; color: #6c757d; }
+.category-pill.leave { background: #e7f1ff; color: #0d6efd; }
+.category-pill.salary { background: #e6fffa; color: #027d69; }
+.category-pill.conduct { background: #fff5f5; color: #e03131; }
+
+.badge.general { background: #e9ecef; color: #495057; }
+.badge.leave { background: #cfe2ff; color: #084298; }
+.badge.salary { background: #d1e7dd; color: #0f5132; }
+.badge.conduct { background: #f8d7da; color: #842029; }
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.6s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.extra-small {
+  font-size: 0.65rem;
+}
+
+.modal-content {
+  border: none;
+}
+
+.policy-content {
+  color: #333;
+}

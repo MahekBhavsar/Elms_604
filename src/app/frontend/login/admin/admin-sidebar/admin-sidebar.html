@@ -144,12 +144,33 @@
           </li>
 
           <li class="nav-item">
+            <a routerLink="/admin-policy"
+              routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-info opacity-100"
+              class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
+              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
+              <i class="bi bi-journal-text fs-5"></i>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Policies</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
             <a routerLink="/admin-leave-type"
               routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-info opacity-100"
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-gear-fill fs-5"></i>
               <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Settings</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a (click)="reconcileCloud()" style="cursor: pointer;"
+              class="nav-link text-white d-flex align-items-center justify-content-between py-3 rounded-end-3 border-0 opacity-100 side-link-hover"
+              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-cloud-download-fill fs-5 text-info"></i>
+                <span [class.d-none]="isCollapsed" class="ms-3 fw-bold text-info">Pull from Cloud</span>
+              </div>
             </a>
           </li>
 

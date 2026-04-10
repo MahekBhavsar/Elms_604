@@ -1,0 +1,92 @@
+.stat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
+}
+
+.icon-box {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-primary-soft { background: rgba(13, 110, 253, 0.1); }
+.bg-success-soft { background: rgba(25, 135, 84, 0.1); }
+.bg-warning-soft { background: rgba(255, 193, 7, 0.1); }
+
+.policy-card {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.policy-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+}
+
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 60, 114, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.policy-card:hover .card-overlay {
+  opacity: 1;
+}
+
+.category-badge {
+  z-index: 2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.category-badge.general { background: #e9ecef; color: #495057; }
+.category-badge.leave { background: #cfe2ff; color: #084298; }
+.category-badge.salary { background: #d1e7dd; color: #0f5132; }
+.category-badge.conduct { background: #f8d7da; color: #842029; }
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease;
+}
+.hover-lift:hover {
+  transform: scale(1.02);
+}
+
+.rich-content {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.modal-backdrop {
+  z-index: 1050;
+}
+.modal {
+  z-index: 1055;
+  background: rgba(0,0,0,0.4);
+}
+
+.animate-pulse {
+  animation: pulse-sm 2s infinite;
+}
+
+@keyframes pulse-sm {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}

@@ -17,10 +17,15 @@
       <div class="d-flex align-items-center gap-3">
         <div class="text-md-end me-3 d-none d-lg-block">
           <div class="small text-muted text-uppercase fw-bold ls-1 mb-1">Active Academic Cycle</div>
-          <div class="fw-bold text-dark">{{ activeSession?.startDate | date:'MMMM yyyy' }} - {{ activeSession?.endDate | date:'MMMM yyyy' }}</div>
+          @if (activeSession?.sessionName !== 'Not Set') {
+            <div class="fw-bold text-dark animate-fade-in">{{ activeSession?.startDate | date:'MMMM yyyy' }} - {{ activeSession?.endDate | date:'MMMM yyyy' }}</div>
+          } @else {
+            <div class="fw-bold text-warning animate-pulse small">Please configure session in Settings</div>
+          }
         </div>
-        <div class="badge-session shadow-sm">
-          <i class="bi bi-calendar-check me-2"></i>{{ activeSession?.sessionName }}
+        <div class="badge-session shadow-sm" [class.bg-warning]="activeSession?.sessionName === 'Not Set'" [class.bg-opacity-10]="activeSession?.sessionName === 'Not Set'">
+          <i class="bi" [ngClass]="activeSession?.sessionName === 'Not Set' ? 'bi-exclamation-triangle-fill' : 'bi-calendar-check'"></i>
+          <span class="ms-2">{{ activeSession?.sessionName }}</span>
         </div>
       </div>
     </div>

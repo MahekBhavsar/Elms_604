@@ -1,0 +1,72 @@
+<app-staff-sidebar>
+  <div class="policy-wrapper p-4 p-md-5">
+    <!-- Header -->
+    <div class="mb-5 animate-slide-down">
+      <h2 class="display-6 fw-bold text-dark">Institutional <span class="text-primary">Policies</span></h2>
+      <p class="lead text-muted">Stay informed about the latest guidelines and regulations.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="d-flex flex-column align-items-center py-5">
+      <div class="spinner-grow text-primary mb-3" role="status"></div>
+      <span class="text-muted fw-bold small text-uppercase">Fetching Documents...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && policies.length === 0" class="text-center py-5 border rounded-4 bg-white shadow-sm">
+      <i class="bi bi-journal-check display-1 text-light mb-3"></i>
+      <h4 class="fw-bold">No Active Policies</h4>
+      <p class="text-muted">There are no institutional policies published at the moment.</p>
+    </div>
+
+    <!-- Policy Cards Grid -->
+    <div class="row g-4" *ngIf="!loading && policies.length > 0">
+      <div class="col-lg-4 col-md-6" *ngFor="let p of policies">
+        <div class="card h-100 border-0 shadow-sm rounded-4 policy-card-staff" (click)="viewDetail(p)">
+          <div class="card-body p-4">
+            <div class="category-pill mb-3" [ngClass]="p.category.toLowerCase()">
+              {{ p.category }}
+            </div>
+            <h5 class="card-title fw-bold text-dark mb-3">{{ p.title }}</h5>
+            <p class="card-text text-muted small line-clamp-3 mb-4">{{ p.description || 'View policy document for full details.' }}</p>
+            
+            <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top border-light">
+              <span class="text-primary small fw-bold">Read Document <i class="bi bi-arrow-right ms-1"></i></span>
+              <span class="text-muted extra-small">Published: {{ p.publishedAt | date:'MMM d, y' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-backdrop fade show" *ngIf="showModal"></div>
+  <div class="modal fade show d-block" *ngIf="showModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header border-0 bg-light p-4">
+          <div class="modal-header-content w-100">
+            <span class="badge rounded-pill mb-2 px-3 py-2" [ngClass]="selectedPolicy?.category.toLowerCase()">
+              {{ selectedPolicy?.category }}
+            </span>
+            <h4 class="modal-title fw-bold text-dark mb-0">{{ selectedPolicy?.title }}</h4>
+          </div>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+        <div class="modal-body p-4 p-md-5 bg-white">
+          <div class="policy-meta mb-4 pb-3 border-bottom d-flex gap-4 small text-muted">
+            <span><i class="bi bi-info-circle me-1"></i> Version 1.0</span>
+            <span><i class="bi bi-clock me-1"></i> Updated {{ selectedPolicy?.updatedAt | date:'mediumDate' }}</span>
+          </div>
+          <div class="policy-content fs-6 text-dark" style="white-space: pre-wrap; line-height: 1.8;">
+            {{ selectedPolicy?.content }}
+          </div>
+        </div>
+        <div class="modal-footer border-0 p-4">
+          <button type="button" class="btn btn-secondary px-4 py-2 rounded-3 fw-bold" (click)="closeModal()">Close Document</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-staff-sidebar>
