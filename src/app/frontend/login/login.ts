@@ -45,7 +45,7 @@ export class Login {
           this.router.navigate(['/staff-dashboard']);
         }
       },
-      error: () => this.errorMsg = "Login Failed. Check your email/password."
+      error: (err) => this.errorMsg = err.error?.error || "Connection Failed. Is the backend running?"
     });
   }
 }

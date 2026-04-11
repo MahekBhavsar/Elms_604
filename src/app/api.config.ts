@@ -4,8 +4,9 @@ import { InjectionToken } from '@angular/core';
 function getApiBase(): string {
   // If we're in Electron or file:// protocol, use the full backend URL
   if (typeof window !== 'undefined') {
-    const isElectron = window.location.protocol === 'file:' || 
-                       (window as any).process?.type === 'renderer';
+    const protocol = window.location.protocol;
+    const isElectron = protocol === 'file:' || protocol === 'app:' || (window as any).process?.type === 'renderer';
+    
     if (isElectron) {
       return 'http://localhost:5000';
     }

@@ -7,8 +7,8 @@ import { API_BASE } from './api.config';
  * In browser dev mode, this does nothing (the proxy handles it).
  */
 export const apiBaseInterceptor: HttpInterceptorFn = (req, next) => {
-  // Only modify relative URLs (starting with /api)
-  if (API_BASE && req.url.startsWith('/api')) {
+  // Automatically prefix relative API and Upload paths in production/desktop mode
+  if (API_BASE && (req.url.startsWith('/api') || req.url.startsWith('/uploads'))) {
     const modifiedReq = req.clone({ url: `${API_BASE}${req.url}` });
     return next(modifiedReq);
   }

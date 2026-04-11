@@ -1,6 +1,7 @@
 import { Component, Input, Inject, PLATFORM_ID } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { OfflineSyncService } from '../../../../offline-sync.service';
 import { signal } from '@angular/core';
 
@@ -18,6 +19,7 @@ export class AdminSidebar {
 
   constructor(
     private router: Router,
+    private http: HttpClient,
     private offlineSync: OfflineSyncService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { 
@@ -81,5 +83,38 @@ export class AdminSidebar {
       sessionStorage.removeItem('user'); // Always good to clear just in case
     }
     this.router.navigate(['/login']);
+  }
+
+  async reconcileCloud() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!confirm("🔄 Do you want to check for missing data in the Cloud and sync it to your local machine (Data Reconciliation)?")) return;
+    
+    try {
+      this.isOnline.set(navigator.onLine);
+      if (!this.isOnline()) {
+          alert("⚠️ You must be ONLINE to reconcile with the Cloud.");
+          return;
+      }
+
+      alert("🔍 Checking Cloud parity... This might take a few seconds.");
+      
+      this.http.post<any>('/api/admin/reconcile', {}).subscribe({
+        next: (data) => {
+          if (data.success) {
+            alert("✅ Reconciliation complete! If any missing records were found, they have been downloaded. Refreshing dashboard...");
+            window.location.reload();
+          } else {
+            alert("❌ Reconciliation failed: " + (data.error || "Unknown error"));
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          alert("❌ Error connecting to server. Please ensure the backend is running.");
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      alert("❌ Critical error during reconciliation.");
+    }
   }
 }
