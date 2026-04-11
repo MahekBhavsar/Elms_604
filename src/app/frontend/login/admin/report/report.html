@@ -127,7 +127,19 @@
           <thead class="border-bottom" style="background-color: #f8f9fa;">
             <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
               <th class="ps-4 py-4 border-0" style="width: 80px;">Sr No</th>
-              <th class="py-4 border-0">Employee Member</th>
+              <th class="py-4 border-0">
+                <div class="d-flex align-items-center gap-2">
+                  Employee Member
+                  <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
+                    <button class="btn btn-sm p-0 border-0" [class.text-primary]="staffCodeSortDirection() === 'asc'" (click)="staffCodeSortDirection.set('asc'); $event.stopPropagation()" title="Code Ascending">
+                      <i class="bi bi-sort-numeric-down"></i>
+                    </button>
+                    <button class="btn btn-sm p-0 border-0 border-start ms-1 ps-1" [class.text-primary]="staffCodeSortDirection() === 'desc'" (click)="staffCodeSortDirection.set('desc'); $event.stopPropagation()" title="Code Descending">
+                      <i class="bi bi-sort-numeric-up-alt"></i>
+                    </button>
+                  </div>
+                </div>
+              </th>
               <th class="py-4 border-0">Department Info</th>
               <th class="py-4 border-0">Role</th>
               <th class="text-end pe-4 py-4 border-0">Email</th>
@@ -330,7 +342,19 @@
             <thead class="table-light">
               <tr class="text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px; font-size: 0.75rem;">
                 <th class="text-center py-2">Sr No</th>
-                <th class="py-2">Staff</th>
+                <th class="py-2">
+                  <div class="d-flex align-items-center gap-2">
+                    Staff
+                    <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
+                      <button class="btn btn-sm p-0 border-0" [class.text-primary]="balanceSortDirection() === 'asc'" (click)="balanceSortDirection.set('asc'); $event.stopPropagation()" title="Code Ascending">
+                        <i class="bi bi-sort-numeric-down"></i>
+                      </button>
+                      <button class="btn btn-sm p-0 border-0 border-start ms-1 ps-1" [class.text-primary]="balanceSortDirection() === 'desc'" (click)="balanceSortDirection.set('desc'); $event.stopPropagation()" title="Code Descending">
+                        <i class="bi bi-sort-numeric-up-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                </th>
                 <th class="text-center py-2">Dept</th>
                 @for (name of leaveNames; track name) {
                   @if (!selectedCategory() || selectedCategory() === name) {

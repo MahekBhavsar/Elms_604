@@ -153,7 +153,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- Smart Dual Database Connection ---
-const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || 'mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB?retryWrites=true&w=majority&appName=Cluster0';
+const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || 'mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB?retryWrites=true&w=majority';
 const LOCAL_URI  = process.env.MONGO_LOCAL_URI  || 'mongodb://127.0.0.1:27017/employeeDB';
 
 // Initialize connections
@@ -178,7 +178,7 @@ if (atlasDB) {
  */
 function getSmartModel(local, atlas) {
     if (localDB.readyState === 1) return local;
-    if (atlas && atlasDB && atlasDB.readyState === 1) return atlas;
+    if (atlas && atlasDB && atlasDB.readyState !== 0) return atlas;
     return local; 
 }
 
@@ -187,17 +187,21 @@ function getSmartModel(local, atlas) {
  * Fallbacks to Atlas if Local is missing OR empty (new installations).
  */
 async function fetchSmart(localModel, atlasModel, query = {}, sort = {}, autoSeed = false) {
+    // 1. Try Local First
     try {
-        // 1. Try Local First
         if (localDB.readyState === 1) {
             const localResults = await localModel.find(query).sort(sort).lean();
             if (localResults && (Array.isArray(localResults) ? localResults.length > 0 : true)) {
                 return localResults;
             }
         }
+    } catch (localErr) {
+        console.warn(`⚠️  [SmartFetch] Local read failed for ${localModel.modelName}:`, localErr.message);
+    }
         
-        // 2. Fallback to Atlas if local is empty/disconnected
-        if (atlasDB && atlasDB.readyState === 1) {
+    // 2. Fallback to Atlas if local is empty/disconnected/failed
+    try {
+        if (atlasDB && atlasDB.readyState !== 0) {
             console.log(`📡 [SmartFetch] Falling back to Atlas for ${localModel.modelName}...`);
             const cloudResults = await atlasModel.find(query).sort(sort).lean();
             
@@ -206,8 +210,6 @@ async function fetchSmart(localModel, atlasModel, query = {}, sort = {}, autoSee
                 console.log(`🌱 [Seed] Bootstrapping local ${localModel.modelName} from Cloud...`);
                 // Batch insert to local
                 try {
-                    // For single objects (like findOne result wrapped in array), use save
-                    // For arrays, use insertMany but be careful with existing IDs
                     for (const doc of cloudResults) {
                         try {
                             const seedDoc = { ...doc, atlasSynced: true };
@@ -219,12 +221,11 @@ async function fetchSmart(localModel, atlasModel, query = {}, sort = {}, autoSee
 
             return cloudResults;
         }
-
-        return [];
-    } catch (err) {
-        console.error(`❌ SmartFetch Error for ${localModel.modelName}:`, err.message);
-        return [];
+    } catch (cloudErr) {
+        console.error(`❌ [SmartFetch] Atlas Error for ${localModel.modelName}:`, cloudErr.message);
     }
+
+    return [];
 }
 
 
@@ -798,7 +799,7 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
     }
 });
 
-// NEW: Bulk Balance Calculation for high-performance reporting
+// NEW: Ultra-fast in-memory Bulk Balance Calculation
 app.get('/api/leaves/balances/bulk', async (req, res) => {
     try {
         const { sessionName: querySession } = req.query;
@@ -806,39 +807,111 @@ app.get('/api/leaves/balances/bulk', async (req, res) => {
         const activeSession = sessions[0];
         const sessionName = querySession || activeSession?.sessionName || "Not Set";
 
-        const users = await fetchSmart(User, AtlasUser);
-        const allLeaveTypes = await fetchSmart(LeaveType, AtlasLeaveType, { sessionName });
-        const leaveTypes = [...new Set(allLeaveTypes.map(t => t.leave_name))];
-        
-        // Use Promise.all to compute all in parallel on the server
-        const summary = await Promise.all(users.map(async (user) => {
-            const empCode = user["Employee Code"];
-            if (!empCode) return null;
+        // 1. Fetch EVERYTHING for ALL years at once (Only 4 queries total instead of 1,500+)
+        const [users, allLeaveTypes, allLeaves, allAdjustments] = await Promise.all([
+            fetchSmart(User, AtlasUser),
+            fetchSmart(LeaveType, AtlasLeaveType),
+            fetchSmart(Leave, AtlasLeave, { Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] } }),
+            fetchSmart(BalanceAdjustment, AtlasBalanceAdjustment)
+        ]);
 
-            const balances = await Promise.all(leaveTypes.map(async (type) => {
-                const result = await calculateUserBalance(empCode, type, sessionName);
-                return {
-                    leave: type,
-                    balance: result.balance,
-                    used: result.usedThisYear,
-                    limit: result.limit,
-                    isIncrementing: result.isIncrementing,
-                    isManuallyAdjusted: result.isManuallyAdjusted,
-                    isEligible: result.isEligible
-                };
-            }));
+        const sessionLeaveTypes = allLeaveTypes.filter(t => t.sessionName === sessionName);
+        const leaveTypeNames = [...new Set(sessionLeaveTypes.map(t => t.leave_name))];
 
-            return {
-                name: user.Name,
-                empCode: empCode,
-                sr_no: user.sr_no, // Strictly use the standardized field
-                dept: user.dept_code,
-                deptName: user.department,
-                balances: balances
-            };
-        }));
+        const summary = users.map(user => {
+            const empCode = Number(user["Employee Code"]);
+            if (!empCode || isNaN(empCode)) return null;
 
-        res.json(summary.filter(s => s !== null));
+            const userDept = String(user.dept_code ?? user["Dept_Code"] ?? user["Department Code"] ?? '');
+            const userStaffType = String(user.staffType || user["Staff Type"] || 'Teaching').toLowerCase().trim();
+
+            const balances = leaveTypeNames.map(type => {
+                const leaveTypeUpper = type.toUpperCase().trim();
+                
+                const allRulesForType = allLeaveTypes.filter(r => String(r.leave_name||"").toUpperCase().trim() === leaveTypeUpper);
+                const userRules = allRulesForType.filter(r => 
+                    (String(r.dept_code) === userDept || String(r.dept_code) === '0' || !r.dept_code)
+                );
+                
+                const applicableRules = userRules.filter(r => r.sessionName === sessionName);
+                
+                let currentRule = null;
+                if (applicableRules.length > 0) {
+                    currentRule = applicableRules.find(r => String(r.staffType || 'All').toLowerCase().trim() === userStaffType) 
+                               || applicableRules.find(r => String(r.staffType || 'All').toLowerCase().trim() === 'all') || null;
+                }
+
+                let isEligible = true;
+                if (!currentRule) {
+                    if (allRulesForType.some(r => r.sessionName === sessionName)) isEligible = false;
+                    else currentRule = {
+                        leave_name: leaveTypeUpper,
+                        total_yearly_limit: (['AL', 'VAL', 'DL'].includes(leaveTypeUpper)) ? 0 : 12,
+                        can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'),
+                        sessionName
+                    };
+                }
+
+                if (!isEligible) {
+                    return { leave: type, balance: '-', used: '-', limit: '-', isIncrementing: false, isManuallyAdjusted: false, isEligible: false };
+                }
+
+                const isIncrementing = Number(currentRule.total_yearly_limit) === 0;
+
+                const usedThisYear = allLeaves
+                    .filter(l => l.Emp_CODE === empCode && l.sessionName === sessionName && String(l["Type of Leave"] || l.Type_of_Leave).toUpperCase().trim() === leaveTypeUpper)
+                    .reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+
+                const manualAdjObj = allAdjustments.find(a => a.empCode === empCode && a.sessionName === sessionName && String(a.leaveType).toUpperCase().trim() === leaveTypeUpper);
+                const manualAdj = manualAdjObj ? Number(manualAdjObj.adjustmentValue) : null;
+
+                if (isIncrementing) {
+                    return {
+                        leave: type, balance: manualAdj !== null ? manualAdj : usedThisYear, used: usedThisYear, limit: '-',
+                        isIncrementing: true, isManuallyAdjusted: manualAdj !== null, isEligible: true
+                    };
+                } else {
+                    let totalLimit = Number(currentRule.total_yearly_limit);
+                    
+                    if (currentRule.can_carry_forward) {
+                        const currentYearStart = parseInt(sessionName.split('-')[0]);
+                        const pastRules = Array.from(new Map(userRules.filter(r => parseInt((r.sessionName||"").split('-')[0]) < currentYearStart).map(r => [r.sessionName, r])).values());
+            
+                        for (let pastRule of pastRules) {
+                            const pastAdjObj = allAdjustments.find(a => a.empCode === empCode && a.sessionName === pastRule.sessionName && String(a.leaveType).toUpperCase().trim() === leaveTypeUpper);
+                            
+                            let carryAmount = 0;
+                            if (pastAdjObj) {
+                                carryAmount = Number(pastAdjObj.adjustmentValue);
+                            } else {
+                                const pastUsed = allLeaves
+                                    .filter(l => l.Emp_CODE === empCode && l.sessionName === pastRule.sessionName && String(l["Type of Leave"] || l.Type_of_Leave).toUpperCase().trim() === leaveTypeUpper)
+                                    .reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
+                                carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
+                            }
+                            totalLimit += carryAmount;
+                        }
+                    }
+
+                    let finalBalance = Math.max(0, totalLimit - usedThisYear);
+                    let finalLimit = totalLimit;
+
+                    if (manualAdj !== null) {
+                        finalBalance = manualAdj;
+                        finalLimit = finalBalance + usedThisYear;
+                    }
+
+                    return {
+                        leave: type, balance: finalBalance, used: usedThisYear, limit: finalLimit,
+                        isIncrementing: false, isManuallyAdjusted: manualAdj !== null, isEligible: true
+                    };
+                }
+            });
+
+            return { name: user.Name, empCode: empCode, sr_no: user.sr_no, dept: user.dept_code, deptName: user.department, balances: balances };
+        }).filter(s => s !== null);
+
+        res.json(summary);
     } catch (err) {
         console.error("Bulk Balance Error:", err);
         res.status(500).json({ error: "Bulk calculation failed" });
@@ -1285,8 +1358,25 @@ app.post('/api/login', async (req, res) => {
             ]
         };
 
-        const users = await fetchSmart(User, AtlasUser, query, {}, true);
-        const user = users[0];
+        // STRICTLY FORCE ATLAS FOR LOGIN IF AVAILABLE (Bypasses local old passwords)
+        let user = null;
+        if (atlasDB && atlasDB.readyState !== 0) {
+            try {
+                const cloudUsers = await AtlasUser.find(query).lean();
+                if (cloudUsers && cloudUsers.length > 0) {
+                    user = cloudUsers[0];
+                    if (localDB.readyState === 1) {
+                        try { await User.replaceOne({ _id: user._id }, { ...user, atlasSynced: true }, { upsert: true }); } catch(e){}
+                    }
+                }
+            } catch (e) { console.error("Atlas Login Check Failed:", e.message); }
+        }
+
+        // FALLBACK TO LOCAL IF ATLAS FAILS
+        if (!user) {
+            const users = await fetchSmart(User, AtlasUser, query, {}, true);
+            user = users[0];
+        }
 
         if (user) {
             console.log(`✅ [Login] Success for: ${user.Name} (Role: ${user.role || user.Role})`);
@@ -1300,13 +1390,18 @@ app.post('/api/login', async (req, res) => {
             });
         } else { 
             console.warn(`❌ [Login] Failed. No user found for ${email} with that password.`);
-            // Diagnostic check: check if user exists at all without the password filter
-            const emailQuery = { "Email": { $regex: new RegExp(`^${email}$`, 'i') } };
-            const existingUsers = await fetchSmart(User, AtlasUser, emailQuery);
+            let incorrectPwd = false;
+            if (atlasDB && atlasDB.readyState !== 0) {
+                const exist = await AtlasUser.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
+                incorrectPwd = exist.length > 0;
+            } else {
+                const exist = await User.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
+                incorrectPwd = exist.length > 0;
+            }
             
             res.status(401).json({ 
                 success: false, 
-                error: existingUsers.length > 0 ? "Incorrect password" : "User not found" 
+                error: incorrectPwd ? "Incorrect password" : "User not found" 
             }); 
         }
     } catch (err) { 

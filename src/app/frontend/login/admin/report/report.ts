@@ -42,6 +42,8 @@ export class Report implements OnInit {
   newBalanceValue = signal<number>(0);
   syncLoading = signal<boolean>(false);
   sortDirection = signal<'asc' | 'desc'>('desc');
+  staffCodeSortDirection = signal<'asc' | 'desc'>('asc');
+  balanceSortDirection = signal<'asc' | 'desc'>('asc');
 
   // Leave Editing state
   editingLeave = signal<any | null>(null);
@@ -55,13 +57,20 @@ export class Report implements OnInit {
     const summary = this.staffBalanceSummary();
     const term = this.searchTerm().toLowerCase();
     const dept = this.deptSearch();
+    const sortDir = this.balanceSortDirection();
 
-    return summary.filter(s => {
+    const filtered = summary.filter(s => {
       const matchDept = !dept || (s.dept || '').toString() === dept;
       const matchName = !term || 
         (s.name || '').toLowerCase().includes(term) || 
         (s.empCode || '').toString().toLowerCase().includes(term);
       return matchDept && matchName;
+    });
+
+    return filtered.sort((a, b) => {
+      const codeA = Number(a.empCode) || 0;
+      const codeB = Number(b.empCode) || 0;
+      return sortDir === 'asc' ? codeA - codeB : codeB - codeA;
     });
   });
 
@@ -123,7 +132,9 @@ export class Report implements OnInit {
   filteredStaff = computed(() => {
     const term = this.searchTerm().toLowerCase();
     const dept = this.deptSearch();
-    return this.allStaff().filter(s => {
+    const sortDir = this.staffCodeSortDirection();
+    
+    const filtered = this.allStaff().filter(s => {
       const rowDept = (s.Dept_Code || s.dept_code || s.dept || '').toString();
       const matchDept = !dept || rowDept === dept;
       
@@ -133,6 +144,12 @@ export class Report implements OnInit {
         empCode.toLowerCase().includes(term);
         
       return matchDept && matchName;
+    });
+
+    return filtered.sort((a, b) => {
+      const codeA = Number(a.Emp_CODE || a['Employee Code'] || a.Employee_Code) || 0;
+      const codeB = Number(b.Emp_CODE || b['Employee Code'] || b.Employee_Code) || 0;
+      return sortDir === 'asc' ? codeA - codeB : codeB - codeA;
     });
   });
 
