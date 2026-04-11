@@ -153,7 +153,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- Smart Dual Database Connection ---
-const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || 'mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB?retryWrites=true&w=majority';
+const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || 'mongodb://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@ac-uihr8le-shard-00-00.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-01.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-02.0xfniym.mongodb.net:27017/employeeDB?ssl=true&replicaSet=atlas-149asg-shard-0&authSource=admin&retryWrites=true&w=majority';
 const LOCAL_URI  = process.env.MONGO_LOCAL_URI  || 'mongodb://127.0.0.1:27017/employeeDB';
 
 // Initialize connections
@@ -1391,17 +1391,21 @@ app.post('/api/login', async (req, res) => {
         } else { 
             console.warn(`❌ [Login] Failed. No user found for ${email} with that password.`);
             let incorrectPwd = false;
-            if (atlasDB && atlasDB.readyState !== 0) {
-                const exist = await AtlasUser.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
-                incorrectPwd = exist.length > 0;
-            } else {
-                const exist = await User.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
-                incorrectPwd = exist.length > 0;
+            try {
+                if (atlasDB && atlasDB.readyState !== 0) {
+                    const exist = await AtlasUser.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
+                    incorrectPwd = exist.length > 0;
+                } else {
+                    const exist = await User.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
+                    incorrectPwd = exist.length > 0;
+                }
+            } catch (queryErr) {
+                console.error("Diagnostic query failed (likely connection timeout):", queryErr.message);
             }
             
             res.status(401).json({ 
                 success: false, 
-                error: incorrectPwd ? "Incorrect password" : "User not found" 
+                error: incorrectPwd ? "Incorrect password" : "User not found (Or Database Connection Failed)" 
             }); 
         }
     } catch (err) { 
