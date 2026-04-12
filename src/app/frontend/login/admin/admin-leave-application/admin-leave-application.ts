@@ -29,6 +29,9 @@ export class AdminLeaveApplication implements OnInit {
   expandedType = signal<string | null>(null);
   leaveHistory = signal<any[]>([]);
   srNoAlreadyExists = signal<boolean>(false);
+  isEditMode = signal<boolean>(false);
+  editingLeaveId = signal<string | null>(null);
+  
   
   leaveTypes = signal<any[]>([]);
   
@@ -87,7 +90,7 @@ export class AdminLeaveApplication implements OnInit {
       next: (res) => {
         if (res.exists) {
           this.srNoAlreadyExists.set(true);
-          alert(`⚠️ Sr. No. "${srNo}" Already Exists! Please use a different serial number.`);
+          // Don't alert here, backend will auto-suffix if submitted, but good to show a warning in UI
         } else {
           this.srNoAlreadyExists.set(false);
         }
@@ -95,6 +98,7 @@ export class AdminLeaveApplication implements OnInit {
       error: () => { this.srNoAlreadyExists.set(false); }
     });
   }
+
 
   onEmpCodeSearch() {
     if (!this.searchEmpCode) return;
@@ -144,6 +148,57 @@ export class AdminLeaveApplication implements OnInit {
         });
     }
   }
+
+  onEditLeave(h: any) {
+    this.isEditMode.set(true);
+    this.editingLeaveId.set(h._id);
+    
+    // Populate form
+    this.leaveForm.sr_no = String(h.sr_no || '');
+    this.leaveForm.Type_of_Leave = h['Type of Leave'] || h.Type_of_Leave || '';
+    this.leaveForm.From = h.From || '';
+    this.leaveForm.To = h.To || '';
+    this.leaveForm.Total_Days.set(Number(h['Total Days'] || h.Total_Days || 0));
+    this.leaveForm.Reason = h.Reason || h.reason || '';
+    this.leaveForm.VAL_working_dates = h.VAL_working_dates || '';
+    
+    // Scroll to form for better UX
+    if (isPlatformBrowser(this.platformId)) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // Recalculate balance for the selected type
+    this.fetchBalance();
+  }
+
+  cancelEdit() {
+    this.isEditMode.set(false);
+    this.editingLeaveId.set(null);
+    this.resetForm();
+    this.fetchLastSrNo(this.leaveForm.Emp_CODE);
+  }
+
+  onDeleteLeave(id: string) {
+    if (!confirm('Are you sure you want to delete this leave application? This action cannot be undone.')) return;
+    
+    this.http.delete<any>(`/api/leaves/${id}`).subscribe({
+      next: (res) => {
+        alert('✅ Leave deleted successfully!');
+        // Refresh history and balance
+        if (this.expandedType()) {
+          const currentType = this.expandedType()!;
+          this.expandedType.set(null); // Close and reopen to refresh
+          this.toggleHistory(currentType);
+        }
+        this.onEmpCodeSearch(); // Refresh balance panel
+      },
+      error: (err) => {
+        console.error('Delete failed', err);
+        alert('❌ Failed to delete leave.');
+      }
+    });
+  }
+
 
   fetchLeaveTypes() {
     forkJoin({
@@ -215,15 +270,20 @@ export class AdminLeaveApplication implements OnInit {
           
           this.remainingBalance.set(carryForward + currentSession);
           this.displayValue.set(carryForward + currentSession);
+          
+          // Recalculate days in case rules changed (e.g. switching to EL/SL)
+          this.calculateDays();
         },
         error: (err) => {
           console.error("Error fetching balance", err);
           this.remainingBalance.set(0);
           this.displayValue.set(0);
           this.isIncrementing.set(false);
+          this.calculateDays();
         }
       });
   }
+
 
   onFileSelected(event: any) {
     this.selectedFile.set(event.target.files[0]);
@@ -238,6 +298,10 @@ export class AdminLeaveApplication implements OnInit {
         return;
       }
       
+      const type = (this.leaveForm.Type_of_Leave || '').toUpperCase();
+      const includeSundays = (type === 'EL' || type === 'SL' || type === 'LWP');
+
+
       let days = 0;
       const currentDate = new Date(start);
       currentDate.setHours(0, 0, 0, 0);
@@ -245,8 +309,8 @@ export class AdminLeaveApplication implements OnInit {
       endDate.setHours(0, 0, 0, 0);
 
       while (currentDate <= endDate) {
-        // 0 corresponds to Sunday in JavaScript
-        if (currentDate.getDay() !== 0) {
+        // 0 corresponds to Sunday in JavaScript. Include it only for EL and SL.
+        if (includeSundays || currentDate.getDay() !== 0) {
           days++;
         }
         currentDate.setDate(currentDate.getDate() + 1);
@@ -256,16 +320,12 @@ export class AdminLeaveApplication implements OnInit {
     }
   }
 
+
   onSubmit() {
     const totalDays = this.leaveForm.Total_Days();
 
     if (!this.leaveForm.sr_no) {
       alert("⚠️ Please enter a Serial Number (Sr. No.)");
-      return;
-    }
-
-    if (this.srNoAlreadyExists()) {
-      alert(`⚠️ Sr. No. "${this.leaveForm.sr_no}" Already Exists! Please use a different serial number.`);
       return;
     }
 
@@ -276,8 +336,10 @@ export class AdminLeaveApplication implements OnInit {
     }
 
     if (this.leaveForm.Type_of_Leave === 'SL' && totalDays > 3 && !this.selectedFile()) {
-      alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
-      return;
+        if (!this.isEditMode()) {
+            alert("⚠️ Medical document is compulsory for Sick Leave (SL) exceeding 3 days.");
+            return;
+        }
     }
 
     if (!this.isIncrementing() && totalDays > this.remainingBalance()) {
@@ -286,8 +348,9 @@ export class AdminLeaveApplication implements OnInit {
     }
 
     const payload: any = {
-      sr_no: Number(this.leaveForm.sr_no), // Strict Number
+      sr_no: String(this.leaveForm.sr_no).trim(),
       Emp_CODE: String(this.leaveForm.Emp_CODE),
+
       Name: this.leaveForm.Name,
       Dept_Code: String(this.leaveForm.Dept_Code),
       Type_of_Leave: this.leaveForm.Type_of_Leave,
@@ -303,20 +366,42 @@ export class AdminLeaveApplication implements OnInit {
       payload.VAL_working_dates = this.leaveForm.VAL_working_dates;
     }
 
-    // ALWAYS SAVE LOCALLY FIRST (Offline-First Architecture)
-    this.offlineSync.saveLeaveOffline(payload, this.selectedFile() || null).then((success: boolean) => {
-      if (success) {
-        alert('✅ Application Saved Locally!');
-        this.resetForm();
-        this.fetchLastSrNo(this.leaveForm.Emp_CODE);
-        
-        // Let the daemon securely push it to MongoDB if internet is on
-        this.offlineSync.syncNow();
-        
-      } else {
-        alert('❌ Local Database Save Failed.');
+    if (this.isEditMode()) {
+      // UPDATE BRANCH
+      this.http.put(`/api/leaves/${this.editingLeaveId()}`, payload).subscribe({
+        next: (res) => {
+          alert('✅ Leave Updated Successfully!');
+          this.cancelEdit();
+          this.onEmpCodeSearch(); // Refresh balances
+        },
+        error: (err) => {
+          console.error('Update failed', err);
+          alert('❌ Failed to update leave. ' + (err.error?.error || ''));
+        }
+      });
+    } else {
+      // CREATE BRANCH
+      if (this.srNoAlreadyExists()) {
+        alert(`⚠️ Sr. No. "${this.leaveForm.sr_no}" Already Exists! Please use a different serial number.`);
+        return;
       }
-    });
+
+      // ALWAYS SAVE LOCALLY FIRST (Offline-First Architecture)
+      this.offlineSync.saveLeaveOffline(payload, this.selectedFile() || null).then((success: boolean) => {
+        if (success) {
+          alert('✅ Application Saved Locally!');
+          this.resetForm();
+          this.fetchLastSrNo(this.leaveForm.Emp_CODE);
+          
+          // Let the daemon securely push it to MongoDB if internet is on
+          this.offlineSync.syncNow();
+          this.onEmpCodeSearch();
+          
+        } else {
+          alert('❌ Local Database Save Failed.');
+        }
+      });
+    }
   }
 
   resetForm() {

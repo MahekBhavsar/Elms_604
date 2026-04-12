@@ -1,5 +1,68 @@
 /* Premium Admin Sidebar Styles */
 
+:host {
+  display: block;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.admin-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #f5f8fa;
+}
+
+.admin-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  flex-shrink: 0;
+  z-index: 1050;
+  position: relative;
+}
+
+.admin-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.admin-sidebar {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+}
+
+.admin-main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f5f8fa;
+  min-width: 0;
+}
+
+.admin-main-content::-webkit-scrollbar {
+  width: 6px;
+}
+.admin-main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-main-content::-webkit-scrollbar-thumb {
+  background: rgba(30, 60, 114, 0.2);
+  border-radius: 10px;
+}
+
 /* Base transitions */
 .side-link-hover {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -106,6 +169,8 @@
     overflow-x: hidden;
 }
 
+
+
 .sidebar-menu::-webkit-scrollbar {
     width: 4px;
 }
@@ -119,9 +184,11 @@
     margin: 0.25rem 1rem;
 }
 
+
 .sidebar.collapsed .nav-item {
-    margin: 0.25rem 0.5rem;
+    margin: 0.5rem 0.5rem;
 }
+
 
 .nav-link {
     color: #a1a5b7;
@@ -145,18 +212,31 @@
 
 .nav-link:hover {
     color: #009ef7;
-    background: rgba(0, 158, 247, 0.05);
+    background: rgba(0, 158, 247, 0.08);
 }
 
 .nav-link.active {
-    background: #009ef7;
+    background: linear-gradient(90deg, #009ef7 0%, #0076ba 100%);
     color: #ffffff;
-    box-shadow: 0 4px 10px rgba(0, 158, 247, 0.3);
+    box-shadow: 0 8px 15px rgba(0, 158, 247, 0.25);
+}
+
+.nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 4px;
+    background: #ffffff;
+    border-radius: 0 4px 4px 0;
 }
 
 .nav-link.active .nav-icon {
     color: #ffffff;
 }
+
 
 .nav-icon {
     font-size: 1.25rem;

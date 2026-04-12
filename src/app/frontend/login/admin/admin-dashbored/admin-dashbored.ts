@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { Chart, registerables } from 'chart.js';
 import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, timeout } from 'rxjs/operators';
 
 Chart.register(...registerables);
 
@@ -73,10 +73,10 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
     }
     
     forkJoin({
-      session: this.http.get<any>('/api/active-session').pipe(catchError(() => of({ sessionName: "Not Set" }))),
-      rules: this.http.get<any[]>('/api/leave-types').pipe(catchError(() => of([]))),
-      leaves: this.http.get<any[]>('/api/leaves/admin').pipe(catchError(() => of([]))),
-      staff: this.http.get<any[]>('/api/staff').pipe(catchError(() => of([])))
+      session: this.http.get<any>('/api/active-session').pipe(timeout(8000), catchError(() => of({ sessionName: "Not Set" }))),
+      rules: this.http.get<any[]>('/api/leave-types').pipe(timeout(8000), catchError(() => of([]))),
+      leaves: this.http.get<any[]>('/api/leaves/admin').pipe(timeout(8000), catchError(() => of([]))),
+      staff: this.http.get<any[]>('/api/staff').pipe(timeout(8000), catchError(() => of([])))
     }).subscribe({
       next: (res) => {
         try {
@@ -149,34 +149,41 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
           // 4. Fetch balances specifically for Admin as a staff member
           const balanceRequests = myCurrentRules.map(r => 
             this.http.get<any>(`/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
-            .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
+            .pipe(timeout(8000), catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
           );
 
-          forkJoin(balanceRequests).subscribe(balances => {
-            this.quotaCards = myCurrentRules.map((rule, i) => {
-              const b = (balances as any[])[i] || {};
-              const name = rule.leave_name.toUpperCase().trim();
-              const used = b.usedThisYear || 0;
-              const limit = b.limit || rule.total_yearly_limit || 12;
+          forkJoin(balanceRequests).subscribe({
+            next: (balances: any[]) => {
+              this.quotaCards = myCurrentRules.map((rule, i) => {
+                const b = balances[i] || {};
+                const name = rule.leave_name.toUpperCase().trim();
+                const used = b.usedThisYear || 0;
+                const limit = b.limit || rule.total_yearly_limit || 12;
 
-              return {
-                name,
-                limit: limit,
-                remaining: b.balance ?? 0,
-                percent: limit > 0 ? (used / limit) * 100 : 0,
-                isIncrementing: b.isIncrementing,
-                isCarryForward: rule.can_carry_forward,
-                carryForward: b.carryForward || 0,
-                used: used
-              };
-            });
+                return {
+                  name,
+                  limit: limit,
+                  remaining: b.balance ?? 0,
+                  percent: limit > 0 ? (used / limit) * 100 : 0,
+                  isIncrementing: b.isIncrementing,
+                  isCarryForward: rule.can_carry_forward,
+                  carryForward: b.carryForward || 0,
+                  used: used
+                };
+              });
 
-            this.dataReady = true;
-            this.cdr.detectChanges();
-            this.tryRenderCharts();
+              this.dataReady = true;
+              this.cdr.detectChanges();
+              this.tryRenderCharts();
 
-            // Check for new applications/HOD approvals
-            this.checkActionableLeaves(res.leaves);
+              // Check for new applications/HOD approvals
+              this.checkActionableLeaves(res.leaves);
+            },
+            error: (err) => {
+              console.error("Admin balance fetch error:", err);
+              this.dataReady = true;
+              this.cdr.detectChanges();
+            }
           });
         } catch (e) {
           console.error("Dashboard calculation error:", e);

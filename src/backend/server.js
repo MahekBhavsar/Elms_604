@@ -75,18 +75,21 @@ async function sendEmailNotification(to, subject, htmlContent) {
         console.log(`📧 Email sent successfully to: ${to}`);
     } catch (err) {
         console.error('❌ Email sending failed (Offline?):', err.message);
-        // Save to Queue if failure seems network related
-        try {
-            await new PendingEmail({ to, subject, html: htmlContent }).save();
-            console.log('📝 Email added to offline queue.');
-        } catch (dbErr) {
-            console.error('❌ Failed to queue email:', dbErr.message);
+        // Save to Queue if failure seems network related (only if local DB available)
+        if (localDB.readyState === 1) {
+            try {
+                await new PendingEmail({ to, subject, html: htmlContent }).save();
+                console.log('📝 Email added to offline queue.');
+            } catch (dbErr) {
+                console.error('❌ Failed to queue email:', dbErr.message);
+            }
         }
     }
 }
 
-// Background Worker: Retry Pending Emails every 30 seconds
+// Background Worker: Retry Pending Emails every 30 seconds (only runs if local DB is available)
 setInterval(async () => {
+    if (localDB.readyState !== 1) return; // No local DB — skip email queue
     try {
         const pending = await PendingEmail.find({});
         if (pending.length === 0) return;
@@ -153,23 +156,48 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- Smart Dual Database Connection ---
-const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || 'mongodb://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@ac-uihr8le-shard-00-00.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-01.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-02.0xfniym.mongodb.net:27017/employeeDB?ssl=true&replicaSet=atlas-149asg-shard-0&authSource=admin&retryWrites=true&w=majority';
-const LOCAL_URI  = process.env.MONGO_LOCAL_URI  || 'mongodb://127.0.0.1:27017/employeeDB';
+// IMPORTANT: Credentials are baked in — NO .env file required on client machines.
+// Always use the direct shard-style URI (port 27017), NOT mongodb+srv://, because
+// +srv requires DNS SRV lookups which are blocked on many corporate/college networks.
+const ATLAS_URI_DIRECT = 'mongodb://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@ac-uihr8le-shard-00-00.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-01.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-02.0xfniym.mongodb.net:27017/employeeDB?ssl=true&replicaSet=atlas-149asg-shard-0&authSource=admin&retryWrites=true&w=majority';
+// .env override is only useful for dev overrides — never needed by clients
+const ATLAS_URI = ATLAS_URI_DIRECT;
+const LOCAL_URI = process.env.MONGO_LOCAL_URI || 'mongodb://127.0.0.1:27017/employeeDB';
 
 // Initialize connections
 const localDB = mongoose.createConnection(LOCAL_URI, { serverSelectionTimeoutMS: 2000 });
-const atlasDB = ATLAS_URI ? mongoose.createConnection(ATLAS_URI, { serverSelectionTimeoutMS: 5000 }) : null;
+const atlasDB = mongoose.createConnection(ATLAS_URI, {
+    serverSelectionTimeoutMS: 15000,
+    connectTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    tls: true,
+    tlsAllowInvalidCertificates: false,
+    retryWrites: true,
+    w: 'majority'
+});
 
 localDB.on('connected', () => console.log('🏠 LOCAL ACTIVE: Connected to Local Database'));
-localDB.on('error', (err) => console.error('❌ DATABASE ERROR: Local MongoDB is not running:', err.message));
+localDB.on('error', () => {
+    console.warn('💡 INFO: Local MongoDB not found. App will run in Cloud-Only mode.');
+});
 
-if (atlasDB) {
-    atlasDB.on('connected', () => console.log('🌐 CLOUD ACTIVE: Connected to MongoDB Atlas'));
-    atlasDB.on('error', (err) => {
-        console.error('❌ ATLAS CONNECTION ERROR:', err.message);
-        console.log('🔌 OFFLINE MODE: Background sync will retry automatically.');
-    });
-}
+atlasDB.on('connected', () => console.log('🌐 CLOUD ACTIVE: Connected to MongoDB Atlas'));
+atlasDB.on('error', (err) => {
+    console.error('❌ ATLAS CONNECTION ERROR:', err.message);
+    console.log('🔌 Retrying cloud connection in background...');
+    // Auto-retry every 30 seconds if disconnected
+    setTimeout(() => {
+        if (atlasDB.readyState === 0) {
+            atlasDB.openUri(ATLAS_URI, {
+                serverSelectionTimeoutMS: 15000,
+                connectTimeoutMS: 15000,
+                tls: true,
+                retryWrites: true
+            }).catch(() => {});
+        }
+    }, 30000);
+});
+
 
 // --- Dual-Sync Helper Functions ---
 
@@ -250,21 +278,35 @@ async function syncToAtlas(localDoc, atlasModel) {
 }
 
 /**
- * Performs a dual write (CREATE or REPLACEMENT): Always to localDB, then tries Atlas.
- * This ensures data exists in both places.
+ * Performs a dual write (CREATE): 
+ * - If local DB is available: writes locally first, then syncs to Atlas.
+ * - If only Atlas is available (Cloud-Only mode): writes directly to Atlas.
  */
 async function performDualWrite(localModel, atlasModel, data, query = null) {
-    let localDoc;
-    // For new records or strict replacements, we ensure atlasSynced is false initially
     const writeData = { ...data, atlasSynced: false };
 
+    // CLOUD-ONLY MODE: Skip local, write directly to Atlas
+    if (localDB.readyState !== 1) {
+        if (!atlasModel || atlasDB.readyState !== 1) {
+            throw new Error('No database available (local disconnected, Atlas unreachable).');
+        }
+        console.log(`☁️  [CloudWrite] Writing directly to Atlas (no local DB)...`);
+        const atlasData = { ...data, atlasSynced: true };
+        if (query) {
+            return await atlasModel.findOneAndUpdate(query, atlasData, { upsert: true, new: true });
+        } else {
+            return await new atlasModel(atlasData).save();
+        }
+    }
+
+    // STANDARD MODE: Write local first, then sync
+    let localDoc;
     if (query) {
         localDoc = await localModel.findOneAndUpdate(query, writeData, { upsert: true, new: true });
     } else {
         localDoc = await new localModel(writeData).save();
     }
 
-    // Try immediate sync
     console.log(`📡 [Sync] Attempting immediate cloud push for ${localModel.modelName}...`);
     const synced = await syncToAtlas(localDoc, atlasModel);
     if (synced) {
@@ -277,21 +319,25 @@ async function performDualWrite(localModel, atlasModel, data, query = null) {
     return localDoc;
 }
 
+
 /**
- * Performs a dual update (PATCH): Updates local record and resets sync flag.
- * Ensures the background worker will pick it up if immediate sync fails.
+ * Performs a dual update (PATCH): Works in both local+cloud and cloud-only modes.
  */
 async function performDualUpdate(localModel, atlasModel, id, updateData) {
-    // 1. Update Local and RESET atlasSynced to false
+    // CLOUD-ONLY MODE
+    if (localDB.readyState !== 1) {
+        if (!atlasModel || atlasDB.readyState !== 1) return null;
+        return await atlasModel.findByIdAndUpdate(id, { ...updateData, atlasSynced: true }, { new: true });
+    }
+
+    // STANDARD MODE
     const updatedLocal = await localModel.findByIdAndUpdate(
         id, 
         { ...updateData, atlasSynced: false }, 
         { new: true }
     );
-
     if (!updatedLocal) return null;
 
-    // 2. Try immediate sync
     const synced = await syncToAtlas(updatedLocal, atlasModel);
     if (synced) {
         await localModel.findByIdAndUpdate(updatedLocal._id, { atlasSynced: true });
@@ -299,9 +345,9 @@ async function performDualUpdate(localModel, atlasModel, id, updateData) {
     } else {
         console.log(`📝 [Sync] Update saved locally. Background sync pending.`);
     }
-
     return updatedLocal;
 }
+
 
 /**
  * Pushes unsynced local records to MongoDB Atlas.
@@ -460,7 +506,8 @@ const AtlasLeaveType = atlasDB ? atlasDB.model('LeaveType', leaveTypeSchema) : n
 
 // 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
-    sr_no: Number,
+    sr_no: mongoose.Schema.Types.Mixed,
+
     Emp_CODE: Number,
     Name: String,
     Dept_Code: Number,
@@ -550,7 +597,10 @@ app.post('/api/admin/set-session', async (req, res) => {
                 sessionName: sessionName
             }));
 
-            await LeaveType.insertMany(seedData);
+            // Use performDualWrite so this works in both local and cloud-only mode
+            for (const item of seedData) {
+                await performDualWrite(LeaveType, AtlasLeaveType, item);
+            }
             console.log(`Auto-seeded default quotas for session: ${sessionName}`);
         }
 
@@ -960,7 +1010,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             });
         }
         
-        // --- 1. OVERLAPPING DATE VALIDATION ---
+        // --- 1. OVERLAPPING DATE VALIDATION & IDEMPOTENCY ---
         const existingLeaves = await fetchSmart(Leave, AtlasLeave, {
             Emp_CODE: Number(Emp_CODE),
             Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] }
@@ -968,36 +1018,33 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
 
         const newStart = parseDateLocal(From);
         const newEnd = parseDateLocal(To);
+        const incomingType = String(Type_of_Leave || '').toUpperCase();
 
         for (let leave of existingLeaves) {
             if (!leave.From || !leave.To) continue;
             const existStart = parseDateLocal(leave.From);
             const existEnd = parseDateLocal(leave.To);
+            const existingType = String(leave["Type of Leave"] || leave.Type_of_Leave || '').toUpperCase();
             
-            // Check for date range overlap
-            if (newStart <= existEnd && newEnd >= existStart) {
-                // --- IDEMPOTENCY FIX ---
-                // If it's the exact same leave type, start date, end date, and sr_no, this means the offline sync 
-                // is trying to push a record that already successfully saved previously (but the client missed the 200 OK).
-                // Just silently return success so the client deletes it from the queue without an overlapping error!
-                const existingType = String(leave["Type of Leave"] || leave.Type_of_Leave).toUpperCase();
-                const incomingType = String(Type_of_Leave).toUpperCase();
+            // 1. Check for EXACT DUPLICATE (Idempotency Fix)
+            // If Type and Dates match, it's likely a dupe regardless of sr_no (which might have changed on retry)
+            if (existingType === incomingType && 
+                existStart.getTime() === newStart.getTime() && 
+                existEnd.getTime() === newEnd.getTime()) {
                 
-                if (existingType === incomingType && 
-                    existStart.getTime() === newStart.getTime() && 
-                    existEnd.getTime() === newEnd.getTime() &&
-                    String(leave.sr_no) === String(sr_no)) {
-                    
-                    return res.json({ 
-                        success: true, 
-                        data: leave, 
-                        message: "Duplicate offline sync ignored securely." 
-                    });
-                }
+                console.log(`⚠️ [Idempotency] Blocking duplicate submission for ${Name} (${From} - ${To})`);
+                return res.json({ 
+                    success: true, 
+                    data: leave, 
+                    message: "Duplicate submission ignored to prevent data doubling." 
+                });
+            }
 
+            // 2. Check for Date Range Overlap (General Check)
+            if (newStart <= existEnd && newEnd >= existStart) {
                 return res.status(400).json({
                     success: false,
-                    error: `You already have a leave scheduled between ${leave.From} and ${leave.To}. Dates cannot overlap.`
+                    error: `Overlap detected: Already scheduled for ${existingType} from ${leave.From} to ${leave.To}.`
                 });
             }
         }
@@ -1025,9 +1072,31 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             return res.status(400).json({ success: false, error: "Invalid Employee Code or Total Days." });
         }
 
+        // --- 4. SR NO DUPLICATE HANDLING (AUTO-SUFFIX) ---
+        let finalizedSrNo = String(sr_no || '0').trim();
+        const baseSrNo = finalizedSrNo;
+        
+        const existing = await fetchSmart(Leave, AtlasLeave, { 
+            $or: [ { sr_no: finalizedSrNo }, { sr_no: Number(finalizedSrNo) || -8888 } ]
+        });
+
+        if (existing.length > 0) {
+            let suffix = 1;
+            while (true) {
+                let candidate = `${baseSrNo}-${suffix}`;
+                const check = await fetchSmart(Leave, AtlasLeave, { sr_no: candidate });
+                if (check.length === 0) {
+                    finalizedSrNo = candidate;
+                    break;
+                }
+                suffix++;
+            }
+        }
+
         const savedLeave = await performDualWrite(Leave, AtlasLeave, {
-            sr_no: Number(sr_no) || 0,
+            sr_no: finalizedSrNo,
             Emp_CODE: empCodeNum,
+
             Name: Name,
             Dept_Code: isNaN(deptCodeNum) ? null : deptCodeNum,
             "Type of Leave": Type_of_Leave ? String(Type_of_Leave).toUpperCase() : "UNKNOWN",
@@ -1210,6 +1279,9 @@ app.put('/api/leaves/:id', async (req, res) => {
         
         if (updateDataRaw.From) updateData.From = updateDataRaw.From;
         if (updateDataRaw.To) updateData.To = updateDataRaw.To;
+        // sr_no is now Mixed type (can be '514-1' etc). Preserve as string.
+        if (updateDataRaw.sr_no !== undefined) updateData.sr_no = String(updateDataRaw.sr_no).trim();
+
         
         const type = updateDataRaw["Type of Leave"] || updateDataRaw.Type_of_Leave || updateDataRaw.type;
         if (type) {
@@ -1225,6 +1297,7 @@ app.put('/api/leaves/:id', async (req, res) => {
 
         if (updateDataRaw.Status) updateData.Status = updateDataRaw.Status;
         if (updateDataRaw.Reason) updateData.Reason = updateDataRaw.Reason;
+        if (updateDataRaw.VAL_working_dates) updateData.VAL_working_dates = updateDataRaw.VAL_working_dates;
 
         const updated = await performDualUpdate(Leave, AtlasLeave, req.params.id, updateData);
 
@@ -1234,6 +1307,42 @@ app.put('/api/leaves/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+app.delete('/api/leaves/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        let deletedOk = false;
+
+        // 1. Delete from Local (if available)
+        if (localDB.readyState === 1) {
+            try {
+                await Leave.findByIdAndDelete(id);
+                deletedOk = true;
+            } catch(e) { console.error(`Local delete failed:`, e.message); }
+        }
+        
+        // 2. Delete from Atlas (always attempt)
+        if (AtlasLeave && atlasDB.readyState === 1) {
+            try {
+                await AtlasLeave.findByIdAndDelete(id);
+                console.log(`✅ [Delete] Successfully removed leave ${id} from Cloud.`);
+                deletedOk = true;
+            } catch (err) {
+                console.error(`❌ [Delete] Cloud deletion failed for ${id}:`, err.message);
+            }
+        }
+
+        if (!deletedOk) {
+            return res.status(500).json({ success: false, error: "Deletion failed: no database available." });
+        }
+        
+        res.json({ success: true, message: "Leave application deleted successfully." });
+    } catch (err) {
+        console.error("Delete Leave Error:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 
 // 6. MANUAL BALANCE ADJUSTMENT
 app.post('/api/leaves/adjust-balance', async (req, res) => {
@@ -1314,19 +1423,27 @@ app.post('/api/admin/sync-all-balances', async (req, res) => {
 // Check if a SR No already exists in any leave record
 app.get('/api/leaves/check-sr-no/:srNo', async (req, res) => {
     try {
-        const srNo = Number(req.params.srNo);
-        const existingLeaves = await fetchSmart(Leave, AtlasLeave, { sr_no: srNo });
+        const srNo = req.params.srNo.toString().trim();
+        // Check for exact match in both numeric and string formats
+        const existingLeaves = await fetchSmart(Leave, AtlasLeave, { 
+            $or: [
+                { sr_no: srNo },
+                { sr_no: Number(srNo) || 0 }
+            ]
+        });
         res.json({ exists: existingLeaves.length > 0 });
     } catch (err) {
         res.json({ exists: false });
     }
 });
 
+
 // Get next GLOBAL Sr. No (continuous across all staff — 1, 2, 3, ...)
 app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
     try {
         // High-performance search for latest numeric Sr No across ALL leaves
-        const latestLeaves = await fetchSmart(Leave, AtlasLeave, { sr_no: { $exists: true, $ne: null } }, { sr_no: -1 });
+        // We filter for numeric values only so suffixed IDs (like 514-1) don't disrupt the numeric sequence
+        const latestLeaves = await fetchSmart(Leave, AtlasLeave, { sr_no: { $type: "number" } }, { sr_no: -1 });
         const latest = latestLeaves[0];
         
         const nextSrNo = latest && latest.sr_no ? Number(latest.sr_no) + 1 : 1;
@@ -1336,52 +1453,94 @@ app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
     }
 });
 
+
 // 6. LOGIN & STAFF MANAGEMENT
+// Helper to wait for Atlas to be ready (up to 8 seconds)
+function waitForAtlas(maxMs = 8000) {
+    return new Promise((resolve) => {
+        if (atlasDB.readyState === 1) return resolve(true);
+        const start = Date.now();
+        const interval = setInterval(() => {
+            if (atlasDB.readyState === 1) { clearInterval(interval); return resolve(true); }
+            if (Date.now() - start >= maxMs) { clearInterval(interval); return resolve(false); }
+        }, 200);
+    });
+}
+
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password: rawPassword } = req.body;
         console.log(`🔐 [Login Attempt] Email: ${email}`);
 
-        const password = Number(rawPassword);
-        if (isNaN(password)) {
-            console.warn('⚠️  [Login] Invalid password format (not a number)');
-            return res.status(401).json({ success: false, error: "Invalid password format" });
+        if (!email || rawPassword === undefined || rawPassword === null || String(rawPassword).trim() === '') {
+            return res.status(401).json({ success: false, error: "Email and password are required" });
         }
         
-        // Case-insensitive email search + Flexible Password (Number or String)
-        const passwordNum = Number(rawPassword);
-        const query = { 
-            "Email": { $regex: new RegExp(`^${email}$`, 'i') },
-            $or: [
-                { "Password": passwordNum },
-                { "Password": String(rawPassword) }
-            ]
-        };
+        // Support both numeric and string passwords robustly
+        const passwordNum = isNaN(Number(rawPassword)) ? null : Number(rawPassword);
+        const passwordConditions = [{ "Password": String(rawPassword) }];
+        if (passwordNum !== null) passwordConditions.push({ "Password": passwordNum });
 
-        // STRICTLY FORCE ATLAS FOR LOGIN IF AVAILABLE (Bypasses local old passwords)
+        const emailQuery = { "Email": { $regex: new RegExp(`^${email.trim()}$`, 'i') } };
+        const query = { ...emailQuery, $or: passwordConditions };
+
+        // --- 1. WAIT FOR ATLAS & ATTEMPT CLOUD LOGIN ---
         let user = null;
-        if (atlasDB && atlasDB.readyState !== 0) {
+        let atlasReady = false;
+        try {
+            atlasReady = await waitForAtlas(8000);
+        } catch(e) { /* ignore */ }
+
+        if (atlasReady) {
             try {
+                console.log(`📡 [Login] Trying Atlas...`);
                 const cloudUsers = await AtlasUser.find(query).lean();
                 if (cloudUsers && cloudUsers.length > 0) {
                     user = cloudUsers[0];
+                    console.log(`✅ [Login] Cloud auth successful for: ${user.Name}`);
+                    // Seed user and session locally for future offline use
                     if (localDB.readyState === 1) {
-                        try { await User.replaceOne({ _id: user._id }, { ...user, atlasSynced: true }, { upsert: true }); } catch(e){}
+                        try { 
+                            await User.replaceOne({ _id: user._id }, { ...user, atlasSynced: true }, { upsert: true });
+                            const localSession = await Session.findOne({});
+                            if (!localSession) {
+                                const cloudSessions = await AtlasSession.find({}).sort({ updatedAt: -1 }).limit(1).lean();
+                                if (cloudSessions.length > 0) {
+                                    await Session.replaceOne({ _id: cloudSessions[0]._id }, { ...cloudSessions[0], atlasSynced: true }, { upsert: true });
+                                    console.log('✅ [Bootstrap] Academic Session seeded locally.');
+                                }
+                            }
+                        } catch(e){ console.warn('Bootstrap seeding failed (non-critical):', e.message); }
                     }
                 }
-            } catch (e) { console.error("Atlas Login Check Failed:", e.message); }
+            } catch (e) { 
+                console.error('❌ [Login] Atlas query failed:', e.message);
+            }
+        } else {
+            console.warn('⚠️  [Login] Atlas not reachable. Trying local database...');
         }
 
-        // FALLBACK TO LOCAL IF ATLAS FAILS
+        // --- 2. FALLBACK TO LOCAL DATABASE ---
         if (!user) {
-            const users = await fetchSmart(User, AtlasUser, query, {}, true);
-            user = users[0];
+            try {
+                if (localDB.readyState === 1) {
+                    const localUsers = await User.find(query).lean();
+                    if (localUsers && localUsers.length > 0) {
+                        user = localUsers[0];
+                        console.log(`✅ [Login] Local auth successful for: ${user.Name}`);
+                    }
+                }
+            } catch (localErr) {
+                console.error('❌ [Login] Local query failed:', localErr.message);
+            }
         }
 
+        // --- 3. RESPOND ---
         if (user) {
-            console.log(`✅ [Login] Success for: ${user.Name} (Role: ${user.role || user.Role})`);
             res.json({
-                success: true, name: user["Name"], empCode: user["Employee Code"],
+                success: true, 
+                name: user["Name"], 
+                empCode: user["Employee Code"],
                 role: user["role"] || user["Role"], 
                 dept: user["department"] || user["Department"], 
                 dept_code: user["dept_code"] ?? user["Dept_Code"] ?? user["Department Code"],
@@ -1389,24 +1548,25 @@ app.post('/api/login', async (req, res) => {
                 staffType: user["staffType"] || user["Staff Type"] || 'Teaching'
             });
         } else { 
-            console.warn(`❌ [Login] Failed. No user found for ${email} with that password.`);
-            let incorrectPwd = false;
+            // Provide a more meaningful error message
+            let errorMsg = 'User not found. Please check your email and password.';
             try {
-                if (atlasDB && atlasDB.readyState !== 0) {
-                    const exist = await AtlasUser.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
-                    incorrectPwd = exist.length > 0;
-                } else {
-                    const exist = await User.find({ "Email": { $regex: new RegExp(`^${email}$`, 'i') } }).lean();
-                    incorrectPwd = exist.length > 0;
+                // Check if email exists (to differentiate wrong password vs wrong email)
+                const dbToCheck = atlasReady ? AtlasUser : (localDB.readyState === 1 ? User : null);
+                if (dbToCheck) {
+                    const exist = await dbToCheck.find(emailQuery).lean();
+                    if (exist.length > 0) {
+                        errorMsg = 'Incorrect password. Please try again.';
+                    } else if (!atlasReady && localDB.readyState !== 1) {
+                        errorMsg = 'Cannot reach the database. Please check your internet connection and try again.';
+                    }
+                } else if (!atlasReady && localDB.readyState !== 1) {
+                    errorMsg = 'Cannot reach the database. Please check your internet connection and try again.';
                 }
-            } catch (queryErr) {
-                console.error("Diagnostic query failed (likely connection timeout):", queryErr.message);
-            }
-            
-            res.status(401).json({ 
-                success: false, 
-                error: incorrectPwd ? "Incorrect password" : "User not found (Or Database Connection Failed)" 
-            }); 
+            } catch(e) { /* ignore diagnostic error */ }
+
+            console.warn(`❌ [Login] Failed for ${email}. Msg: ${errorMsg}`);
+            res.status(401).json({ success: false, error: errorMsg }); 
         }
     } catch (err) { 
         console.error('💥 [Login] Server Error:', err.message);
@@ -1575,7 +1735,10 @@ app.get('/api/admin/leave-history/:empCode/:type', async (req, res) => {
         // Including Pending to match the "taken" balance calculation
         const history = await fetchSmart(Leave, AtlasLeave, { 
             Emp_CODE: empCode, 
-            "Type of Leave": type.toUpperCase().trim(),
+            $or: [
+                { "Type of Leave": { $regex: new RegExp(`^${type}$`, 'i') } },
+                { "Type_of_Leave": { $regex: new RegExp(`^${type}$`, 'i') } }
+            ],
             sessionName: sessionName,
             Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] } 
         }, { From: -1 }); 

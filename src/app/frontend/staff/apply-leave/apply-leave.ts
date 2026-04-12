@@ -201,9 +201,12 @@ export class ApplyLeave implements OnInit {
           this.displayValue.set(res.balance);
           this.isIncrementing.set(res.isIncrementing);
           this.activeSession.set(res.sessionName || 'Active');
-        }
+          this.calculateDays(); // Recalculate days when type/balance changes
+        },
+        error: () => this.calculateDays()
       });
   }
+
 
   onFileSelected(event: any) {
     this.selectedFile.set(event.target.files[0]);
@@ -215,6 +218,9 @@ export class ApplyLeave implements OnInit {
       const end = new Date(this.leaveForm.To);
       if (end < start) { this.leaveForm.Total_Days.set(0); return; }
 
+      const type = (this.leaveForm.Type_of_Leave || '').toUpperCase();
+      const includeSundays = (type === 'EL' || type === 'SL' || type === 'LWP');
+
       let days = 0;
       const currentDate = new Date(start);
       currentDate.setHours(0, 0, 0, 0);
@@ -222,12 +228,13 @@ export class ApplyLeave implements OnInit {
       endDate.setHours(0, 0, 0, 0);
 
       while (currentDate <= endDate) {
-        if (currentDate.getDay() !== 0) days++;
+        if (includeSundays || currentDate.getDay() !== 0) days++;
         currentDate.setDate(currentDate.getDate() + 1);
       }
       this.leaveForm.Total_Days.set(days);
     }
   }
+
 
   onSubmit() {
     const days = this.leaveForm.Total_Days();

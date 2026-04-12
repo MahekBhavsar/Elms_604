@@ -1,6 +1,9 @@
-<div class="d-flex flex-column min-vh-100 bg-light">
-  <nav class="navbar navbar-expand-lg navbar-light border-bottom px-4 px-md-5 py-3 sticky-top z-3 glass-header">
-    <div class="container-fluid p-0">
+<div class="staff-shell">
+  <nav class="staff-navbar">
+
+    <div class="container-fluid d-flex justify-content-between align-items-center p-0">
+      
+      <!-- Left Side: Brand -->
       <div class="d-flex align-items-center mb-0">
         <button
           class="btn btn-primary bg-gradient border-0 me-3 rounded-circle shadow-sm text-white d-flex align-items-center justify-content-center toggle-btn-hover"
@@ -14,9 +17,12 @@
           </div>
           <span class="d-none d-sm-inline fs-4">ELMS <span class="text-dark fw-bold">Portal</span></span>
         </span>
+      </div>
 
+      <!-- Right Side: Status and Profile -->
+      <div class="d-flex align-items-center">
         <!-- Connectivity & Sync Status Badge -->
-        <div class="ms-auto d-flex align-items-center me-3">
+        <div class="d-flex align-items-center me-3">
           <div [class]="isOnline() ? 'bg-success' : 'bg-danger'" 
                class="rounded-circle me-2 shadow-sm" style="width: 10px; height: 10px;"
                [title]="isOnline() ? 'Connected to Cloud' : 'Offline Mode (Local)'">
@@ -34,18 +40,17 @@
             </span>
           }
         </div>
-      </div>
 
-      <div class="dropdown">
-        <button
-          class="btn btn-white border border-2 d-flex align-items-center rounded-pill px-3 py-1 shadow-sm dropdown-toggle profile-btn-hover"
-          type="button" data-bs-toggle="dropdown" style="transition: all 0.3s;">
-          <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm"
-            style="width: 34px; height: 34px; font-size: 0.9rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-            {{ userName.charAt(0) | uppercase }}
-          </div>
-          <span class="fw-bold text-dark d-none d-md-inline small">{{ userName }}</span>
-        </button>
+        <div class="dropdown">
+          <button
+            class="btn btn-white border border-2 d-flex align-items-center rounded-pill px-3 py-1 shadow-sm dropdown-toggle profile-btn-hover"
+            type="button" data-bs-toggle="dropdown" style="transition: all 0.3s;">
+            <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm"
+              style="width: 34px; height: 34px; font-size: 0.9rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+              {{ userName.charAt(0) | uppercase }}
+            </div>
+            <span class="fw-bold text-dark d-none d-md-inline small">{{ userName }}</span>
+          </button>
         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 py-2 rounded-3" style="min-width: 200px;">
           <li>
             <h6 class="dropdown-header text-uppercase small fw-bold text-primary" style="letter-spacing: 1px;">Staff
@@ -79,11 +84,12 @@
         </ul>
       </div>
     </div>
-  </nav>
+  </div>
+</nav>
 
-  <div class="d-flex flex-grow-1 overflow-hidden">
+  <div class="staff-body">
     <!-- Sidebar -->
-    <div class="text-white shadow-sm flex-shrink-0"
+    <div class="staff-sidebar text-white shadow-sm flex-shrink-0"
       style="background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
       [ngClass]="isCollapsed ? 'd-none d-md-block' : 'd-block'" [style.width]="isCollapsed ? '80px' : '260px'">
 
@@ -166,7 +172,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-grow-1 overflow-auto bg-light w-100 p-0">
+    <div class="staff-main-content">
       <ng-content></ng-content>
     </div>
   </div>

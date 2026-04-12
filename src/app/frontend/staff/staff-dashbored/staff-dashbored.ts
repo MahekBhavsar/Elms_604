@@ -7,7 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { Chart, registerables } from 'chart.js';
 import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, timeout } from 'rxjs/operators';
 
 Chart.register(...registerables);
 
@@ -70,9 +70,9 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     }
 
     forkJoin({
-      session: this.http.get<any>('/api/active-session').pipe(catchError(() => of({ sessionName: 'Not Set' }))),
-      rules: this.http.get<any[]>('/api/leave-types').pipe(catchError(() => of([]))),
-      history: this.http.get<any[]>(`/api/leaves/staff/${this.user.empCode || this.user.Employee_Code}`).pipe(catchError(() => of([])))
+      session: this.http.get<any>('/api/active-session').pipe(timeout(8000), catchError(() => of({ sessionName: 'Not Set' }))),
+      rules: this.http.get<any[]>('/api/leave-types').pipe(timeout(8000), catchError(() => of([]))),
+      history: this.http.get<any[]>(`/api/leaves/staff/${this.user.empCode || this.user.Employee_Code}`).pipe(timeout(8000), catchError(() => of([])))
     }).subscribe({
       next: (res) => {
         try {
@@ -148,32 +148,40 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
           // 4. Fetch balances specifically for THIS session
           const balanceRequests = currentRulesToUse.map(r => 
             this.http.get<any>(`/api/leaves/balance/${this.user.empCode}/${r.leave_name}?sessionName=${currentSessionLabel}`)
-            .pipe(catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
+            .pipe(timeout(8000), catchError(() => of({ balance: 0, usedThisYear: 0, limit: r.total_yearly_limit || 12 })))
           );
 
-          forkJoin(balanceRequests).subscribe((balances: any[]) => {
-            this.quotaCards = currentRulesToUse.map((rule, i) => {
-              const b = balances[i] || {};
-              const name = rule.leave_name.toUpperCase().trim();
-              const used = b.usedThisYear ?? 0;
-              const limit = b.limit || rule.total_yearly_limit || 12;
-              return {
-                name: name,
-                remaining: b.balance ?? 0,
-                used: used,
-                limit: limit,
-                percent: limit > 0 ? (used / limit) * 100 : 0,
-                isIncrementing: b.isIncrementing || ['VAL', 'AL'].includes(name),
-                isCarryForward: rule.can_carry_forward,
-                carryForward: b.carryForward || 0
-              };
-            });
-            this.dataReady = true;
-            this.cdr.detectChanges();
-            this.tryRenderCharts();
+          forkJoin(balanceRequests).subscribe({
+            next: (balances: any[]) => {
+              this.quotaCards = currentRulesToUse.map((rule, i) => {
+                const b = balances[i] || {};
+                const name = rule.leave_name.toUpperCase().trim();
+                const used = b.usedThisYear ?? 0;
+                const limit = b.limit || rule.total_yearly_limit || 12;
+                return {
+                  name: name,
+                  remaining: b.balance ?? 0,
+                  used: used,
+                  limit: limit,
+                  percent: limit > 0 ? (used / limit) * 100 : 0,
+                  isIncrementing: b.isIncrementing || ['VAL', 'AL'].includes(name),
+                  isCarryForward: rule.can_carry_forward,
+                  carryForward: b.carryForward || 0
+                };
+              });
+              
+              this.dataReady = true;
+              this.cdr.detectChanges();
+              this.tryRenderCharts();
 
-            // Check for status changes (Desktop Notifications)
-            this.checkStatusChanges(res.history);
+              // Check for status changes (Desktop Notifications)
+              this.checkStatusChanges(res.history);
+            },
+            error: (err) => {
+              console.error("Balance fetch error:", err);
+              this.dataReady = true;
+              this.cdr.detectChanges();
+            }
           });
 
         } catch (e) {

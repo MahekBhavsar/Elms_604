@@ -1,8 +1,9 @@
-<div class="d-flex flex-column min-vh-100 bg-light">
-  <!-- Top Navbar with Glassmorphism -->
-  <nav class="navbar navbar-expand-lg navbar-light border-bottom px-4 px-md-5 py-3 sticky-top z-3"
-    style="background: rgba(255, 255, 255, 0.9) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;">
-    <div class="container-fluid p-0">
+<div class="admin-shell">
+  <!-- Top Navbar -->
+  <nav class="admin-navbar">
+    <div class="container-fluid d-flex justify-content-between align-items-center p-0">
+      
+      <!-- Left Side: Brand -->
       <div class="d-flex align-items-center mb-0">
         <button
           class="btn btn-primary bg-gradient border-0 me-3 rounded-circle shadow-sm text-white d-flex align-items-center justify-content-center toggle-btn-hover"
@@ -15,33 +16,36 @@
             <i class="bi bi-cpu-fill fs-5"></i>
           </div>
           <span class="d-none d-sm-inline fs-4">ELMS <span class="text-dark fw-bold">ADMIN</span></span>
-          <!-- Dynamic Status Indicator (Pulsing Dot) -->
-          <div class="ms-3 d-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm" [title]="isOnline() ? 'Connected to Cloud' : 'Offline Mode (Local Cache)'">
-            <div class="rounded-circle me-1" 
-              [ngClass]="isOnline() ? 'bg-success shadow-success pulse-green' : 'bg-danger shadow-danger pulse-red'"
-              style="width: 8px; height: 8px;"></div>
-            <span class="small fw-bold" style="font-size: 0.65rem;" [class.text-success]="isOnline()" [class.text-danger]="!isOnline()">
-              {{ isOnline() ? 'ONLINE' : 'OFFLINE' }}
-            </span>
-          </div>
         </span>
       </div>
 
-      <div class="dropdown">
-        <button
-          class="btn btn-white border border-2 d-flex align-items-center rounded-pill px-3 py-1 shadow-sm dropdown-toggle profile-btn-hover"
-          type="button" data-bs-toggle="dropdown" style="transition: all 0.3s;">
-          <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm"
-            style="width: 34px; height: 34px; font-size: 0.9rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-            AD
-          </div>
-          <span class="fw-bold text-dark d-none d-md-inline small">Administrator</span>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 py-2 rounded-3" style="min-width: 200px;">
-          <li>
-            <h6 class="dropdown-header text-uppercase small fw-bold" style="color: #1e3c72; letter-spacing: 1px;">System
-              Manager</h6>
-          </li>
+      <!-- Right Side: Status and Profile -->
+      <div class="d-flex align-items-center">
+        <!-- Dynamic Status Indicator (Pulsing Dot) -->
+        <div class="me-3 d-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm" [title]="isOnline() ? 'Connected to Cloud' : 'Offline Mode (Local Cache)'">
+          <div class="rounded-circle me-1" 
+            [ngClass]="isOnline() ? 'bg-success shadow-success pulse-green' : 'bg-danger shadow-danger pulse-red'"
+            style="width: 8px; height: 8px;"></div>
+          <span class="small fw-bold" style="font-size: 0.65rem;" [class.text-success]="isOnline()" [class.text-danger]="!isOnline()">
+            {{ isOnline() ? 'ONLINE' : 'OFFLINE' }}
+          </span>
+        </div>
+
+        <div class="dropdown">
+          <button
+            class="btn btn-white border border-2 d-flex align-items-center rounded-pill px-3 py-1 shadow-sm dropdown-toggle profile-btn-hover"
+            type="button" data-bs-toggle="dropdown" style="transition: all 0.3s;">
+            <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm"
+              style="width: 34px; height: 34px; font-size: 0.9rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+              AD
+            </div>
+            <span class="fw-bold text-dark d-none d-md-inline small">Administrator</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 py-2 rounded-3" style="min-width: 200px;">
+            <li>
+              <h6 class="dropdown-header text-uppercase small fw-bold" style="color: #1e3c72; letter-spacing: 1px;">System
+                Manager</h6>
+            </li>
           <li>
             <hr class="dropdown-divider opacity-25">
           </li>
@@ -70,11 +74,12 @@
         </ul>
       </div>
     </div>
-  </nav>
+  </div>
+</nav>
 
-  <div class="d-flex flex-grow-1 overflow-hidden">
+  <div class="admin-body">
     <!-- Premium Sidebar -->
-    <div class="text-white shadow-sm flex-shrink-0" [ngClass]="isCollapsed ? 'd-none d-md-block' : 'd-block'"
+    <div class="admin-sidebar text-white shadow-sm flex-shrink-0" [ngClass]="isCollapsed ? 'd-none d-md-block' : 'd-block'"
       [style.width]="isCollapsed ? '85px' : '280px'"
       style="background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
 
@@ -83,7 +88,7 @@
         <div class="d-flex align-items-center mb-4 mt-2" [class.justify-content-center]="isCollapsed">
           <div
             class="bg-white bg-opacity-10 rounded-3 p-2 border border-white border-opacity-25 d-flex align-items-center justify-content-center shadow-sm">
-            <i class="bi bi-shield-lock fs-5"></i>
+            <i class="bi bi-shield-lock-fill fs-5 text-white"></i>
           </div>
           <span class="fs-6 fw-bold ms-3 text-uppercase text-white" [class.d-none]="isCollapsed"
             style="letter-spacing: 1px;">Control Panel</span>
@@ -91,7 +96,10 @@
 
         <hr class="text-white opacity-25 mb-4 mt-0">
 
+
         <ul class="nav nav-pills flex-column mb-auto d-grid gap-1">
+
+
 
           <li class="nav-item">
             <a routerLink="/admin-dashboard"
@@ -198,7 +206,7 @@
       </div>
     </div>
 
-    <div class="flex-grow-1 overflow-auto bg-light w-100 p-0">
+    <div class="admin-main-content">
       <ng-content></ng-content>
     </div>
 
