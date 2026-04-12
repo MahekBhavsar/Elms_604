@@ -157,11 +157,12 @@ const upload = multer({ storage: storage });
 
 // --- Smart Dual Database Connection ---
 // IMPORTANT: Credentials are baked in — NO .env file required on client machines.
-// Always use the direct shard-style URI (port 27017), NOT mongodb+srv://, because
-// +srv requires DNS SRV lookups which are blocked on many corporate/college networks.
+// The direct shard URI can sometimes timeout if Atlas node IPs rotate. 
+const ATLAS_URI_SRV = 'mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB';
 const ATLAS_URI_DIRECT = 'mongodb://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@ac-uihr8le-shard-00-00.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-01.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-02.0xfniym.mongodb.net:27017/employeeDB?ssl=true&replicaSet=atlas-149asg-shard-0&authSource=admin&retryWrites=true&w=majority';
-// .env override is only useful for dev overrides — never needed by clients
-const ATLAS_URI = ATLAS_URI_DIRECT;
+
+// Use the SRV string to fix cluster timeouts.
+const ATLAS_URI = ATLAS_URI_SRV;
 const LOCAL_URI = process.env.MONGO_LOCAL_URI || 'mongodb://127.0.0.1:27017/employeeDB';
 
 // Initialize connections
