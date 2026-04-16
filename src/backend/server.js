@@ -75,21 +75,18 @@ async function sendEmailNotification(to, subject, htmlContent) {
         console.log(`📧 Email sent successfully to: ${to}`);
     } catch (err) {
         console.error('❌ Email sending failed (Offline?):', err.message);
-        // Save to Queue if failure seems network related (only if local DB available)
-        if (localDB.readyState === 1) {
-            try {
-                await new PendingEmail({ to, subject, html: htmlContent }).save();
-                console.log('📝 Email added to offline queue.');
-            } catch (dbErr) {
-                console.error('❌ Failed to queue email:', dbErr.message);
-            }
+        // Save to Queue if failure seems network related
+        try {
+            await new PendingEmail({ to, subject, html: htmlContent }).save();
+            console.log('📝 Email added to offline queue.');
+        } catch (dbErr) {
+            console.error('❌ Failed to queue email:', dbErr.message);
         }
     }
 }
 
-// Background Worker: Retry Pending Emails every 30 seconds (only runs if local DB is available)
+// Background Worker: Retry Pending Emails every 30 seconds
 setInterval(async () => {
-    if (localDB.readyState !== 1) return; // No local DB — skip email queue
     try {
         const pending = await PendingEmail.find({});
         if (pending.length === 0) return;
@@ -156,49 +153,23 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- Smart Dual Database Connection ---
-// IMPORTANT: Credentials are baked in — NO .env file required on client machines.
-// The direct shard URI can sometimes timeout if Atlas node IPs rotate. 
-const ATLAS_URI_SRV = 'mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB';
-const ATLAS_URI_DIRECT = 'mongodb://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@ac-uihr8le-shard-00-00.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-01.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-02.0xfniym.mongodb.net:27017/employeeDB?ssl=true&replicaSet=atlas-149asg-shard-0&authSource=admin&retryWrites=true&w=majority';
-
-// Use the SRV string to fix cluster timeouts.
-const ATLAS_URI = ATLAS_URI_SRV;
-const LOCAL_URI = process.env.MONGO_LOCAL_URI || 'mongodb://127.0.0.1:27017/employeeDB';
+const ATLAS_URI  = process.env.MONGO_ATLAS_URI  || 'mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB?retryWrites=true&w=majority&appName=Cluster0';
+const LOCAL_URI  = process.env.MONGO_LOCAL_URI  || 'mongodb://127.0.0.1:27017/employeeDB';
 
 // Initialize connections
 const localDB = mongoose.createConnection(LOCAL_URI, { serverSelectionTimeoutMS: 2000 });
-const atlasDB = mongoose.createConnection(ATLAS_URI, {
-    serverSelectionTimeoutMS: 15000,
-    connectTimeoutMS: 15000,
-    socketTimeoutMS: 45000,
-    tls: true,
-    tlsAllowInvalidCertificates: false,
-    retryWrites: true,
-    w: 'majority'
-});
+const atlasDB = ATLAS_URI ? mongoose.createConnection(ATLAS_URI, { serverSelectionTimeoutMS: 5000 }) : null;
 
 localDB.on('connected', () => console.log('🏠 LOCAL ACTIVE: Connected to Local Database'));
-localDB.on('error', () => {
-    console.warn('💡 INFO: Local MongoDB not found. App will run in Cloud-Only mode.');
-});
+localDB.on('error', (err) => console.error('❌ DATABASE ERROR: Local MongoDB is not running:', err.message));
 
-atlasDB.on('connected', () => console.log('🌐 CLOUD ACTIVE: Connected to MongoDB Atlas'));
-atlasDB.on('error', (err) => {
-    console.error('❌ ATLAS CONNECTION ERROR:', err.message);
-    console.log('🔌 Retrying cloud connection in background...');
-    // Auto-retry every 30 seconds if disconnected
-    setTimeout(() => {
-        if (atlasDB.readyState === 0) {
-            atlasDB.openUri(ATLAS_URI, {
-                serverSelectionTimeoutMS: 15000,
-                connectTimeoutMS: 15000,
-                tls: true,
-                retryWrites: true
-            }).catch(() => {});
-        }
-    }, 30000);
-});
-
+if (atlasDB) {
+    atlasDB.on('connected', () => console.log('🌐 CLOUD ACTIVE: Connected to MongoDB Atlas'));
+    atlasDB.on('error', (err) => {
+        console.error('❌ ATLAS CONNECTION ERROR:', err.message);
+        console.log('🔌 OFFLINE MODE: Background sync will retry automatically.');
+    });
+}
 
 // --- Dual-Sync Helper Functions ---
 
@@ -207,7 +178,7 @@ atlasDB.on('error', (err) => {
  */
 function getSmartModel(local, atlas) {
     if (localDB.readyState === 1) return local;
-    if (atlas && atlasDB && atlasDB.readyState !== 0) return atlas;
+    if (atlas && atlasDB && atlasDB.readyState === 1) return atlas;
     return local; 
 }
 
@@ -216,21 +187,17 @@ function getSmartModel(local, atlas) {
  * Fallbacks to Atlas if Local is missing OR empty (new installations).
  */
 async function fetchSmart(localModel, atlasModel, query = {}, sort = {}, autoSeed = false) {
-    // 1. Try Local First
     try {
+        // 1. Try Local First
         if (localDB.readyState === 1) {
             const localResults = await localModel.find(query).sort(sort).lean();
             if (localResults && (Array.isArray(localResults) ? localResults.length > 0 : true)) {
                 return localResults;
             }
         }
-    } catch (localErr) {
-        console.warn(`⚠️  [SmartFetch] Local read failed for ${localModel.modelName}:`, localErr.message);
-    }
         
-    // 2. Fallback to Atlas if local is empty/disconnected/failed
-    try {
-        if (atlasDB && atlasDB.readyState !== 0) {
+        // 2. Fallback to Atlas if local is empty/disconnected
+        if (atlasDB && atlasDB.readyState === 1) {
             console.log(`📡 [SmartFetch] Falling back to Atlas for ${localModel.modelName}...`);
             const cloudResults = await atlasModel.find(query).sort(sort).lean();
             
@@ -239,6 +206,8 @@ async function fetchSmart(localModel, atlasModel, query = {}, sort = {}, autoSee
                 console.log(`🌱 [Seed] Bootstrapping local ${localModel.modelName} from Cloud...`);
                 // Batch insert to local
                 try {
+                    // For single objects (like findOne result wrapped in array), use save
+                    // For arrays, use insertMany but be careful with existing IDs
                     for (const doc of cloudResults) {
                         try {
                             const seedDoc = { ...doc, atlasSynced: true };
@@ -250,11 +219,12 @@ async function fetchSmart(localModel, atlasModel, query = {}, sort = {}, autoSee
 
             return cloudResults;
         }
-    } catch (cloudErr) {
-        console.error(`❌ [SmartFetch] Atlas Error for ${localModel.modelName}:`, cloudErr.message);
-    }
 
-    return [];
+        return [];
+    } catch (err) {
+        console.error(`❌ SmartFetch Error for ${localModel.modelName}:`, err.message);
+        return [];
+    }
 }
 
 
@@ -279,35 +249,21 @@ async function syncToAtlas(localDoc, atlasModel) {
 }
 
 /**
- * Performs a dual write (CREATE): 
- * - If local DB is available: writes locally first, then syncs to Atlas.
- * - If only Atlas is available (Cloud-Only mode): writes directly to Atlas.
+ * Performs a dual write (CREATE or REPLACEMENT): Always to localDB, then tries Atlas.
+ * This ensures data exists in both places.
  */
 async function performDualWrite(localModel, atlasModel, data, query = null) {
+    let localDoc;
+    // For new records or strict replacements, we ensure atlasSynced is false initially
     const writeData = { ...data, atlasSynced: false };
 
-    // CLOUD-ONLY MODE: Skip local, write directly to Atlas
-    if (localDB.readyState !== 1) {
-        if (!atlasModel || atlasDB.readyState !== 1) {
-            throw new Error('No database available (local disconnected, Atlas unreachable).');
-        }
-        console.log(`☁️  [CloudWrite] Writing directly to Atlas (no local DB)...`);
-        const atlasData = { ...data, atlasSynced: true };
-        if (query) {
-            return await atlasModel.findOneAndUpdate(query, atlasData, { upsert: true, new: true });
-        } else {
-            return await new atlasModel(atlasData).save();
-        }
-    }
-
-    // STANDARD MODE: Write local first, then sync
-    let localDoc;
     if (query) {
         localDoc = await localModel.findOneAndUpdate(query, writeData, { upsert: true, new: true });
     } else {
         localDoc = await new localModel(writeData).save();
     }
 
+    // Try immediate sync
     console.log(`📡 [Sync] Attempting immediate cloud push for ${localModel.modelName}...`);
     const synced = await syncToAtlas(localDoc, atlasModel);
     if (synced) {
@@ -320,25 +276,21 @@ async function performDualWrite(localModel, atlasModel, data, query = null) {
     return localDoc;
 }
 
-
 /**
- * Performs a dual update (PATCH): Works in both local+cloud and cloud-only modes.
+ * Performs a dual update (PATCH): Updates local record and resets sync flag.
+ * Ensures the background worker will pick it up if immediate sync fails.
  */
 async function performDualUpdate(localModel, atlasModel, id, updateData) {
-    // CLOUD-ONLY MODE
-    if (localDB.readyState !== 1) {
-        if (!atlasModel || atlasDB.readyState !== 1) return null;
-        return await atlasModel.findByIdAndUpdate(id, { ...updateData, atlasSynced: true }, { new: true });
-    }
-
-    // STANDARD MODE
+    // 1. Update Local and RESET atlasSynced to false
     const updatedLocal = await localModel.findByIdAndUpdate(
         id, 
         { ...updateData, atlasSynced: false }, 
         { new: true }
     );
+
     if (!updatedLocal) return null;
 
+    // 2. Try immediate sync
     const synced = await syncToAtlas(updatedLocal, atlasModel);
     if (synced) {
         await localModel.findByIdAndUpdate(updatedLocal._id, { atlasSynced: true });
@@ -346,9 +298,9 @@ async function performDualUpdate(localModel, atlasModel, id, updateData) {
     } else {
         console.log(`📝 [Sync] Update saved locally. Background sync pending.`);
     }
+
     return updatedLocal;
 }
-
 
 /**
  * Pushes unsynced local records to MongoDB Atlas.
@@ -507,8 +459,7 @@ const AtlasLeaveType = atlasDB ? atlasDB.model('LeaveType', leaveTypeSchema) : n
 
 // 4. Leave Applications
 const leaveSchema = new mongoose.Schema({
-    sr_no: mongoose.Schema.Types.Mixed,
-
+    sr_no: Number,
     Emp_CODE: Number,
     Name: String,
     Dept_Code: Number,
@@ -598,10 +549,7 @@ app.post('/api/admin/set-session', async (req, res) => {
                 sessionName: sessionName
             }));
 
-            // Use performDualWrite so this works in both local and cloud-only mode
-            for (const item of seedData) {
-                await performDualWrite(LeaveType, AtlasLeaveType, item);
-            }
+            await LeaveType.insertMany(seedData);
             console.log(`Auto-seeded default quotas for session: ${sessionName}`);
         }
 
@@ -850,7 +798,7 @@ app.get('/api/leaves/balance/:empCode/:type', async (req, res) => {
     }
 });
 
-// NEW: Ultra-fast in-memory Bulk Balance Calculation
+// NEW: Bulk Balance Calculation for high-performance reporting
 app.get('/api/leaves/balances/bulk', async (req, res) => {
     try {
         const { sessionName: querySession } = req.query;
@@ -858,111 +806,39 @@ app.get('/api/leaves/balances/bulk', async (req, res) => {
         const activeSession = sessions[0];
         const sessionName = querySession || activeSession?.sessionName || "Not Set";
 
-        // 1. Fetch EVERYTHING for ALL years at once (Only 4 queries total instead of 1,500+)
-        const [users, allLeaveTypes, allLeaves, allAdjustments] = await Promise.all([
-            fetchSmart(User, AtlasUser),
-            fetchSmart(LeaveType, AtlasLeaveType),
-            fetchSmart(Leave, AtlasLeave, { Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] } }),
-            fetchSmart(BalanceAdjustment, AtlasBalanceAdjustment)
-        ]);
+        const users = await fetchSmart(User, AtlasUser);
+        const allLeaveTypes = await fetchSmart(LeaveType, AtlasLeaveType, { sessionName });
+        const leaveTypes = [...new Set(allLeaveTypes.map(t => t.leave_name))];
+        
+        // Use Promise.all to compute all in parallel on the server
+        const summary = await Promise.all(users.map(async (user) => {
+            const empCode = user["Employee Code"];
+            if (!empCode) return null;
 
-        const sessionLeaveTypes = allLeaveTypes.filter(t => t.sessionName === sessionName);
-        const leaveTypeNames = [...new Set(sessionLeaveTypes.map(t => t.leave_name))];
+            const balances = await Promise.all(leaveTypes.map(async (type) => {
+                const result = await calculateUserBalance(empCode, type, sessionName);
+                return {
+                    leave: type,
+                    balance: result.balance,
+                    used: result.usedThisYear,
+                    limit: result.limit,
+                    isIncrementing: result.isIncrementing,
+                    isManuallyAdjusted: result.isManuallyAdjusted,
+                    isEligible: result.isEligible
+                };
+            }));
 
-        const summary = users.map(user => {
-            const empCode = Number(user["Employee Code"]);
-            if (!empCode || isNaN(empCode)) return null;
+            return {
+                name: user.Name,
+                empCode: empCode,
+                sr_no: user.sr_no, // Strictly use the standardized field
+                dept: user.dept_code,
+                deptName: user.department,
+                balances: balances
+            };
+        }));
 
-            const userDept = String(user.dept_code ?? user["Dept_Code"] ?? user["Department Code"] ?? '');
-            const userStaffType = String(user.staffType || user["Staff Type"] || 'Teaching').toLowerCase().trim();
-
-            const balances = leaveTypeNames.map(type => {
-                const leaveTypeUpper = type.toUpperCase().trim();
-                
-                const allRulesForType = allLeaveTypes.filter(r => String(r.leave_name||"").toUpperCase().trim() === leaveTypeUpper);
-                const userRules = allRulesForType.filter(r => 
-                    (String(r.dept_code) === userDept || String(r.dept_code) === '0' || !r.dept_code)
-                );
-                
-                const applicableRules = userRules.filter(r => r.sessionName === sessionName);
-                
-                let currentRule = null;
-                if (applicableRules.length > 0) {
-                    currentRule = applicableRules.find(r => String(r.staffType || 'All').toLowerCase().trim() === userStaffType) 
-                               || applicableRules.find(r => String(r.staffType || 'All').toLowerCase().trim() === 'all') || null;
-                }
-
-                let isEligible = true;
-                if (!currentRule) {
-                    if (allRulesForType.some(r => r.sessionName === sessionName)) isEligible = false;
-                    else currentRule = {
-                        leave_name: leaveTypeUpper,
-                        total_yearly_limit: (['AL', 'VAL', 'DL'].includes(leaveTypeUpper)) ? 0 : 12,
-                        can_carry_forward: (leaveTypeUpper === 'SL' || leaveTypeUpper === 'EL'),
-                        sessionName
-                    };
-                }
-
-                if (!isEligible) {
-                    return { leave: type, balance: '-', used: '-', limit: '-', isIncrementing: false, isManuallyAdjusted: false, isEligible: false };
-                }
-
-                const isIncrementing = Number(currentRule.total_yearly_limit) === 0;
-
-                const usedThisYear = allLeaves
-                    .filter(l => l.Emp_CODE === empCode && l.sessionName === sessionName && String(l["Type of Leave"] || l.Type_of_Leave).toUpperCase().trim() === leaveTypeUpper)
-                    .reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-
-                const manualAdjObj = allAdjustments.find(a => a.empCode === empCode && a.sessionName === sessionName && String(a.leaveType).toUpperCase().trim() === leaveTypeUpper);
-                const manualAdj = manualAdjObj ? Number(manualAdjObj.adjustmentValue) : null;
-
-                if (isIncrementing) {
-                    return {
-                        leave: type, balance: manualAdj !== null ? manualAdj : usedThisYear, used: usedThisYear, limit: '-',
-                        isIncrementing: true, isManuallyAdjusted: manualAdj !== null, isEligible: true
-                    };
-                } else {
-                    let totalLimit = Number(currentRule.total_yearly_limit);
-                    
-                    if (currentRule.can_carry_forward) {
-                        const currentYearStart = parseInt(sessionName.split('-')[0]);
-                        const pastRules = Array.from(new Map(userRules.filter(r => parseInt((r.sessionName||"").split('-')[0]) < currentYearStart).map(r => [r.sessionName, r])).values());
-            
-                        for (let pastRule of pastRules) {
-                            const pastAdjObj = allAdjustments.find(a => a.empCode === empCode && a.sessionName === pastRule.sessionName && String(a.leaveType).toUpperCase().trim() === leaveTypeUpper);
-                            
-                            let carryAmount = 0;
-                            if (pastAdjObj) {
-                                carryAmount = Number(pastAdjObj.adjustmentValue);
-                            } else {
-                                const pastUsed = allLeaves
-                                    .filter(l => l.Emp_CODE === empCode && l.sessionName === pastRule.sessionName && String(l["Type of Leave"] || l.Type_of_Leave).toUpperCase().trim() === leaveTypeUpper)
-                                    .reduce((sum, l) => sum + (Number(l["Total Days"] || l.Total_Days) || 0), 0);
-                                carryAmount = Math.max(0, Number(pastRule.total_yearly_limit) - pastUsed);
-                            }
-                            totalLimit += carryAmount;
-                        }
-                    }
-
-                    let finalBalance = Math.max(0, totalLimit - usedThisYear);
-                    let finalLimit = totalLimit;
-
-                    if (manualAdj !== null) {
-                        finalBalance = manualAdj;
-                        finalLimit = finalBalance + usedThisYear;
-                    }
-
-                    return {
-                        leave: type, balance: finalBalance, used: usedThisYear, limit: finalLimit,
-                        isIncrementing: false, isManuallyAdjusted: manualAdj !== null, isEligible: true
-                    };
-                }
-            });
-
-            return { name: user.Name, empCode: empCode, sr_no: user.sr_no, dept: user.dept_code, deptName: user.department, balances: balances };
-        }).filter(s => s !== null);
-
-        res.json(summary);
+        res.json(summary.filter(s => s !== null));
     } catch (err) {
         console.error("Bulk Balance Error:", err);
         res.status(500).json({ error: "Bulk calculation failed" });
@@ -1011,7 +887,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             });
         }
         
-        // --- 1. OVERLAPPING DATE VALIDATION & IDEMPOTENCY ---
+        // --- 1. OVERLAPPING DATE VALIDATION ---
         const existingLeaves = await fetchSmart(Leave, AtlasLeave, {
             Emp_CODE: Number(Emp_CODE),
             Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] }
@@ -1019,33 +895,36 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
 
         const newStart = parseDateLocal(From);
         const newEnd = parseDateLocal(To);
-        const incomingType = String(Type_of_Leave || '').toUpperCase();
 
         for (let leave of existingLeaves) {
             if (!leave.From || !leave.To) continue;
             const existStart = parseDateLocal(leave.From);
             const existEnd = parseDateLocal(leave.To);
-            const existingType = String(leave["Type of Leave"] || leave.Type_of_Leave || '').toUpperCase();
             
-            // 1. Check for EXACT DUPLICATE (Idempotency Fix)
-            // If Type and Dates match, it's likely a dupe regardless of sr_no (which might have changed on retry)
-            if (existingType === incomingType && 
-                existStart.getTime() === newStart.getTime() && 
-                existEnd.getTime() === newEnd.getTime()) {
-                
-                console.log(`⚠️ [Idempotency] Blocking duplicate submission for ${Name} (${From} - ${To})`);
-                return res.json({ 
-                    success: true, 
-                    data: leave, 
-                    message: "Duplicate submission ignored to prevent data doubling." 
-                });
-            }
-
-            // 2. Check for Date Range Overlap (General Check)
+            // Check for date range overlap
             if (newStart <= existEnd && newEnd >= existStart) {
+                // --- IDEMPOTENCY FIX ---
+                // If it's the exact same leave type, start date, end date, and sr_no, this means the offline sync 
+                // is trying to push a record that already successfully saved previously (but the client missed the 200 OK).
+                // Just silently return success so the client deletes it from the queue without an overlapping error!
+                const existingType = String(leave["Type of Leave"] || leave.Type_of_Leave).toUpperCase();
+                const incomingType = String(Type_of_Leave).toUpperCase();
+                
+                if (existingType === incomingType && 
+                    existStart.getTime() === newStart.getTime() && 
+                    existEnd.getTime() === newEnd.getTime() &&
+                    String(leave.sr_no) === String(sr_no)) {
+                    
+                    return res.json({ 
+                        success: true, 
+                        data: leave, 
+                        message: "Duplicate offline sync ignored securely." 
+                    });
+                }
+
                 return res.status(400).json({
                     success: false,
-                    error: `Overlap detected: Already scheduled for ${existingType} from ${leave.From} to ${leave.To}.`
+                    error: `You already have a leave scheduled between ${leave.From} and ${leave.To}. Dates cannot overlap.`
                 });
             }
         }
@@ -1073,31 +952,9 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             return res.status(400).json({ success: false, error: "Invalid Employee Code or Total Days." });
         }
 
-        // --- 4. SR NO DUPLICATE HANDLING (AUTO-SUFFIX) ---
-        let finalizedSrNo = String(sr_no || '0').trim();
-        const baseSrNo = finalizedSrNo;
-        
-        const existing = await fetchSmart(Leave, AtlasLeave, { 
-            $or: [ { sr_no: finalizedSrNo }, { sr_no: Number(finalizedSrNo) || -8888 } ]
-        });
-
-        if (existing.length > 0) {
-            let suffix = 1;
-            while (true) {
-                let candidate = `${baseSrNo}-${suffix}`;
-                const check = await fetchSmart(Leave, AtlasLeave, { sr_no: candidate });
-                if (check.length === 0) {
-                    finalizedSrNo = candidate;
-                    break;
-                }
-                suffix++;
-            }
-        }
-
         const savedLeave = await performDualWrite(Leave, AtlasLeave, {
-            sr_no: finalizedSrNo,
+            sr_no: Number(sr_no) || 0,
             Emp_CODE: empCodeNum,
-
             Name: Name,
             Dept_Code: isNaN(deptCodeNum) ? null : deptCodeNum,
             "Type of Leave": Type_of_Leave ? String(Type_of_Leave).toUpperCase() : "UNKNOWN",
@@ -1280,9 +1137,6 @@ app.put('/api/leaves/:id', async (req, res) => {
         
         if (updateDataRaw.From) updateData.From = updateDataRaw.From;
         if (updateDataRaw.To) updateData.To = updateDataRaw.To;
-        // sr_no is now Mixed type (can be '514-1' etc). Preserve as string.
-        if (updateDataRaw.sr_no !== undefined) updateData.sr_no = String(updateDataRaw.sr_no).trim();
-
         
         const type = updateDataRaw["Type of Leave"] || updateDataRaw.Type_of_Leave || updateDataRaw.type;
         if (type) {
@@ -1298,7 +1152,6 @@ app.put('/api/leaves/:id', async (req, res) => {
 
         if (updateDataRaw.Status) updateData.Status = updateDataRaw.Status;
         if (updateDataRaw.Reason) updateData.Reason = updateDataRaw.Reason;
-        if (updateDataRaw.VAL_working_dates) updateData.VAL_working_dates = updateDataRaw.VAL_working_dates;
 
         const updated = await performDualUpdate(Leave, AtlasLeave, req.params.id, updateData);
 
@@ -1308,42 +1161,6 @@ app.put('/api/leaves/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
-app.delete('/api/leaves/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        let deletedOk = false;
-
-        // 1. Delete from Local (if available)
-        if (localDB.readyState === 1) {
-            try {
-                await Leave.findByIdAndDelete(id);
-                deletedOk = true;
-            } catch(e) { console.error(`Local delete failed:`, e.message); }
-        }
-        
-        // 2. Delete from Atlas (always attempt)
-        if (AtlasLeave && atlasDB.readyState === 1) {
-            try {
-                await AtlasLeave.findByIdAndDelete(id);
-                console.log(`✅ [Delete] Successfully removed leave ${id} from Cloud.`);
-                deletedOk = true;
-            } catch (err) {
-                console.error(`❌ [Delete] Cloud deletion failed for ${id}:`, err.message);
-            }
-        }
-
-        if (!deletedOk) {
-            return res.status(500).json({ success: false, error: "Deletion failed: no database available." });
-        }
-        
-        res.json({ success: true, message: "Leave application deleted successfully." });
-    } catch (err) {
-        console.error("Delete Leave Error:", err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
 
 // 6. MANUAL BALANCE ADJUSTMENT
 app.post('/api/leaves/adjust-balance', async (req, res) => {
@@ -1424,27 +1241,19 @@ app.post('/api/admin/sync-all-balances', async (req, res) => {
 // Check if a SR No already exists in any leave record
 app.get('/api/leaves/check-sr-no/:srNo', async (req, res) => {
     try {
-        const srNo = req.params.srNo.toString().trim();
-        // Check for exact match in both numeric and string formats
-        const existingLeaves = await fetchSmart(Leave, AtlasLeave, { 
-            $or: [
-                { sr_no: srNo },
-                { sr_no: Number(srNo) || 0 }
-            ]
-        });
+        const srNo = Number(req.params.srNo);
+        const existingLeaves = await fetchSmart(Leave, AtlasLeave, { sr_no: srNo });
         res.json({ exists: existingLeaves.length > 0 });
     } catch (err) {
         res.json({ exists: false });
     }
 });
 
-
 // Get next GLOBAL Sr. No (continuous across all staff — 1, 2, 3, ...)
 app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
     try {
         // High-performance search for latest numeric Sr No across ALL leaves
-        // We filter for numeric values only so suffixed IDs (like 514-1) don't disrupt the numeric sequence
-        const latestLeaves = await fetchSmart(Leave, AtlasLeave, { sr_no: { $type: "number" } }, { sr_no: -1 });
+        const latestLeaves = await fetchSmart(Leave, AtlasLeave, { sr_no: { $exists: true, $ne: null } }, { sr_no: -1 });
         const latest = latestLeaves[0];
         
         const nextSrNo = latest && latest.sr_no ? Number(latest.sr_no) + 1 : 1;
@@ -1454,108 +1263,35 @@ app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
     }
 });
 
-
 // 6. LOGIN & STAFF MANAGEMENT
-// Helper to wait for Atlas to be ready (up to 15 seconds)
-function waitForAtlas(maxMs = 15000) {
-    return new Promise((resolve) => {
-        if (atlasDB && atlasDB.readyState === 1) return resolve(true);
-        if (atlasDB && atlasDB.readyState === 0) {
-            console.log('🔌 [Login] Atlas is disconnected. Forcing reconnect...');
-            // Attempt to trigger connection
-            atlasDB.openUri(ATLAS_URI, { 
-                serverSelectionTimeoutMS: 15000, 
-                connectTimeoutMS: 15000, 
-                tls: true, 
-                retryWrites: true 
-            }).catch(() => {});
-        }
-        const start = Date.now();
-        const interval = setInterval(() => {
-            if (atlasDB && (atlasDB.readyState === 1 || atlasDB.readyState === 2)) { 
-                // Treat connecting (2) as ready since Mongoose will buffer the find() query
-                clearInterval(interval); 
-                return resolve(true); 
-            }
-            if (Date.now() - start >= maxMs) { clearInterval(interval); return resolve(false); }
-        }, 200);
-    });
-}
-
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password: rawPassword } = req.body;
         console.log(`🔐 [Login Attempt] Email: ${email}`);
 
-        if (!email || rawPassword === undefined || rawPassword === null || String(rawPassword).trim() === '') {
-            return res.status(401).json({ success: false, error: "Email and password are required" });
+        const password = Number(rawPassword);
+        if (isNaN(password)) {
+            console.warn('⚠️  [Login] Invalid password format (not a number)');
+            return res.status(401).json({ success: false, error: "Invalid password format" });
         }
         
-        // Support both numeric and string passwords robustly
-        const passwordNum = isNaN(Number(rawPassword)) ? null : Number(rawPassword);
-        const passwordConditions = [{ "Password": String(rawPassword) }];
-        if (passwordNum !== null) passwordConditions.push({ "Password": passwordNum });
+        // Case-insensitive email search + Flexible Password (Number or String)
+        const passwordNum = Number(rawPassword);
+        const query = { 
+            "Email": { $regex: new RegExp(`^${email}$`, 'i') },
+            $or: [
+                { "Password": passwordNum },
+                { "Password": String(rawPassword) }
+            ]
+        };
 
-        const emailQuery = { "Email": { $regex: new RegExp(`^${email.trim()}$`, 'i') } };
-        const query = { ...emailQuery, $or: passwordConditions };
+        const users = await fetchSmart(User, AtlasUser, query, {}, true);
+        const user = users[0];
 
-        // --- 1. WAIT FOR ATLAS & ATTEMPT CLOUD LOGIN ---
-        let user = null;
-        let atlasReady = false;
-        try {
-            atlasReady = await waitForAtlas(15000);
-        } catch(e) { /* ignore */ }
-
-        if (atlasReady) {
-            try {
-                console.log(`📡 [Login] Trying Atlas...`);
-                const cloudUsers = await AtlasUser.find(query).lean();
-                if (cloudUsers && cloudUsers.length > 0) {
-                    user = cloudUsers[0];
-                    console.log(`✅ [Login] Cloud auth successful for: ${user.Name}`);
-                    // Seed user and session locally for future offline use
-                    if (localDB.readyState === 1) {
-                        try { 
-                            await User.replaceOne({ _id: user._id }, { ...user, atlasSynced: true }, { upsert: true });
-                            const localSession = await Session.findOne({});
-                            if (!localSession) {
-                                const cloudSessions = await AtlasSession.find({}).sort({ updatedAt: -1 }).limit(1).lean();
-                                if (cloudSessions.length > 0) {
-                                    await Session.replaceOne({ _id: cloudSessions[0]._id }, { ...cloudSessions[0], atlasSynced: true }, { upsert: true });
-                                    console.log('✅ [Bootstrap] Academic Session seeded locally.');
-                                }
-                            }
-                        } catch(e){ console.warn('Bootstrap seeding failed (non-critical):', e.message); }
-                    }
-                }
-            } catch (e) { 
-                console.error('❌ [Login] Atlas query failed:', e.message);
-            }
-        } else {
-            console.warn('⚠️  [Login] Atlas not reachable. Trying local database...');
-        }
-
-        // --- 2. FALLBACK TO LOCAL DATABASE ---
-        if (!user) {
-            try {
-                if (localDB.readyState === 1) {
-                    const localUsers = await User.find(query).lean();
-                    if (localUsers && localUsers.length > 0) {
-                        user = localUsers[0];
-                        console.log(`✅ [Login] Local auth successful for: ${user.Name}`);
-                    }
-                }
-            } catch (localErr) {
-                console.error('❌ [Login] Local query failed:', localErr.message);
-            }
-        }
-
-        // --- 3. RESPOND ---
         if (user) {
+            console.log(`✅ [Login] Success for: ${user.Name} (Role: ${user.role || user.Role})`);
             res.json({
-                success: true, 
-                name: user["Name"], 
-                empCode: user["Employee Code"],
+                success: true, name: user["Name"], empCode: user["Employee Code"],
                 role: user["role"] || user["Role"], 
                 dept: user["department"] || user["Department"], 
                 dept_code: user["dept_code"] ?? user["Dept_Code"] ?? user["Department Code"],
@@ -1563,25 +1299,15 @@ app.post('/api/login', async (req, res) => {
                 staffType: user["staffType"] || user["Staff Type"] || 'Teaching'
             });
         } else { 
-            // Provide a more meaningful error message
-            let errorMsg = 'User not found. Please check your email and password.';
-            try {
-                // Check if email exists (to differentiate wrong password vs wrong email)
-                const dbToCheck = atlasReady ? AtlasUser : (localDB.readyState === 1 ? User : null);
-                if (dbToCheck) {
-                    const exist = await dbToCheck.find(emailQuery).lean();
-                    if (exist.length > 0) {
-                        errorMsg = 'Incorrect password. Please try again.';
-                    } else if (!atlasReady && localDB.readyState !== 1) {
-                        errorMsg = 'Cannot reach the database. Please check your internet connection and try again.';
-                    }
-                } else if (!atlasReady && localDB.readyState !== 1) {
-                    errorMsg = 'Cannot reach the database. Please check your internet connection and try again.';
-                }
-            } catch(e) { /* ignore diagnostic error */ }
-
-            console.warn(`❌ [Login] Failed for ${email}. Msg: ${errorMsg}`);
-            res.status(401).json({ success: false, error: errorMsg }); 
+            console.warn(`❌ [Login] Failed. No user found for ${email} with that password.`);
+            // Diagnostic check: check if user exists at all without the password filter
+            const emailQuery = { "Email": { $regex: new RegExp(`^${email}$`, 'i') } };
+            const existingUsers = await fetchSmart(User, AtlasUser, emailQuery);
+            
+            res.status(401).json({ 
+                success: false, 
+                error: existingUsers.length > 0 ? "Incorrect password" : "User not found" 
+            }); 
         }
     } catch (err) { 
         console.error('💥 [Login] Server Error:', err.message);
@@ -1750,10 +1476,7 @@ app.get('/api/admin/leave-history/:empCode/:type', async (req, res) => {
         // Including Pending to match the "taken" balance calculation
         const history = await fetchSmart(Leave, AtlasLeave, { 
             Emp_CODE: empCode, 
-            $or: [
-                { "Type of Leave": { $regex: new RegExp(`^${type}$`, 'i') } },
-                { "Type_of_Leave": { $regex: new RegExp(`^${type}$`, 'i') } }
-            ],
+            "Type of Leave": type.toUpperCase().trim(),
             sessionName: sessionName,
             Status: { $in: ['Approved', 'Final Approved', 'HOD Approved', 'Pending', 'approved', 'pending'] } 
         }, { From: -1 }); 
@@ -1868,8 +1591,8 @@ app.post('/api/admin/reconcile', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 5789;
+const PORT = process.env.PORT || 5000;
 if (!process.env.VERCEL) {
-    app.listen(PORT, '127.0.0.1', () => console.log(`Server running on http://127.0.0.1:${PORT}`));
+    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 }
-module.exports = app;
+module.exports = app;
