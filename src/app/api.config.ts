@@ -8,10 +8,10 @@ function getApiBase(): string {
     const isElectron = protocol === 'file:' || protocol === 'app:' || (window as any).process?.type === 'renderer';
     
     if (isElectron) {
-      return 'http://localhost:5000';
+      return 'http://127.0.0.1:5789';
     }
   }
-  // In browser dev mode, the Angular proxy handles /api -> localhost:5000
+  // In browser dev mode, the Angular proxy handles /api -> 127.0.0.1:5789
   return '';
 }
 

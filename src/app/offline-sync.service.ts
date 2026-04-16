@@ -72,7 +72,7 @@ export class OfflineSyncService extends Dexie {
   private async checkStatusUpdates() {
     if (!isPlatformBrowser(this.platformId)) return;
     if (!navigator.onLine) {
-       // If offline, we can still poll if the backend is local (localhost:5000)
+       // If offline, we can still poll if the backend is local (localhost:5789)
        // But if it's a remote backend, we skip to save battery/network
        // Let's assume most users have local backend in this hybrid app
     }
