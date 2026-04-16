@@ -25,13 +25,19 @@ function startBackend() {
   const { utilityProcess } = require('electron');
   backendProcess = utilityProcess.fork(serverPath, [], {
     cwd: cwd,
-    env: { ...process.env, PORT: '5000' },
+    env: { ...process.env, PORT: '5789' },
     stdio: 'pipe'
   });
 }
 
 function waitForBackend(callback) {
-  const req = http.get('http://localhost:5000/api/db-status', () => callback());
+  const req = http.get('http://127.0.0.1:5789/api/db-status', (res) => {
+    if (res.statusCode === 200) {
+      callback();
+    } else {
+      setTimeout(() => waitForBackend(callback), 1000);
+    }
+  });
   req.on('error', () => setTimeout(() => waitForBackend(callback), 1000));
   req.end();
 }

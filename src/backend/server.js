@@ -1456,13 +1456,27 @@ app.get('/api/leaves/next-sr-no/:empCode', async (req, res) => {
 
 
 // 6. LOGIN & STAFF MANAGEMENT
-// Helper to wait for Atlas to be ready (up to 8 seconds)
-function waitForAtlas(maxMs = 8000) {
+// Helper to wait for Atlas to be ready (up to 15 seconds)
+function waitForAtlas(maxMs = 15000) {
     return new Promise((resolve) => {
-        if (atlasDB.readyState === 1) return resolve(true);
+        if (atlasDB && atlasDB.readyState === 1) return resolve(true);
+        if (atlasDB && atlasDB.readyState === 0) {
+            console.log('🔌 [Login] Atlas is disconnected. Forcing reconnect...');
+            // Attempt to trigger connection
+            atlasDB.openUri(ATLAS_URI, { 
+                serverSelectionTimeoutMS: 15000, 
+                connectTimeoutMS: 15000, 
+                tls: true, 
+                retryWrites: true 
+            }).catch(() => {});
+        }
         const start = Date.now();
         const interval = setInterval(() => {
-            if (atlasDB.readyState === 1) { clearInterval(interval); return resolve(true); }
+            if (atlasDB && (atlasDB.readyState === 1 || atlasDB.readyState === 2)) { 
+                // Treat connecting (2) as ready since Mongoose will buffer the find() query
+                clearInterval(interval); 
+                return resolve(true); 
+            }
             if (Date.now() - start >= maxMs) { clearInterval(interval); return resolve(false); }
         }, 200);
     });
@@ -1489,7 +1503,7 @@ app.post('/api/login', async (req, res) => {
         let user = null;
         let atlasReady = false;
         try {
-            atlasReady = await waitForAtlas(8000);
+            atlasReady = await waitForAtlas(15000);
         } catch(e) { /* ignore */ }
 
         if (atlasReady) {
@@ -1854,8 +1868,8 @@ app.post('/api/admin/reconcile', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5789;
 if (!process.env.VERCEL) {
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    app.listen(PORT, '127.0.0.1', () => console.log(`Server running on http://127.0.0.1:${PORT}`));
 }
 module.exports = app;
