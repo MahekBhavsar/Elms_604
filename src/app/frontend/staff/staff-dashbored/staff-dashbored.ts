@@ -93,6 +93,19 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
             pending: sessionHistory.filter((l: any) => (l.Status || '').toLowerCase().trim() === 'pending').length,
             rejected: sessionHistory.filter((l: any) => (l.Status || '').toLowerCase().trim() === 'rejected').length
           };
+          
+          // INSTANTLY clear the placeholder & render the Status History Chart!
+          // We do not hold the status chart hostage waiting for the slow balance APIs over the network!
+          this.cdr.detectChanges();
+          this.ngZone.runOutsideAngular(() => {
+            setTimeout(() => {
+              if (this.statusChartRef) this.renderStatusChart();
+              if (this.statusChartRef) {
+                // Ensure placeholder opacity goes 0 for instant switch
+                this.statusChartRef.nativeElement.classList.remove('invisible');
+              }
+            }, 50);
+          });
 
           // 1. Filter rules for CURRENT session using Perfect Match logic
           function normalize(v: any) { return String(v || '').trim(); }
@@ -229,16 +242,25 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
         labels: ['Approved', 'Pending', 'Rejected'],
         datasets: [{
           data: [this.leaveStats.approved, this.leaveStats.pending, this.leaveStats.rejected],
-          backgroundColor: ['#198754', '#ffc107', '#dc3545'],
-          borderWidth: 2,
-          borderColor: '#ffffff'
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], // Modern beautiful vibrant tails
+          borderWidth: 0,
+          hoverOffset: 15
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: { legend: { display: false } }
+        cutout: '78%',
+        animation: { duration: 1800, easing: 'easeOutBack' }, // Gorgeous pop-in animation
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            padding: 12,
+            bodyFont: { size: 14, weight: 'bold' },
+            cornerRadius: 8
+          }
+        }
       }
     });
   }
@@ -249,25 +271,50 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     const labels = this.quotaCards.map(c => c.name);
     const takenData = this.quotaCards.map(c => c.used);
 
+    // Apply a gorgeous dynamic vertical gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+    gradient.addColorStop(0, '#3b82f6'); // rich light blue
+    gradient.addColorStop(1, '#6366f1'); // deep indigo
+
     this.leaveTypeChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
         datasets: [{
-          label: 'Days Taken',
+          label: 'Days Count',
           data: takenData,
-          backgroundColor: '#007bff',
-          borderRadius: 8
+          backgroundColor: gradient,
+          borderRadius: 8,
+          borderSkipped: false,
+          barPercentage: 0.6
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 1600, easing: 'easeOutBounce' }, // Sleek cascading entrance
         scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 } },
-          x: { grid: { display: false } }
+          y: { 
+             beginAtZero: true, 
+             ticks: { stepSize: 1, font: { weight: 'bold', family: 'sans-serif' }, color: '#9ca3af' },
+             grid: { color: '#f3f4f6' }, border: { display: false }
+          },
+          x: { 
+             ticks: { font: { weight: 'bold', family: 'sans-serif' }, color: '#6b7280' },
+             grid: { display: false }, border: { display: false }
+          }
         },
-        plugins: { legend: { display: false } }
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            padding: 12,
+            titleFont: { size: 13, weight: 'normal' },
+            bodyFont: { size: 15, weight: 'bold' },
+            displayColors: false,
+            cornerRadius: 8
+          }
+        }
       }
     });
   }
