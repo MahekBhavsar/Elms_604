@@ -4,13 +4,13 @@
     <!-- Top Dashboard Header -->
     <div class="row align-items-center mb-4 g-3">
       <div class="col-md-7">
-        <h3 class="fw-bolder text-dark mb-1"><i class="bi bi-gear-wide-connected me-2 text-primary"></i>System Configurations</h3>
-        <p class="text-muted mb-0">Manage Global Academic Sessions & Leave Quota Rules.</p>
+        <h3 class="fw-bolder text-dark mb-1"><i class="bi bi-gear-wide-connected me-2 text-primary"></i>{{ t('SYSTEM_CONFIGURATIONS') }}</h3>
+        <p class="text-muted mb-0">{{ t('GLOBAL_CONFIG_SUBTITLE') }}</p>
       </div>
       <div class="col-md-5 text-md-end">
         <div class="badge bg-white text-primary border border-primary-subtle rounded-pill px-4 py-3 shadow-sm d-inline-flex align-items-center">
           <i class="bi bi-calendar-check-fill me-2 fs-5"></i>
-          <span class="fs-6 fw-bold">Active: {{ activeSession().sessionName || 'Not Set' }}</span>
+          <span class="fs-6 fw-bold">{{ t('ACTIVE') }}: {{ activeSession().sessionName || 'Not Set' }}</span>
         </div>
       </div>
     </div>
@@ -19,12 +19,12 @@
     <div class="card border-0 shadow-sm rounded-4 mb-5 bg-white border-top border-4 border-primary overflow-hidden">
       <div class="card-body p-4 p-lg-5">
         <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-light">
-          <h5 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-range me-2 text-primary"></i>Session Management</h5>
+          <h5 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-range me-2 text-primary"></i>{{ t('SESSION_MANAGEMENT') }}</h5>
           
           <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle fw-bold shadow-none rounded-pill px-4" type="button" data-bs-toggle="dropdown">
               <i class="bi bi-layers-half me-2"></i>
-              {{ activeSession().sessionName || 'Switch Session' }}
+              {{ activeSession().sessionName || t('SWITCH_SESSION') }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-2">
               <li class="px-3 py-2 small text-muted text-uppercase fw-bolder border-bottom mb-2">Saved Academic Years</li>
@@ -48,21 +48,21 @@
 
         <div class="row g-4 align-items-end">
           <div class="col-md-3">
-            <label class="form-label small fw-bolder text-muted text-uppercase mb-2"><i class="bi bi-tag me-1 text-primary"></i>Session Name</label>
+            <label class="form-label small fw-bolder text-muted text-uppercase mb-2"><i class="bi bi-tag me-1 text-primary"></i>{{ t('SESSION_NAME') }}</label>
             <input type="text" [(ngModel)]="activeSession().sessionName" class="form-control bg-light border-0 py-2 fs-6 fw-bold shadow-none" placeholder="e.g. 2025-26">
           </div>
           <div class="col-md-3">
-            <label class="form-label small fw-bolder text-muted text-uppercase mb-2"><i class="bi bi-calendar2-plus me-1 text-primary"></i>Start Date</label>
+            <label class="form-label small fw-bolder text-muted text-uppercase mb-2"><i class="bi bi-calendar2-plus me-1 text-primary"></i>{{ t('START_DATE') }}</label>
             <input type="date" [(ngModel)]="activeSession().startDate" class="form-control bg-light border-0 py-2 shadow-none">
           </div>
           <div class="col-md-3">
-            <label class="form-label small fw-bolder text-muted text-uppercase mb-2"><i class="bi bi-calendar2-minus me-1 text-primary"></i>End Date</label>
+            <label class="form-label small fw-bolder text-muted text-uppercase mb-2"><i class="bi bi-calendar2-minus me-1 text-primary"></i>{{ t('END_DATE') }}</label>
             <input type="date" [(ngModel)]="activeSession().endDate" class="form-control bg-light border-0 py-2 shadow-none">
           </div>
           <div class="col-md-3">
             <button (click)="saveSession()" class="btn btn-primary w-100 py-2.5 fw-bold rounded-3 shadow border-0" 
                     style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-              <i class="bi bi-save2 me-2"></i>Apply Changes
+              <i class="bi bi-save2 me-2"></i>{{ t('APPLY_CHANGES') }}
             </button>
           </div>
         </div>
@@ -75,10 +75,10 @@
         <!-- MODE LOGIC TIP -->
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-info bg-opacity-10 border-start border-4 border-info">
           <div class="card-body p-3">
-            <h6 class="fw-bold text-info-emphasis mb-1"><i class="bi bi-lightbulb-fill me-2"></i>Logic Guide</h6>
+            <h6 class="fw-bold text-info-emphasis mb-1"><i class="bi bi-lightbulb-fill me-2"></i>{{ t('LOGIC_GUIDE') }}</h6>
             <p class="small text-info-emphasis mb-0 opacity-75">
-              Set <strong>Limit to 0</strong> for Accumulating mode (Starts at 0 and grows). 
-              Set a **Limit > 0** for Quota-based deduction.
+              Set <strong>Limit to 0</strong> for {{ t('ACCUMULATING_MODE') }} (Starts at 0 and grows). 
+              Set a **Limit > 0** for {{ t('QUOTA_BASED_DEDUCTION') }}.
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@
           <div class="bg-dark p-3 text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold fs-6 text-white">
               <i class="bi me-2" [class.bi-pencil-square]="editingId()" [class.bi-plus-circle-dotted]="!editingId()"></i>
-              {{ editingId() ? 'Update Policy' : 'Configure Rule' }}
+              {{ editingId() ? t('UPDATE_POLICY') : t('CONFIGURE_RULE') }}
             </h5>
             <button *ngIf="editingId()" class="btn btn-outline-light btn-sm rounded-pill px-2 border-0" (click)="resetForm()" type="button">
               <i class="bi bi-x-circle me-1"></i>Reset
@@ -96,16 +96,16 @@
           <div class="card-body p-4">
             <form (ngSubmit)="saveYearlyLimit()">
               <div class="mb-4">
-                <label class="form-label small fw-bolder text-muted text-uppercase mb-2">Leave Category</label>
+                <label class="form-label small fw-bolder text-muted text-uppercase mb-2">{{ t('LEAVE_CATEGORY') }}</label>
                 <input type="text" [(ngModel)]="leaveLimit.leave_name" name="leave_name" 
                        class="form-control bg-light border-0 py-3 shadow-none fw-bold" placeholder="e.g. CL, SL, AL" required>
               </div>
 
               <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <label class="form-label small fw-bolder text-muted text-uppercase mb-0">Annual Limit</label>
+                  <label class="form-label small fw-bolder text-muted text-uppercase mb-0">{{ t('ANNUAL_LIMIT') }}</label>
                   @if (leaveLimit.total_yearly_limit === 0) {
-                    <span class="badge bg-primary rounded-pill px-2 py-1 small">Accumulating Mode</span>
+                    <span class="badge bg-primary rounded-pill px-2 py-1 small">{{ t('ACCUMULATING_MODE') }}</span>
                   }
                 </div>
                 <input type="number" [(ngModel)]="leaveLimit.total_yearly_limit" name="total_yearly_limit" 
@@ -118,7 +118,7 @@
               <div class="mb-4">
                 <div class="form-check form-switch p-3 bg-light rounded-4 ms-0 border border-light">
                   <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="cfSwitch" [(ngModel)]="leaveLimit.can_carry_forward" name="cf">
-                  <label class="form-check-label fw-bold text-dark mt-1" for="cfSwitch">Carry Forward Support</label>
+                  <label class="form-check-label fw-bold text-dark mt-1" for="cfSwitch">{{ t('CARRY_FORWARD_SUPPORT') }}</label>
                 </div>
                 @if (leaveLimit.can_carry_forward) {
                   <div class="small text-success mt-2 ps-2">
@@ -128,7 +128,7 @@
               </div>
 
               <div class="mb-4">
-                <label class="form-label small fw-bolder text-muted text-uppercase d-block mb-3">Applicable Departments</label>
+                <label class="form-label small fw-bolder text-muted text-uppercase d-block mb-3">{{ t('APPLICABLE_DEPTS') }}</label>
                 <div class="d-flex flex-wrap gap-2">
                   @for (dept of availableDeptCodes; track dept) {
                     <button type="button" class="btn btn-sm rounded-pill px-3 border-2 fw-bold transition-all shadow-none"
@@ -142,7 +142,7 @@
 
               <button type="submit" class="btn btn-dark w-100 py-3 fw-bold rounded-4 shadow-lg border-0 mt-2" 
                       style="background: linear-gradient(to right, #232526, #414345);">
-                <i class="bi bi-folder-check me-2"></i>Save Rule Configuration
+                <i class="bi bi-folder-check me-2"></i>{{ t('SAVE_RULE_CONFIG') }}
               </button>
             </form>
           </div>
@@ -157,18 +157,18 @@
               <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3">
                 <i class="bi bi-table"></i>
               </div>
-              <h5 class="mb-0 fw-bold">Active Leave Policies ({{ activeSession().sessionName }})</h5>
+              <h5 class="mb-0 fw-bold">{{ t('ACTIVE_LEAVE_POLICIES') }} ({{ activeSession().sessionName }})</h5>
             </div>
           </div>
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 custom-admin-table">
               <thead class="bg-light">
                 <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-                  <th class="ps-4 py-3 border-0">Type</th>
-                  <th class="py-3 border-0">Departments</th>
-                  <th class="py-3 border-0 text-center">Tracking Mode</th>
-                  <th class="py-3 border-0 text-center">Carry Forward</th>
-                  <th class="text-end pe-4 py-3 border-0">Actions</th>
+                  <th class="ps-4 py-3 border-0">{{ t('TYPE') }}</th>
+                  <th class="py-3 border-0">{{ t('DEPARTMENT') }}</th>
+                  <th class="py-3 border-0 text-center">{{ t('TRACKING_MODE') }}</th>
+                  <th class="py-3 border-0 text-center">{{ t('CARRY_FORWARD_SUPPORT') }}</th>
+                  <th class="text-end pe-4 py-3 border-0">{{ t('ACTIONS') }}</th>
                 </tr>
               </thead>
               <tbody class="border-top-0">

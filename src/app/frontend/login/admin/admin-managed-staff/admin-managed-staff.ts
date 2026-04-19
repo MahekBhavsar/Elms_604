@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { LanguageService } from '../../../../shared/language.service';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 
@@ -46,7 +47,11 @@ export class AdminManagedStaff implements OnInit {
   isEditMode = false;
   currentEditId = '';
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, public langService: LanguageService) { }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     this.getAllStaff();

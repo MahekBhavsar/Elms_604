@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { LanguageService } from '../../../../shared/language.service';
 import { OfflineSyncService } from '../../../../offline-sync.service';
 import { API_BASE } from '../../../../api.config';
 
@@ -26,8 +27,13 @@ export class AdminLeave implements OnInit {
   constructor(
     private http: HttpClient,
     private offlineSync: OfflineSyncService,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     this.initializeSession();

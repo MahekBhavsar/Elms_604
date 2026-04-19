@@ -4,6 +4,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin } from 'rxjs';
+import { LanguageService } from '../../../../shared/language.service';
 import { OfflineSyncService } from '../../../../offline-sync.service';
 @Component({
   selector: 'app-admin-leave-application',
@@ -52,8 +53,13 @@ export class AdminLeaveApplication implements OnInit {
   constructor(
     private http: HttpClient,
     private offlineSync: OfflineSyncService,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {

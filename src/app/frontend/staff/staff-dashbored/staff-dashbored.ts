@@ -8,6 +8,7 @@ import { StaffSidebar } from '../staff-sidebar/staff-sidebar';
 import { Chart, registerables } from 'chart.js';
 import { forkJoin, of } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
+import { LanguageService } from '../../../shared/language.service';
 
 Chart.register(...registerables);
 
@@ -37,8 +38,13 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
@@ -226,7 +232,7 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
     this.statusChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Approved', 'Pending', 'Rejected'],
+        labels: [this.t('APPROVED'), this.t('PENDING'), this.t('REJECTED')],
         datasets: [{
           data: [this.leaveStats.approved, this.leaveStats.pending, this.leaveStats.rejected],
           backgroundColor: ['#198754', '#ffc107', '#dc3545'],
@@ -254,7 +260,7 @@ export class StaffDashbored implements OnInit, AfterViewInit, OnDestroy {
       data: {
         labels,
         datasets: [{
-          label: 'Days Taken',
+          label: this.t('DAYS_TAKEN') || 'Days Taken',
           data: takenData,
           backgroundColor: '#007bff',
           borderRadius: 8

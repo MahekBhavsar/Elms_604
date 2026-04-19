@@ -1105,7 +1105,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             "Total Days": totalDaysNum,
             sessionName: activeSession?.sessionName || "2025-26",
             document: req.file ? req.file.filename : null,
-            Status: req.body.Applied_By_Admin === 'true' ? 'Approved' : 'Pending',
+            Status: (req.body.Applied_By_Admin === 'true' || (Role && String(Role).includes('Admin'))) ? 'Approved' : 'Pending',
             Reason: Reason || "",
             VAL_working_dates: Type_of_Leave?.toUpperCase() === 'VAL' ? VAL_working_dates?.trim() : undefined
         });
@@ -1118,7 +1118,7 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
             const users = await fetchSmart(User, AtlasUser, { "Employee Code": empCodeNum });
             const userObj = users[0];
             const userEmail = userObj?.Email || '';
-            const isAdminSubmission = req.body.Applied_By_Admin === 'true';
+            const isAdminSubmission = req.body.Applied_By_Admin === 'true' || (Role && String(Role).includes('Admin'));
             const finalStatus = isAdminSubmission ? 'Approved' : 'Pending';
             
             const color = isAdminSubmission ? '#2ecc71' : '#1e3c72'; 
@@ -1857,4 +1857,4 @@ const PORT = process.env.PORT || 5000;
 if (!process.env.VERCEL) {
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 }
-module.exports = app;
+module.exports = app;

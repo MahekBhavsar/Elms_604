@@ -21,10 +21,13 @@
 }
 
 
-html,
+html {
+  font-size: 14px;
+}
+
 body {
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 1rem;
   background-color: var(--bg-light);
   color: var(--text-main);
   height: 100%;

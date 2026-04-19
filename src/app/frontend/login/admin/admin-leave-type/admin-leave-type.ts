@@ -4,6 +4,7 @@ import { CommonModule, UpperCasePipe, isPlatformBrowser } from '@angular/common'
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { forkJoin } from 'rxjs';
+import { LanguageService } from '../../../../shared/language.service';
 
 @Component({
   selector: 'app-admin-leave-type',
@@ -33,8 +34,13 @@ export class AdminLeaveType implements OnInit {
 
   constructor(
     private http: HttpClient,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     this.fetchActiveSession();

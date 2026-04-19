@@ -2,6 +2,8 @@ import { Component, OnInit, PLATFORM_ID, Inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { OfflineSyncService } from '../../../offline-sync.service';
+import { LanguageService } from '../../../shared/language.service';
+import { FontSizeService } from '../../../shared/font-size.service';
 
 @Component({
   selector: 'app-staff-sidebar',
@@ -22,8 +24,26 @@ export class StaffSidebar implements OnInit {
   constructor(
     private router: Router,
     private offlineSync: OfflineSyncService,
+    public langService: LanguageService,
+    public fontSizeService: FontSizeService,
     @Inject(PLATFORM_ID) private platformId: Object // Injected to check for browser environment
   ) {}
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
+
+  setLang(lang: string) {
+    this.langService.setLanguage(lang);
+  }
+
+  zoomIn() {
+    this.fontSizeService.increase();
+  }
+
+  zoomOut() {
+    this.fontSizeService.decrease();
+  }
 
   ngOnInit() {
     // Only access localStorage if running in the browser

@@ -6,6 +6,7 @@ import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { DisplayDatePipe } from '../../../../shared/pipes/display-date.pipe';
 import { forkJoin, catchError, of } from 'rxjs';
 import { OfflineSyncService } from '../../../../offline-sync.service';
+import { LanguageService } from '../../../../shared/language.service';
 
 @Component({
   selector: 'app-report',
@@ -77,8 +78,13 @@ export class Report implements OnInit {
   constructor(
     private http: HttpClient,
     private offlineSync: OfflineSyncService,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     this.loadData();

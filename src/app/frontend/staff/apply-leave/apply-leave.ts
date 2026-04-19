@@ -262,7 +262,7 @@ export class ApplyLeave implements OnInit {
       Total_Days: String(days),
       Role: this.leaveForm.Role,
       Reason: this.leaveForm.Reason || '',
-      Applied_By_Admin: this.staffData().role === 'Admin' ? 'true' : 'false'
+      Applied_By_Admin: (this.staffData().role || '').includes('Admin') ? 'true' : 'false'
     };
     if (this.leaveForm.Type_of_Leave === 'VAL') {
       payload.VAL_working_dates = this.leaveForm.VAL_working_dates;

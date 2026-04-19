@@ -2,23 +2,30 @@
   <div class="main-content flex-grow-1 w-100 dash-bg d-flex flex-column h-100 p-4 p-md-5 overflow-auto">
 
     <!-- Premium Hero Section -->
-    <div class="hero-section text-white mb-5">
+    <div class="hero-section text-white mb-5 position-relative">
       <div class="row align-items-center">
-        <div class="col-md-7">
-          <div class="badge bg-white text-dark rounded-pill px-3 py-2 shadow-sm text-uppercase fw-bold ls-1 mb-3"><i class="bi bi-grid-1x2-fill text-primary me-2"></i>Command Center</div>
-          <h2 class="fw-bold text-white mb-2">Welcome back, {{ user?.name || 'Admin' }}</h2>
+        <div class="col-md-8">
+          <div class="badge bg-white text-dark rounded-pill px-3 py-2 shadow-sm text-uppercase fw-bold ls-1 mb-3">
+            <i class="bi bi-grid-1x2-fill text-primary me-2"></i>{{ t('COMMAND_CENTER') }}
+          </div>
+          <h1 class="fw-bold text-white mb-2 display-6">{{ t('WELCOME_BACK') }}, {{ user?.name || 'Admin' }}</h1>
           <div class="d-flex align-items-center flex-wrap gap-2">
             <span class="badge bg-primary bg-opacity-25 text-white rounded-pill px-3 py-1 shadow-sm border border-white border-opacity-25">Administrator</span>
           </div>
         </div>
-        <div class="col-md-5 text-md-end mt-4 mt-md-0">
-          <div class="small opacity-75 text-uppercase fw-bold ls-1 mb-1">Active Academic Cycle</div>
+      </div>
+
+      <!-- Perfect Corner Cycle Display -->
+      <div class="cycle-display-container">
+        <div class="cycle-display p-3 shadow-premium">
+          <div class="small opacity-75 text-uppercase fw-bold ls-1 mb-2">{{ t('ACTIVE_ACADEMIC_CYCLE') }}</div>
           @if (activeSession?.sessionName !== 'Not Set') {
-            <div class="fw-bold fs-4">{{ activeSession?.startDate | date:'MMM yyyy' }} - {{ activeSession?.endDate | date:'MMM yyyy' }}
-              <span class="badge bg-primary text-white rounded-pill ms-2 align-middle fs-6 border border-white border-opacity-25">{{ activeSession?.sessionName }}</span>
+            <div class="fw-bold fs-5 d-flex align-items-center justify-content-end flex-wrap gap-2">
+              <span class="date-text">{{ activeSession?.startDate | date:'MMM yyyy' }} - {{ activeSession?.endDate | date:'MMM yyyy' }}</span>
+              <span class="badge-session-mini">{{ activeSession?.sessionName }}</span>
             </div>
           } @else {
-            <div class="fw-bold text-warning animate-pulse fs-5">Please configure session in Settings</div>
+            <div class="fw-bold text-warning animate-pulse fs-6">Please configure session in Settings</div>
           }
         </div>
       </div>
@@ -27,7 +34,7 @@
     <!-- Section: My Leave Balances -->
     <div class="mb-5">
       <div class="d-flex align-items-center mb-4">
-        <h5 class="fw-bold text-dark mb-0 me-3">Personal Leave Portfolio</h5>
+        <h5 class="fw-bold text-dark mb-0 me-3">{{ t('LEAVE_PORTFOLIO') }}</h5>
         <div class="flex-grow-1 border-bottom opacity-10"></div>
       </div>
       
@@ -58,15 +65,15 @@
                 <div class="mt-3">
                   @if (card.isIncrementing) {
                     <div class="d-flex align-items-center text-primary fw-bold small">
-                      <i class="bi bi-arrow-up-right-circle me-2"></i> Accumulating Balance
+                      <i class="bi bi-arrow-up-right-circle me-2"></i> {{ t('ACCUMULATED_TOTAL') }}
                     </div>
                   } @else {
                     <div class="progress-premium mb-2">
                       <div class="progress-bar-premium h-100" [style.width.%]="card.percent"></div>
                     </div>
                     <div class="d-flex justify-content-between small">
-                      <span class="text-muted">Used: <strong>{{ card.used }}</strong></span>
-                      <span class="text-muted">Cap: <strong>{{ card.limit }}</strong></span>
+                      <span class="text-muted">{{ t('USED') }}: <strong>{{ card.used }}</strong></span>
+                      <span class="text-muted">{{ t('LIMIT') }}: <strong>{{ card.limit }}</strong></span>
                     </div>
                   }
                 </div>
@@ -80,7 +87,7 @@
     <!-- Section: Institutional Pulse -->
     <div class="mb-5">
       <div class="d-flex align-items-center mb-4">
-        <h5 class="fw-bold text-dark mb-0 me-3">Institutional Intelligence</h5>
+        <h5 class="fw-bold text-dark mb-0 me-3">{{ t('INSTITUTIONAL_INTEL') }}</h5>
         <div class="flex-grow-1 border-bottom opacity-10"></div>
       </div>
 
@@ -91,7 +98,7 @@
               <i class="bi bi-clock-history"></i>
             </div>
             <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">Queue (HOD)</small>
+              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('QUEUE_HOD') }}</small>
               <h3 class="fw-black mb-0 text-dark">{{ stats.pendingLeaves }}</h3>
             </div>
           </div>
@@ -102,7 +109,7 @@
               <i class="bi bi-shield-check"></i>
             </div>
             <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">Admin Queue</small>
+              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('ADMIN_QUEUE') }}</small>
               <h3 class="fw-black mb-0 text-primary">{{ stats.hodApprovedLeaves }}</h3>
             </div>
           </div>
@@ -113,7 +120,7 @@
               <i class="bi bi-check-all"></i>
             </div>
             <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">Approved</small>
+              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('APPROVED') }}</small>
               <h3 class="fw-black mb-0 text-success">{{ stats.finalApprovedLeaves }}</h3>
             </div>
           </div>
@@ -124,7 +131,7 @@
               <i class="bi bi-x-octagon"></i>
             </div>
             <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">Rejected</small>
+              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('REJECTED') }}</small>
               <h3 class="fw-black mb-0 text-danger">{{ stats.rejectedLeaves }}</h3>
             </div>
           </div>
@@ -137,7 +144,7 @@
       <div class="col-lg-7">
         <div class="glass-card p-4 h-100 chart-card">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="fw-bold text-dark text-uppercase ls-1 mb-0">Application Breakdown</h6>
+            <h6 class="fw-bold text-dark text-uppercase ls-1 mb-0">{{ t('APP_BREAKDOWN') }}</h6>
             <i class="bi bi-three-dots-vertical text-muted"></i>
           </div>
           <div class="position-relative" style="height: 350px;">
@@ -148,7 +155,7 @@
       <div class="col-lg-5">
         <div class="glass-card p-4 h-100 chart-card">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="fw-bold text-dark text-uppercase ls-1 mb-0">Departmental Distro</h6>
+            <h6 class="fw-bold text-dark text-uppercase ls-1 mb-0">{{ t('DEPT_DISTRO') }}</h6>
             <i class="bi bi-three-dots-vertical text-muted"></i>
           </div>
           <div class="position-relative" style="height: 350px;">

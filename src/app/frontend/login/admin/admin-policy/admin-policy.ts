@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
+import { LanguageService } from '../../../../shared/language.service';
 
 @Component({
   selector: 'app-admin-policy',
@@ -31,8 +32,13 @@ export class AdminPolicy implements OnInit {
   constructor(
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   getStatusCount(status: string): number {
     return this.policies.filter(p => p.status === status).length;

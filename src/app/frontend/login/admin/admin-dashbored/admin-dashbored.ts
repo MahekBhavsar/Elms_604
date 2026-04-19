@@ -6,6 +6,7 @@ import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { Chart, registerables } from 'chart.js';
 import { forkJoin, of } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
+import { LanguageService } from '../../../../shared/language.service';
 
 Chart.register(...registerables);
 
@@ -49,8 +50,13 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
+    public langService: LanguageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
@@ -245,7 +251,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
     this.leaveChart = new Chart(ctx, {
       type: 'pie',
       data: {
-        labels: ['Pending', 'HOD Appr.', 'Approved', 'Rejected'],
+        labels: [this.t('PENDING'), this.t('HOD_APP'), this.t('APPROVED'), this.t('REJECTED')],
         datasets: [{
           data: [this.stats.pendingLeaves, this.stats.hodApprovedLeaves, this.stats.finalApprovedLeaves, this.stats.rejectedLeaves],
           backgroundColor: ['#ffc107', '#17a2b8', '#198754', '#dc3545'],
@@ -263,7 +269,7 @@ export class AdminDashbored implements OnInit, AfterViewInit, OnDestroy {
       type: 'bar',
       data: {
         labels: Object.keys(this.staffStats.departments),
-        datasets: [{ label: 'Staff Count', data: Object.values(this.staffStats.departments), backgroundColor: '#0d6efd', borderRadius: 8 }]
+        datasets: [{ label: this.t('STAFF_COUNT'), data: Object.values(this.staffStats.departments), backgroundColor: '#0d6efd', borderRadius: 8 }]
       },
       options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });

@@ -15,7 +15,7 @@
             style="width: 36px; height: 36px;">
             <i class="bi bi-cpu-fill fs-5"></i>
           </div>
-          <span class="d-none d-sm-inline fs-4">ELMS <span class="text-dark fw-bold">ADMIN</span></span>
+          <span class="d-none d-sm-inline fs-4">{{ t('ELMS_ADMIN') }}</span>
         </span>
       </div>
 
@@ -27,8 +27,30 @@
             [ngClass]="isOnline() ? 'bg-success shadow-success pulse-green' : 'bg-danger shadow-danger pulse-red'"
             style="width: 8px; height: 8px;"></div>
           <span class="small fw-bold" style="font-size: 0.65rem;" [class.text-success]="isOnline()" [class.text-danger]="!isOnline()">
-            {{ isOnline() ? 'ONLINE' : 'OFFLINE' }}
+            {{ isOnline() ? t('ONLINE') : t('OFFLINE') }}
           </span>
+        </div>
+
+        <!-- Accessibility Toolbar -->
+        <div class="d-flex align-items-center me-3 border-end pe-3 d-none d-lg-flex">
+          <div class="btn-group btn-group-sm me-3 shadow-sm rounded-pill overflow-hidden border bg-white">
+            <button class="btn btn-white border-0 py-1 px-2" (click)="zoomOut()" [title]="t('DECREASE_FONT') || 'Decrease'"><i class="bi bi-dash-lg"></i></button>
+            <span class="d-flex align-items-center px-2 fw-bold text-muted border-start border-end" style="font-size: 0.7rem; background: #f8f9fa;">A</span>
+            <button class="btn btn-white border-0 py-1 px-2" (click)="zoomIn()" [title]="t('INCREASE_FONT') || 'Increase'"><i class="bi bi-plus-lg"></i></button>
+          </div>
+          
+          <div class="btn-group btn-group-sm shadow-sm rounded-pill overflow-hidden border bg-white">
+            <button class="btn py-1 px-3 border-0 transition-all font-sans" 
+                    [style.font-size]="'0.7rem'"
+                    [class.btn-primary]="langService.currentLang() === 'en'" 
+                    [class.btn-white]="langService.currentLang() !== 'en'"
+                    (click)="setLang('en')">ENG</button>
+            <button class="btn py-1 px-3 border-0 transition-all font-gujarati" 
+                    [style.font-size]="'0.7rem'"
+                    [class.btn-primary]="langService.currentLang() === 'gu'" 
+                    [class.btn-white]="langService.currentLang() !== 'gu'"
+                    (click)="setLang('gu')">GUJ</button>
+          </div>
         </div>
 
         <div class="dropdown">
@@ -43,8 +65,7 @@
           </button>
           <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 py-2 rounded-3" style="min-width: 200px;">
             <li>
-              <h6 class="dropdown-header text-uppercase small fw-bold" style="color: #1e3c72; letter-spacing: 1px;">System
-                Manager</h6>
+              <h6 class="dropdown-header text-uppercase small fw-bold" style="color: #1e3c72; letter-spacing: 1px;">{{ t('SYSTEM_MANAGER') }}</h6>
             </li>
           <li>
             <hr class="dropdown-divider opacity-25">
@@ -57,7 +78,7 @@
                 class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3 d-flex align-items-center justify-content-center">
                 <i class="bi bi-person-gear"></i>
               </div>
-              Profile Update
+              {{ t('PROFILE_UPDATE') }}
             </button>
           </li>
           <li>
@@ -68,7 +89,7 @@
                 class="bg-danger bg-opacity-10 text-danger rounded p-2 me-3 d-flex align-items-center justify-content-center">
                 <i class="bi bi-power"></i>
               </div>
-              Sign Out
+              {{ t('SIGN_OUT') }}
             </button>
           </li>
         </ul>
@@ -91,7 +112,7 @@
             <i class="bi bi-shield-lock-fill fs-5 text-white"></i>
           </div>
           <span class="fs-6 fw-bold ms-3 text-uppercase text-white" [class.d-none]="isCollapsed"
-            style="letter-spacing: 1px;">Control Panel</span>
+            style="letter-spacing: 1px;">{{ t('CONTROL_PANEL') }}</span>
         </div>
 
         <hr class="text-white opacity-25 mb-4 mt-0">
@@ -107,7 +128,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-grid-1x2-fill fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Overview</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('OVERVIEW') }}</span>
             </a>
           </li>
 
@@ -117,7 +138,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-people-fill fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Staff Portal</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('STAFF_PORTAL') }}</span>
             </a>
           </li>
 
@@ -127,7 +148,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-calendar-plus-fill fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Apply Leave</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('APPLY_LEAVE') }}</span>
             </a>
           </li>
 
@@ -137,7 +158,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-file-earmark-bar-graph-fill fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Analytics</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('ANALYTICS') }}</span>
             </a>
           </li>
 
@@ -147,7 +168,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-chat-left-dots-fill fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Requests</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('REQUESTS') }}</span>
             </a>
           </li>
 
@@ -157,7 +178,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-journal-text fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Policies</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('POLICIES') }}</span>
             </a>
           </li>
 
@@ -167,7 +188,7 @@
               class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75 side-link-hover"
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <i class="bi bi-gear-fill fs-5"></i>
-              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">Settings</span>
+              <span [class.d-none]="isCollapsed" class="ms-3 fw-medium">{{ t('SETTINGS') }}</span>
             </a>
           </li>
 
@@ -177,7 +198,7 @@
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <div class="d-flex align-items-center">
                 <i class="bi bi-cloud-download-fill fs-5 text-info"></i>
-                <span [class.d-none]="isCollapsed" class="ms-3 fw-bold text-info">Pull from Cloud</span>
+                <span [class.d-none]="isCollapsed" class="ms-3 fw-bold text-info">{{ t('PULL_FROM_CLOUD') }}</span>
               </div>
             </a>
           </li>
@@ -188,7 +209,7 @@
               [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
               <div class="d-flex align-items-center">
                 <i class="bi bi-cloud-arrow-up-fill fs-5 text-warning"></i>
-                <span [class.d-none]="isCollapsed" class="ms-3 fw-bold text-warning">Sync Queue</span>
+                <span [class.d-none]="isCollapsed" class="ms-3 fw-bold text-warning">{{ t('SYNC_QUEUE') }}</span>
               </div>
               <span [class.d-none]="isCollapsed" class="badge bg-warning text-dark rounded-pill fs-6 px-2 shadow-sm">{{ offlineCount() }}</span>
             </a>
@@ -200,7 +221,7 @@
             class="btn btn-link text-white text-decoration-none w-100 d-flex align-items-center py-2 px-0 fw-semibold opacity-75 side-btn-hover"
             [ngClass]="isCollapsed ? 'justify-content-center' : 'justify-content-start px-3'">
             <i class="bi bi-box-arrow-left fs-5 text-warning" [class.me-3]="!isCollapsed"></i>
-            <span [class.d-none]="isCollapsed">Sign Out</span>
+            <span [class.d-none]="isCollapsed">{{ t('SIGN_OUT') }}</span>
           </button>
         </div>
       </div>

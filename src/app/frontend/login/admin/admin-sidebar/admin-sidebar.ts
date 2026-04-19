@@ -4,6 +4,8 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { OfflineSyncService } from '../../../../offline-sync.service';
 import { signal } from '@angular/core';
+import { LanguageService } from '../../../../shared/language.service';
+import { FontSizeService } from '../../../../shared/font-size.service';
 
 @Component({
   selector: 'app-admin-sidebar',
@@ -21,6 +23,8 @@ export class AdminSidebar {
     private router: Router,
     private http: HttpClient,
     private offlineSync: OfflineSyncService,
+    public langService: LanguageService,
+    public fontSizeService: FontSizeService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { 
     if (isPlatformBrowser(this.platformId)) {
@@ -33,6 +37,22 @@ export class AdminSidebar {
         } catch (e) {}
       }, 2000);
     }
+  }
+
+  t(key: string): string {
+    return this.langService.translate(key);
+  }
+
+  setLang(lang: string) {
+    this.langService.setLanguage(lang);
+  }
+
+  zoomIn() {
+    this.fontSizeService.increase();
+  }
+
+  zoomOut() {
+    this.fontSizeService.decrease();
   }
 
   async viewOfflineQueue() {
