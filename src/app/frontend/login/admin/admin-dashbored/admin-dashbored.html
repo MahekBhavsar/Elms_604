@@ -1,32 +1,63 @@
 <app-admin-sidebar>
   <div class="main-content flex-grow-1 w-100 dash-bg d-flex flex-column h-100 p-4 p-md-5 overflow-auto">
 
-    <!-- Premium Hero Section -->
-    <div class="hero-section text-white mb-5 position-relative">
-      <div class="row align-items-center">
-        <div class="col-md-8">
-          <div class="badge bg-white text-dark rounded-pill px-3 py-2 shadow-sm text-uppercase fw-bold ls-1 mb-3">
-            <i class="bi bi-grid-1x2-fill text-primary me-2"></i>{{ t('COMMAND_CENTER') }}
-          </div>
-          <h1 class="fw-bold text-white mb-2 display-6">{{ t('WELCOME_BACK') }}, {{ user?.name || 'Admin' }}</h1>
-          <div class="d-flex align-items-center flex-wrap gap-2">
-            <span class="badge bg-primary bg-opacity-25 text-white rounded-pill px-3 py-1 shadow-sm border border-white border-opacity-25">Administrator</span>
-          </div>
-        </div>
+    <!-- Premium Bright Hero Section -->
+    <div
+      class="mb-5 position-relative flex-shrink-0 rounded-4 overflow-hidden shadow-lg border-0 bg-primary bg-gradient text-white p-4 p-xl-5">
+      <!-- Glow & Creative Effects (Bootstrap Utilities + Blur) -->
+      <div class="position-absolute top-0 end-0 bg-white opacity-25 rounded-circle"
+        style="width: 300px; height: 300px; filter: blur(40px); transform: translate(30%, -30%); pointer-events: none;">
+      </div>
+      <div class="position-absolute bottom-0 start-0 bg-warning opacity-25 rounded-circle"
+        style="width: 250px; height: 250px; filter: blur(40px); transform: translate(-30%, 30%); pointer-events: none;">
       </div>
 
-      <!-- Perfect Corner Cycle Display -->
-      <div class="cycle-display-container">
-        <div class="cycle-display p-3 shadow-premium">
-          <div class="small opacity-75 text-uppercase fw-bold ls-1 mb-2">{{ t('ACTIVE_ACADEMIC_CYCLE') }}</div>
-          @if (activeSession?.sessionName !== 'Not Set') {
-            <div class="fw-bold fs-5 d-flex align-items-center justify-content-end flex-wrap gap-2">
-              <span class="date-text">{{ activeSession?.startDate | date:'MMM yyyy' }} - {{ activeSession?.endDate | date:'MMM yyyy' }}</span>
-              <span class="badge-session-mini">{{ activeSession?.sessionName }}</span>
+      <div class="row align-items-center position-relative" style="z-index: 2;">
+        <div class="col-lg-7 text-center text-lg-start mb-4 mb-lg-0">
+          <div
+            class="d-inline-flex align-items-center badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 shadow-sm text-uppercase fw-bold ls-1 mb-3 border border-white border-opacity-25"
+            style="backdrop-filter: blur(5px);">
+            <i class="bi bi-grid-1x2-fill text-warning me-2"></i> Command Center
+          </div>
+          <h2 class="display-6 fw-bolder text-white mb-2" style="letter-spacing: -0.5px;">Welcome back, <span
+              class="text-warning">{{ user?.name || 'Admin' }}</span></h2>
+          <div class="d-flex align-items-center justify-content-center justify-content-lg-start flex-wrap gap-2 mt-3">
+            <span
+              class="badge bg-dark bg-opacity-25 text-white rounded-pill px-3 py-2 shadow-sm border border-light border-opacity-25"
+              style="backdrop-filter: blur(5px);">
+              <i class="bi bi-shield-lock-fill me-1"></i> Administrator
+            </span>
+            <span
+              class="badge bg-white bg-opacity-10 text-white rounded-pill px-3 py-2 shadow border border-light border-opacity-10"
+              style="backdrop-filter: blur(5px);">
+              <span class="spinner-grow spinner-grow-sm text-success me-2" style="width: 8px; height: 8px;"></span>
+              System Online
+            </span>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="p-4 rounded-4 shadow-sm border border-white border-opacity-25 bg-white bg-opacity-10 w-100"
+            style="backdrop-filter: blur(12px);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small opacity-75 text-uppercase fw-bold ls-1 text-white">Active Academic Cycle</span>
+              <i class="bi bi-calendar2-check-fill text-white opacity-50 fs-5"></i>
             </div>
-          } @else {
-            <div class="fw-bold text-warning animate-pulse fs-6">Please configure session in Settings</div>
-          }
+            @if (activeSession?.sessionName !== 'Not Set') {
+            <div class="d-flex flex-column">
+              <div class="fw-bold fs-3 text-white mb-1">{{ activeSession?.startDate | date:'MMM yyyy' }} <i
+                  class="bi bi-arrow-right text-warning opacity-75 mx-1 fs-5"></i> {{ activeSession?.endDate | date:'MMM
+                yyyy' }}</div>
+              <div>
+                <span class="badge bg-warning text-dark rounded-pill px-3 py-1 shadow fs-6 fw-bolder">{{
+                  activeSession?.sessionName }}</span>
+              </div>
+            </div>
+            } @else {
+            <div class="fw-bold text-warning animate-pulse fs-5 d-flex align-items-center py-2">
+              <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i> Please configure session in Settings
+            </div>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -37,49 +68,66 @@
         <h5 class="fw-bold text-dark mb-0 me-3">{{ t('LEAVE_PORTFOLIO') }}</h5>
         <div class="flex-grow-1 border-bottom opacity-10"></div>
       </div>
-      
+
       <div class="row g-4">
         @if (!dataReady) {
-          @for (i of [1,2,3,4]; track i) {
-            <div class="col-md-6 col-lg-3">
-              <div class="glass-card p-4 h-100 placeholder-glow">
-                <span class="placeholder col-6 mb-3"></span>
-                <span class="placeholder col-8 display-5"></span>
-              </div>
-            </div>
-          }
+        @for (i of [1,2,3,4]; track i) {
+        <div class="col-md-6 col-lg-3">
+          <div class="glass-card p-4 h-100 placeholder-glow">
+            <span class="placeholder col-6 mb-3"></span>
+            <span class="placeholder col-8 display-5"></span>
+          </div>
+        </div>
+        }
         } @else {
-          @for (card of quotaCards; track card.name) {
-            <div class="col-md-6 col-lg-3">
-              <div class="glass-card p-4 h-100 quota-card" 
-                [ngClass]="'quota-card-' + card.name.toLowerCase()">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                  <span class="text-uppercase fw-extrabold text-muted small ls-1">{{ card.name }}</span>
-                  @if (card.isCarryForward && card.carryForward > 0) {
-                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2">
-                       +{{ card.carryForward }}
-                    </span>
-                  }
+        @for (card of quotaCards; track card.name) {
+        <div class="col-md-6 col-lg-3">
+          <div class="glass-card p-0 h-100 quota-card position-relative overflow-hidden shadow-sm" [ngClass]="'quota-card-' + card.name.toLowerCase()">
+            <!-- Top Gradient Accent line -->
+            <div class="position-absolute top-0 start-0 w-100 bg-primary bg-gradient" style="height: 5px; z-index: 2;"></div>
+            
+            <div class="p-4 d-flex flex-column h-100 position-relative z-1">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center bg-primary bg-opacity-10 rounded-pill px-3 py-2 border border-primary border-opacity-10">
+                  <i class="bi bi-briefcase-fill text-primary me-2"></i>
+                  <span class="text-uppercase fw-bold text-primary small ls-1 mb-0">{{ card.name }}</span>
                 </div>
-                <h1 class="display-5 fw-black text-dark mb-2">{{ card.remaining }}</h1>
-                <div class="mt-3">
-                  @if (card.isIncrementing) {
-                    <div class="d-flex align-items-center text-primary fw-bold small">
-                      <i class="bi bi-arrow-up-right-circle me-2"></i> {{ t('ACCUMULATED_TOTAL') }}
-                    </div>
-                  } @else {
-                    <div class="progress-premium mb-2">
-                      <div class="progress-bar-premium h-100" [style.width.%]="card.percent"></div>
-                    </div>
-                    <div class="d-flex justify-content-between small">
-                      <span class="text-muted">{{ t('USED') }}: <strong>{{ card.used }}</strong></span>
-                      <span class="text-muted">{{ t('LIMIT') }}: <strong>{{ card.limit }}</strong></span>
-                    </div>
-                  }
+                @if (card.isCarryForward && card.carryForward > 0) {
+                <span class="badge rounded-pill bg-success bg-gradient text-white shadow-sm px-2 py-1 border border-success border-opacity-25 d-flex align-items-center" title="Carry Forward">
+                  <i class="bi bi-box-arrow-in-down-left me-1"></i>+{{ card.carryForward }}
+                </span>
+                }
+              </div>
+              
+              <div class="d-flex align-items-baseline mb-4">
+                <h1 class="display-3 fw-black text-dark mb-0 me-2" style="letter-spacing: -2px;">{{ card.remaining }}</h1>
+                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px;">days left</span>
+              </div>
+              
+              <div class="mt-auto">
+                @if (card.isIncrementing) {
+                <div class="d-flex align-items-center justify-content-between p-3 bg-info bg-opacity-10 rounded-4 border border-info border-opacity-25">
+                  <div class="d-flex align-items-center text-info fw-bolder small text-uppercase ls-1">
+                    <i class="bi bi-graph-up-arrow me-2 fs-5"></i> Accumulating
+                  </div>
+                  <div class="bg-white text-info rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;">
+                    <i class="bi bi-infinity fs-5"></i>
+                  </div>
                 </div>
+                } @else {
+                <div class="d-flex justify-content-between align-items-end small fw-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 1px;">
+                  <span class="text-muted d-flex align-items-center"><div class="bg-primary rounded-circle me-1" style="width: 8px; height: 8px;"></div>Used <span class="text-dark ms-2 fs-6">{{ card.used }}</span></span>
+                  <span class="text-muted d-flex align-items-center"><div class="bg-secondary rounded-circle me-1 opacity-50" style="width: 8px; height: 8px;"></div>Cap <span class="text-dark ms-2 fs-6">{{ card.limit }}</span></span>
+                </div>
+                <div class="progress bg-secondary bg-opacity-10" style="height: 12px; border-radius: 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                  <div class="progress-bar bg-primary bg-gradient rounded-pill progress-bar-striped progress-bar-animated" [style.width.%]="card.percent"></div>
+                </div>
+                }
               </div>
             </div>
-          }
+          </div>
+        </div>
+        }
         }
       </div>
     </div>
@@ -92,47 +140,86 @@
       </div>
 
       <div class="row g-4">
+        <!-- Card 1: HOD Queue -->
         <div class="col-sm-6 col-xl-3">
-          <div class="glass-card p-4 d-flex align-items-center">
-            <div class="stat-icon bg-warning bg-opacity-10 text-warning me-4">
+          <div class="glass-card h-100 p-0 position-relative overflow-hidden shadow-sm border-0">
+            <div class="position-absolute top-0 start-0 w-100 bg-warning bg-gradient" style="height: 4px;"></div>
+            <div class="position-absolute opacity-10 text-warning" style="bottom: 1rem; right: 1.5rem; font-size: 3rem; transform: rotate(-10deg); line-height: 1; pointer-events: none; z-index: 0;">
               <i class="bi bi-clock-history"></i>
             </div>
-            <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('QUEUE_HOD') }}</small>
-              <h3 class="fw-black mb-0 text-dark">{{ stats.pendingLeaves }}</h3>
+            <div class="p-4 position-relative z-1 d-flex flex-column h-100">
+              <div class="mb-4">
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill text-uppercase fw-bold shadow-sm d-inline-flex align-items-center">
+                  <span class="bg-warning rounded-circle me-2" style="width: 8px; height: 8px;"></span> Queue (HOD)
+                </span>
+              </div>
+              <div class="mt-auto">
+                <h1 class="display-3 fw-black text-dark mb-1 lh-1" style="letter-spacing: -2px;">{{ stats.pendingLeaves }}</h1>
+                <span class="text-muted fw-bolder text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Awaiting Dept Review</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Card 2: Admin Queue -->
         <div class="col-sm-6 col-xl-3">
-          <div class="glass-card p-4 d-flex align-items-center border-start border-primary border-4">
-            <div class="stat-icon bg-primary bg-opacity-10 text-primary me-4">
+          <div class="glass-card h-100 p-0 position-relative overflow-hidden shadow-sm border-0">
+            <div class="position-absolute top-0 start-0 w-100 bg-primary bg-gradient" style="height: 4px;"></div>
+            <div class="position-absolute opacity-10 text-primary" style="bottom: 1rem; right: 1.5rem; font-size: 3rem; transform: rotate(-10deg); line-height: 1; pointer-events: none; z-index: 0;">
               <i class="bi bi-shield-check"></i>
             </div>
-            <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('ADMIN_QUEUE') }}</small>
-              <h3 class="fw-black mb-0 text-primary">{{ stats.hodApprovedLeaves }}</h3>
+            <div class="p-4 position-relative z-1 d-flex flex-column h-100">
+              <div class="mb-4">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill text-uppercase fw-bold shadow-sm d-inline-flex align-items-center">
+                  <span class="bg-primary rounded-circle me-2" style="width: 8px; height: 8px;"></span> Admin Queue
+                </span>
+              </div>
+              <div class="mt-auto">
+                <h1 class="display-3 fw-black text-dark mb-1 lh-1" style="letter-spacing: -2px;">{{ stats.hodApprovedLeaves }}</h1>
+                <span class="text-muted fw-bolder text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Awaiting Final Auth</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Card 3: Approved -->
         <div class="col-sm-6 col-xl-3">
-          <div class="glass-card p-4 d-flex align-items-center">
-            <div class="stat-icon bg-success bg-opacity-10 text-success me-4">
+          <div class="glass-card h-100 p-0 position-relative overflow-hidden shadow-sm border-0">
+            <div class="position-absolute top-0 start-0 w-100 bg-success bg-gradient" style="height: 4px;"></div>
+            <div class="position-absolute opacity-10 text-success" style="bottom: 1rem; right: 1.5rem; font-size: 3rem; transform: rotate(-10deg); line-height: 1; pointer-events: none; z-index: 0;">
               <i class="bi bi-check-all"></i>
             </div>
-            <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('APPROVED') }}</small>
-              <h3 class="fw-black mb-0 text-success">{{ stats.finalApprovedLeaves }}</h3>
+            <div class="p-4 position-relative z-1 d-flex flex-column h-100">
+              <div class="mb-4">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill text-uppercase fw-bold shadow-sm d-inline-flex align-items-center">
+                  <span class="bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></span> Approved
+                </span>
+              </div>
+              <div class="mt-auto">
+                <h1 class="display-3 fw-black text-dark mb-1 lh-1" style="letter-spacing: -2px;">{{ stats.finalApprovedLeaves }}</h1>
+                <span class="text-muted fw-bolder text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Fully Processed</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Card 4: Rejected -->
         <div class="col-sm-6 col-xl-3">
-          <div class="glass-card p-4 d-flex align-items-center">
-            <div class="stat-icon bg-danger bg-opacity-10 text-danger me-4">
-              <i class="bi bi-x-octagon"></i>
+          <div class="glass-card h-100 p-0 position-relative overflow-hidden shadow-sm border-0">
+            <div class="position-absolute top-0 start-0 w-100 bg-danger bg-gradient" style="height: 4px;"></div>
+            <div class="position-absolute opacity-10 text-danger" style="bottom: 1rem; right: 1.5rem; font-size: 3rem; transform: rotate(-10deg); line-height: 1; pointer-events: none; z-index: 0;">
+              <i class="bi bi-x-octagon-fill"></i>
             </div>
-            <div>
-              <small class="text-muted text-uppercase fw-bold ls-1 d-block mb-1">{{ t('REJECTED') }}</small>
-              <h3 class="fw-black mb-0 text-danger">{{ stats.rejectedLeaves }}</h3>
+            <div class="p-4 position-relative z-1 d-flex flex-column h-100">
+              <div class="mb-4">
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill text-uppercase fw-bold shadow-sm d-inline-flex align-items-center">
+                  <span class="bg-danger rounded-circle me-2" style="width: 8px; height: 8px;"></span> Rejected
+                </span>
+              </div>
+              <div class="mt-auto">
+                <h1 class="display-3 fw-black text-dark mb-1 lh-1" style="letter-spacing: -2px;">{{ stats.rejectedLeaves }}</h1>
+                <span class="text-muted fw-bolder text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Declined Requests</span>
+              </div>
             </div>
           </div>
         </div>
@@ -140,26 +227,61 @@
     </div>
 
     <!-- Charts Section -->
-    <div class="row g-4">
+    <div class="row g-4 pb-4">
+      <!-- Leave Chart -->
       <div class="col-lg-7">
-        <div class="glass-card p-4 h-100 chart-card">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="fw-bold text-dark text-uppercase ls-1 mb-0">{{ t('APP_BREAKDOWN') }}</h6>
-            <i class="bi bi-three-dots-vertical text-muted"></i>
+        <div class="card h-100 border-0 shadow-sm rounded-4 position-relative overflow-hidden glass-card p-0">
+          <div class="position-absolute top-0 start-0 w-100 bg-primary bg-gradient" style="height: 4px; z-index: 2;"></div>
+          <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center position-relative z-1">
+            <div class="d-flex align-items-center">
+              <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm border border-primary border-opacity-10" style="width: 44px; height: 44px;">
+                <i class="bi bi-pie-chart-fill fs-5"></i>
+              </div>
+              <div>
+                <h6 class="fw-bolder text-dark text-uppercase ls-1 mb-0">Application Breakdown</h6>
+                <small class="text-muted fw-bold" style="font-size: 0.70rem; letter-spacing: 0.5px;">SESSION ANALYTICS</small>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-light border border-secondary border-opacity-25 rounded-circle shadow-sm" style="width: 32px; height: 32px;"><i class="bi bi-three-dots-vertical text-muted"></i></button>
           </div>
-          <div class="position-relative" style="height: 350px;">
-            @if (dataReady) { <canvas #leaveChart></canvas> }
+          <div class="card-body p-4 position-relative z-1">
+             <div class="position-relative d-flex align-items-center justify-content-center w-100" style="height: 350px;">
+              @if (!dataReady) {
+                <div class="spinner-border text-primary opacity-50 position-absolute" role="status" style="width: 4rem; height: 4rem; border-width: 0.25em; z-index: 5;">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              }
+              <canvas #leaveChart [class.invisible]="!dataReady"></canvas>
+            </div>
           </div>
         </div>
       </div>
+      
+      <!-- Staff Chart -->
       <div class="col-lg-5">
-        <div class="glass-card p-4 h-100 chart-card">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="fw-bold text-dark text-uppercase ls-1 mb-0">{{ t('DEPT_DISTRO') }}</h6>
-            <i class="bi bi-three-dots-vertical text-muted"></i>
+        <div class="card h-100 border-0 shadow-sm rounded-4 position-relative overflow-hidden glass-card p-0">
+          <div class="position-absolute top-0 start-0 w-100 bg-info bg-gradient" style="height: 4px; z-index: 2;"></div>
+          <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center position-relative z-1">
+            <div class="d-flex align-items-center">
+              <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm border border-info border-opacity-10" style="width: 44px; height: 44px;">
+                <i class="bi bi-bar-chart-fill fs-5"></i>
+              </div>
+              <div>
+                <h6 class="fw-bolder text-dark text-uppercase ls-1 mb-0">Departmental Distro</h6>
+                <small class="text-muted fw-bold" style="font-size: 0.70rem; letter-spacing: 0.5px;">STAFF ALLOCATION</small>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-light border border-secondary border-opacity-25 rounded-circle shadow-sm" style="width: 32px; height: 32px;"><i class="bi bi-three-dots-vertical text-muted"></i></button>
           </div>
-          <div class="position-relative" style="height: 350px;">
-            @if (dataReady) { <canvas #staffChart></canvas> }
+          <div class="card-body p-4 position-relative z-1">
+            <div class="position-relative d-flex align-items-center justify-content-center w-100" style="height: 350px;">
+              @if (!dataReady) {
+                <div class="spinner-border text-info opacity-50 position-absolute" role="status" style="width: 4rem; height: 4rem; border-width: 0.25em; z-index: 5;">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              }
+              <canvas #staffChart [class.invisible]="!dataReady"></canvas>
+            </div>
           </div>
         </div>
       </div>

@@ -1,200 +1,244 @@
 <div class="staff-shell">
-  <nav class="staff-navbar">
+<style>
+  .dropdown-item-custom {
+    transition: all 0.2s ease-in-out;
+  }
+  .dropdown-item-custom:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd !important;
+  }
+  .dropdown-item-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545 !important;
+  }
+  .hover-scale {
+    transition: transform 0.2s;
+  }
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+  .nav-link-custom {
+    color: #475569;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .nav-link-custom:hover:not(.active) {
+    background-color: #f1f5f9;
+    color: #0d6efd !important;
+  }
+  .nav-link-custom.active {
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px -2px rgba(13, 110, 253, 0.3) !important;
+  }
+  .btn-signout-custom {
+    background-color: rgba(220, 53, 69, 0.08);
+    color: #dc3545;
+    transition: all 0.3s ease;
+  }
+  .btn-signout-custom:hover {
+    background-color: #dc3545;
+    color: #fff !important;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.15);
+  }
+</style>
 
-    <div class="container-fluid d-flex justify-content-between align-items-center p-0">
+  <!-- Top Navbar -->
+  <nav class="staff-navbar navbar navbar-expand bg-white border-bottom shadow-sm px-3 py-2 z-3">
+    <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
       
       <!-- Left Side: Brand -->
-      <div class="d-flex align-items-center mb-0">
+      <div class="d-flex align-items-center gap-3">
         <button
-          class="btn btn-primary bg-gradient border-0 me-3 rounded-circle shadow-sm text-white d-flex align-items-center justify-content-center toggle-btn-hover"
-          style="width: 42px; height: 42px; transition: all 0.3s;" (click)="toggleSidebar()">
-          <i class="bi" [ngClass]="isCollapsed ? 'bi-list fs-5' : 'bi-justify-left fs-5'"></i>
+          class="btn btn-light border-secondary border-opacity-10 rounded-circle shadow-sm text-primary d-flex align-items-center justify-content-center hover-scale"
+          style="width: 44px; height: 44px; transition: all 0.3s;" (click)="toggleSidebar()">
+          <i class="bi fs-5" [ngClass]="isCollapsed ? 'bi-list' : 'bi-justify-left'"></i>
         </button>
-        <span class="navbar-brand fw-bolder mb-0 d-flex align-items-center text-primary" style="letter-spacing: 0.5px;">
-          <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center me-2 shadow-sm"
-            style="width: 36px; height: 36px;">
+        
+        <div class="navbar-brand fw-bolder mb-0 d-flex align-items-center py-0 m-0 gap-2" style="cursor: default;">
+          <div class="bg-primary bg-gradient text-white rounded-4 shadow-sm d-flex align-items-center justify-content-center"
+            style="width: 42px; height: 42px;">
             <i class="bi bi-building fs-5"></i>
           </div>
-          <span class="d-none d-sm-inline fs-4">{{ t('ELMS_PORTAL') }}</span>
-        </span>
+          <span class="d-none d-sm-inline fs-4 text-dark" style="letter-spacing: -0.5px;">ELMS <span class="text-primary fw-black">PORTAL</span></span>
+        </div>
       </div>
 
       <!-- Right Side: Status and Profile -->
-      <div class="d-flex align-items-center">
-        <!-- Connectivity & Sync Status Badge -->
-        <div class="d-flex align-items-center me-3">
-          <div [class]="isOnline() ? 'bg-success' : 'bg-danger'" 
-               class="rounded-circle me-2 shadow-sm" style="width: 10px; height: 10px;"
-               [title]="isOnline() ? t('ONLINE') : t('OFFLINE')">
+      <div class="d-flex align-items-center gap-3 gap-md-4">
+        <!-- Dynamic Status Indicator -->
+        <div class="d-none d-sm-flex align-items-center bg-white border border-secondary border-opacity-25 rounded-pill px-3 py-1 shadow-sm" 
+             [title]="isOnline() ? 'Connected to Cloud' : 'Offline Mode (Local)'">
+          <div class="spinner-grow spinner-grow-sm me-2" role="status"
+               [ngClass]="isOnline() ? 'text-success' : 'text-danger'" style="width: 0.4rem; height: 0.4rem;">
+               <span class="visually-hidden">Status</span>
           </div>
-          <span class="badge rounded-pill fw-bold shadow-sm" 
-                [ngClass]="isOnline() ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'"
-                style="font-size: 0.75rem;">
-            {{ isOnline() ? t('ONLINE') : t('OFFLINE') }}
+          <span class="small fw-bolder" style="font-size: 0.75rem; letter-spacing: 0.5px;" 
+                [class.text-success]="isOnline()" [class.text-danger]="!isOnline()">
+            {{ isOnline() ? 'ONLINE' : 'OFFLINE' }}
           </span>
-
-            @if (pendingCount() > 0) {
-              <span class="badge bg-warning text-dark rounded-pill ms-2 shadow-sm animate-pulse cursor-pointer" 
-                    style="font-size: 0.75rem;" (click)="viewOfflineQueue()" title="Click to MANAGE Offline Sync">
-                <i class="bi bi-arrow-repeat me-1"></i> {{ pendingCount() }} {{ t('SYNCING') }}
-              </span>
-            }
         </div>
 
-        <!-- Accessibility Toolbar -->
-        <div class="d-flex align-items-center me-3 border-end pe-3 d-none d-lg-flex">
-          <div class="btn-group btn-group-sm me-3 shadow-sm rounded-pill overflow-hidden border bg-white">
-            <button class="btn btn-white border-0 py-1 px-2" (click)="zoomOut()" [title]="t('DECREASE_FONT') || 'Decrease'"><i class="bi bi-dash-lg"></i></button>
-            <span class="d-flex align-items-center px-2 fw-bold text-muted border-start border-end" style="font-size: 0.7rem; background: #f8f9fa;">A</span>
-            <button class="btn btn-white border-0 py-1 px-2" (click)="zoomIn()" [title]="t('INCREASE_FONT') || 'Increase'"><i class="bi bi-plus-lg"></i></button>
-          </div>
-          
-          <div class="btn-group btn-group-sm shadow-sm rounded-pill overflow-hidden border bg-white">
-            <button class="btn py-1 px-3 border-0 transition-all" 
-                    [style.font-size]="'0.7rem'"
-                    [class.btn-primary]="langService.currentLang() === 'en'" 
-                    [class.btn-white]="langService.currentLang() !== 'en'"
-                    (click)="setLang('en')">ENG</button>
-            <button class="btn py-1 px-3 border-0 transition-all font-gujarati" 
-                    [style.font-size]="'0.7rem'"
-                    [class.btn-primary]="langService.currentLang() === 'gu'" 
-                    [class.btn-white]="langService.currentLang() !== 'gu'"
-                    (click)="setLang('gu')">GUJ</button>
-          </div>
-        </div>
+        @if (pendingCount() > 0) {
+          <span class="badge bg-warning text-dark rounded-pill shadow-sm cursor-pointer d-flex align-items-center px-3 py-2 animate-pulse"
+            style="font-size: 0.75rem;" (click)="viewOfflineQueue()" title="Click to MANAGE Offline Sync">
+            <span class="spinner-border spinner-border-sm me-2 text-dark" style="width: 10px; height: 10px;" role="status"></span>
+            Syncing: {{ pendingCount() }}
+          </span>
+        }
 
+        <!-- Profile Dropdown -->
         <div class="dropdown">
           <button
-            class="btn btn-white border border-2 d-flex align-items-center rounded-pill px-3 py-1 shadow-sm dropdown-toggle profile-btn-hover"
-            type="button" data-bs-toggle="dropdown" style="transition: all 0.3s;">
-            <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm"
-              style="width: 34px; height: 34px; font-size: 0.9rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+            class="btn btn-white border border-secondary border-opacity-10 bg-light p-1 pe-3 text-start d-flex align-items-center gap-2 shadow-sm rounded-pill hover-scale dropdown-toggle profile-btn-hover"
+            type="button" data-bs-toggle="dropdown" aria-expanded="false" style="transition: all 0.3s;">
+            <div class="text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm border border-2 border-white bg-primary bg-gradient"
+                 style="width: 40px; height: 40px; font-size: 1rem; font-weight: 600;">
               {{ userName.charAt(0) | uppercase }}
             </div>
-            <span class="fw-bold text-dark d-none d-md-inline small">{{ userName }}</span>
+            <div class="d-none d-md-flex flex-column text-start" style="line-height: 1.2;">
+              <span class="fw-bold text-dark text-truncate" style="font-size: 0.85rem; max-width: 120px;">{{ userName }}</span>
+              <span class="text-muted fw-semibold" style="font-size: 0.7rem;">Staff Member</span>
+            </div>
           </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 py-2 rounded-3" style="min-width: 200px;">
-          <li>
-            <h6 class="dropdown-header text-uppercase small fw-bold text-primary" style="letter-spacing: 1px;">{{ t('STAFF_MENU') }}</h6>
-          </li>
-          <li>
-            <hr class="dropdown-divider opacity-25">
-          </li>
-          <li>
-            <button
-              class="dropdown-item text-primary fw-semibold d-flex align-items-center py-2 px-3 dropdown-item-hover"
-              routerLink="/profile-update">
-              <div
-                class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3 d-flex align-items-center justify-content-center">
-                <i class="bi bi-person-gear"></i>
-              </div>
-              {{ t('PROFILE_UPDATE') }}
-            </button>
-          </li>
-          <li>
-            <button
-              class="dropdown-item text-danger fw-semibold d-flex align-items-center py-2 px-3 dropdown-item-hover"
-              (click)="logout()">
-              <div
-                class="bg-danger bg-opacity-10 text-danger rounded p-2 me-3 d-flex align-items-center justify-content-center">
-                <i class="bi bi-box-arrow-right"></i>
-              </div>
-              {{ t('SIGN_OUT') }}
-            </button>
-          </li>
-        </ul>
+          
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 py-2 rounded-4" style="min-width: 240px;">
+            <li class="px-3 py-2 d-md-none">
+              <div class="fw-bold text-dark text-truncate" style="max-width: 180px;">{{ userName }}</div>
+              <div class="text-secondary small">Staff Member</div>
+            </li>
+            <li><hr class="dropdown-divider opacity-10 d-md-none"></li>
+            <li>
+              <h6 class="dropdown-header text-uppercase small fw-bold text-primary" style="letter-spacing: 1px;">Staff Menu</h6>
+            </li>
+            <li>
+              <button class="dropdown-item dropdown-item-custom text-secondary fw-semibold d-flex align-items-center py-2 px-3 my-1 rounded-3 mx-2 w-auto" routerLink="/profile-update" style="cursor: pointer;">
+                <div class="bg-light text-primary rounded-circle me-3 d-flex align-items-center justify-content-center shadow-sm border border-secondary border-opacity-10" style="width: 34px; height: 34px;">
+                  <i class="bi bi-person-gear fs-6"></i>
+                </div>
+                Profile Settings
+              </button>
+            </li>
+            <li><hr class="dropdown-divider opacity-10"></li>
+            <li>
+              <button class="dropdown-item dropdown-item-danger text-danger fw-semibold d-flex align-items-center py-2 px-3 my-1 rounded-3 mx-2 w-auto" (click)="logout()" style="cursor: pointer;">
+                <div class="bg-danger bg-opacity-10 text-danger rounded-circle me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;">
+                  <i class="bi bi-power fs-6"></i>
+                </div>
+                Sign Out
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-  <div class="staff-body">
-    <!-- Sidebar -->
-    <div class="staff-sidebar text-white shadow-sm flex-shrink-0"
-      style="background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
-      [ngClass]="isCollapsed ? 'd-none d-md-block' : 'd-block'" [style.width]="isCollapsed ? '80px' : '260px'">
+  <div class="staff-body d-flex flex-grow-1 overflow-hidden position-relative" style="height: calc(100vh - 72px);">
+    <!-- Premium Light Sidebar -->
+    <div class="staff-sidebar flex-shrink-0 z-2 bg-white border-end border-secondary border-opacity-10 shadow-sm custom-scrollbar"
+      style="transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; overflow-x: hidden;"
+      [ngClass]="isCollapsed ? 'd-none d-md-block' : 'd-block'" [style.width]="isCollapsed ? '88px' : '280px'">
 
-      <div class="d-flex flex-column h-100 p-3">
-        <div class="d-flex align-items-center mb-3 mt-1" [class.justify-content-center]="isCollapsed">
-          <div
-            class="bg-white bg-opacity-10 rounded-3 p-2 border border-white border-opacity-25 d-flex align-items-center justify-content-center">
-            <i class="bi bi-person-badge fs-5"></i>
+      <div class="d-flex flex-column h-100 py-4 px-3">
+        <div class="d-flex align-items-center mb-4 text-dark" [class.justify-content-center]="isCollapsed">
+          <div class="bg-primary bg-opacity-10 rounded-3 p-2 d-flex align-items-center justify-content-center shadow-sm border border-primary border-opacity-10" style="width: 42px; height: 42px; min-width: 42px;">
+            <i class="bi bi-person-badge fs-5 text-primary"></i>
           </div>
-          <span class="fs-6 fw-bold ms-3 text-uppercase text-white" [class.d-none]="isCollapsed"
-            style="letter-spacing: 1px;">{{ t('STAFF_MENU') }}</span>
+          <span class="fs-6 fw-bolder ms-3 text-uppercase tracking-wide text-truncate" [class.d-none]="isCollapsed" style="letter-spacing: 1px; color: #1e293b;">Staff Menu</span>
         </div>
 
-        <hr class="text-white opacity-25 mb-3 mt-0">
+        <div class="mb-3 mt-2 px-1" [class.d-none]="isCollapsed">
+          <div class="text-uppercase text-secondary fw-bold" style="letter-spacing: 1px; font-size: 0.7rem; opacity: 0.7;">Main Menu</div>
+        </div>
 
-        <ul class="nav nav-pills flex-column mb-auto d-grid gap-1">
+        <ul class="nav nav-pills flex-column mb-auto gap-2">
           <li class="nav-item">
             <a routerLink="/staff-dashboard"
-              routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-white opacity-100"
+              routerLinkActive="active"
               [routerLinkActiveOptions]="{ exact: true }"
-              class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75"
-              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
-              <i class="bi bi-speedometer2 fs-5"></i>
-              <span class="ms-3" [class.d-none]="isCollapsed">{{ t('DASHBOARD') }}</span>
+              class="nav-link nav-link-custom d-flex align-items-center rounded-3 py-2 px-3 border-0"
+              [ngClass]="isCollapsed ? 'justify-content-center p-2' : ''">
+              <i class="bi bi-speedometer2 fs-5" [ngClass]="isCollapsed ? '' : 'me-3'"></i>
+              <span [class.d-none]="isCollapsed">Dashboard</span>
             </a>
           </li>
 
           <li class="nav-item">
             <a routerLink="/apply-leave"
-              routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-white opacity-100"
-              class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75"
-              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
-              <i class="bi bi-calendar2-plus fs-5"></i>
-              <span class="ms-3" [class.d-none]="isCollapsed">{{ t('APPLY_LEAVE') }}</span>
+              routerLinkActive="active"
+              class="nav-link nav-link-custom d-flex align-items-center rounded-3 py-2 px-3 border-0"
+              [ngClass]="isCollapsed ? 'justify-content-center p-2' : ''">
+              <i class="bi bi-calendar2-plus fs-5" [ngClass]="isCollapsed ? '' : 'me-3'"></i>
+              <span [class.d-none]="isCollapsed">Apply Leave</span>
             </a>
           </li>
 
           @if (isHOD()) {
+          <div class="mt-4 mb-3 px-1" [class.d-none]="isCollapsed">
+            <div class="text-uppercase text-secondary fw-bold" style="letter-spacing: 1px; font-size: 0.7rem; opacity: 0.7;">Management</div>
+          </div>
           <li class="nav-item">
             <a routerLink="/hod-leave-approved"
-              routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-white opacity-100"
-              class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75"
-              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
-              <i class="bi bi-shield-check fs-5"></i>
-              <span class="ms-3" [class.d-none]="isCollapsed">{{ t('HOD_APPROVALS') }}</span>
+              routerLinkActive="active"
+              class="nav-link nav-link-custom d-flex align-items-center rounded-3 py-2 px-3 border-0"
+              [ngClass]="isCollapsed ? 'justify-content-center p-2' : ''">
+              <i class="bi bi-shield-check fs-5" [ngClass]="isCollapsed ? '' : 'me-3'"></i>
+              <span [class.d-none]="isCollapsed">HOD Approvals</span>
             </a>
           </li>
           }
 
+          <div class="mt-4 mb-3 px-1" [class.d-none]="isCollapsed">
+            <div class="text-uppercase text-secondary fw-bold" style="letter-spacing: 1px; font-size: 0.7rem; opacity: 0.7;">Records</div>
+          </div>
+
           <li class="nav-item">
             <a routerLink="/staff-view-status"
-              routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-white opacity-100"
-              class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75"
-              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
-              <i class="bi bi-clock-history fs-5"></i>
-              <span class="ms-3" [class.d-none]="isCollapsed">{{ t('MY_STATUS') }}</span>
+              routerLinkActive="active"
+              class="nav-link nav-link-custom d-flex align-items-center rounded-3 py-2 px-3 border-0"
+              [ngClass]="isCollapsed ? 'justify-content-center p-2' : ''">
+              <i class="bi bi-clock-history fs-5" [ngClass]="isCollapsed ? '' : 'me-3'"></i>
+              <span [class.d-none]="isCollapsed">My Status</span>
             </a>
           </li>
 
           <li class="nav-item">
             <a routerLink="/staff-policy"
-              routerLinkActive="bg-white bg-opacity-25 shadow-sm fw-bold border-start border-4 border-white opacity-100"
-              class="nav-link text-white d-flex align-items-center py-3 rounded-end-3 border-0 opacity-75"
-              [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
-              <i class="bi bi-journal-text fs-5"></i>
-              <span class="ms-3" [class.d-none]="isCollapsed">{{ t('POLICIES') }}</span>
+              routerLinkActive="active"
+              class="nav-link nav-link-custom d-flex align-items-center rounded-3 py-2 px-3 border-0"
+              [ngClass]="isCollapsed ? 'justify-content-center p-2' : ''">
+              <i class="bi bi-journal-text fs-5" [ngClass]="isCollapsed ? '' : 'me-3'"></i>
+              <span [class.d-none]="isCollapsed">Policies</span>
             </a>
           </li>
         </ul>
 
-        <div class="mt-auto pt-3 border-top border-white border-opacity-25">
+        <div class="mt-auto pt-4">
           <button (click)="logout()"
-            class="btn btn-link text-white text-decoration-none w-100 d-flex align-items-center py-2 px-0 fw-semibold opacity-75 transition-all hover-opacity-100"
-            [ngClass]="isCollapsed ? 'justify-content-center' : 'justify-content-start px-3'">
-            <i class="bi bi-box-arrow-right fs-5" [class.me-3]="!isCollapsed"></i>
-            <span [class.d-none]="isCollapsed">{{ t('SIGN_OUT') }}</span>
+            class="btn btn-signout-custom w-100 d-flex align-items-center py-2 border-0 shadow-sm rounded-3 fw-bold"
+            [ngClass]="isCollapsed ? 'justify-content-center px-0' : 'px-3'">
+            <i class="bi bi-box-arrow-left fs-5" [ngClass]="isCollapsed ? '' : 'me-3'"></i>
+            <span [class.d-none]="isCollapsed">Sign Out</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Main Content Area -->
-    <div class="staff-main-content">
-      <ng-content></ng-content>
+    <div class="staff-main-content flex-grow-1 overflow-auto bg-light rounded-top-start-4 shadow-sm border-start border-top border-secondary border-opacity-10" style="z-index: 1;">
+      <div class="container-fluid p-4 h-100">
+        <ng-content></ng-content>
+      </div>
     </div>
   </div>
 </div>

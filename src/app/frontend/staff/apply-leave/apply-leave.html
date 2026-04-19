@@ -2,13 +2,13 @@
   <div class="container-fluid py-4 bg-light min-vh-100">
 
     <!-- Main Content Row: Form Left, Balance Panel Right -->
-    <div class="row g-4">
+    <div class="row g-4 d-flex align-items-stretch">
 
       <!-- ===== LEFT COLUMN: Form ===== -->
-      <div class="col-md-7">
+      <div class="col-lg-7 d-flex flex-column">
 
         <!-- Staff Info Hero Card -->
-        <div class="card shadow-sm border-0 mb-4 overflow-hidden rounded-4">
+        <div class="card shadow-sm border-0 flex-shrink-0 mb-4 overflow-hidden rounded-4">
           <div class="card-body p-0">
             <div class="d-flex align-items-center text-white p-4"
               style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
@@ -45,7 +45,7 @@
         </div>
 
         <!-- Application Form Card -->
-        <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white">
+        <div class="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white flex-grow-1">
           <div class="d-flex align-items-center mb-4">
             <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
               <i class="bi bi-file-earmark-plus text-primary fs-3"></i>
@@ -192,9 +192,9 @@
       </div>
 
       <!-- ===== RIGHT COLUMN: Balance Panel ===== -->
-      <div class="col-md-5">
-        <div class="card shadow border-0 rounded-4 overflow-hidden sticky-top" style="top: 100px; z-index: 10;">
-          <div class="card-header bg-primary bg-gradient text-white p-4 border-0">
+      <div class="col-lg-5 d-flex flex-column">
+        <div class="card shadow border-0 rounded-4 overflow-hidden flex-grow-1 d-flex flex-column" style="z-index: 10;">
+          <div class="card-header bg-primary bg-gradient text-white p-4 border-0 flex-shrink-0">
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <h5 class="mb-1 fw-bold">My Leave Balance</h5>
@@ -203,8 +203,8 @@
               <i class="bi bi-shield-check fs-2 opacity-50"></i>
             </div>
           </div>
-          <div class="card-body p-0 bg-white">
-            <div class="table-responsive">
+          <div class="card-body p-0 bg-white d-flex flex-column flex-grow-1">
+            <div class="table-responsive flex-grow-1">
               <table class="table table-borderless mb-0">
                 <thead class="bg-light text-muted small text-uppercase fw-bold">
                   <tr>
@@ -304,7 +304,7 @@
                 </tbody>
               </table>
             </div>
-            <div class="p-4 bg-light bg-opacity-50">
+            <div class="p-4 bg-light bg-opacity-50 mt-auto border-top flex-shrink-0">
               <div class="d-flex align-items-center p-3 bg-white rounded-3 border">
                 <div class="bg-primary bg-opacity-10 p-2 rounded text-primary me-3">
                   <i class="bi bi-info-circle-fill"></i>
