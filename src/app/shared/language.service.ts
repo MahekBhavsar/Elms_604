@@ -203,7 +203,17 @@ export class LanguageService {
       'POLICY_TITLE': 'Policy Title',
       'FULL_POLICY_CONTENT': 'Full Policy Content',
       'WRITE_POLICY_DETAIL': 'Write the full policy detail here... (Supports multi-line)',
-      'SHORT_DESCRIPTION': 'Short Description'
+      'SHORT_DESCRIPTION': 'Short Description',
+      'LEAVE': 'Leave',
+      'DOCS': 'Docs',
+      'SR_NO': 'Sr. No.',
+      'SYSTEM_PORTAL': 'System Portal',
+      'MAIN_MENU': 'Main Menu',
+      'MANAGEMENT': 'Management',
+      'SYSTEM_TASKS': 'System Tasks',
+      'ADMINISTRATOR': 'Administrator',
+      'DAYS_TEXT': 'Days',
+      'RECORDS': 'Records'
     },
     'gu': {
       'DASHBOARD': 'ડેશબોર્ડ',
@@ -397,7 +407,17 @@ export class LanguageService {
       'POLICY_TITLE': 'નીતિનું શીર્ષક',
       'FULL_POLICY_CONTENT': 'સંપૂર્ણ નીતિ વિગતો',
       'WRITE_POLICY_DETAIL': 'અહીં સંપૂર્ણ નીતિ વિગતો લખો... (મલ્ટી-લાઇન સપોર્ટ કરે છે)',
-      'SHORT_DESCRIPTION': 'ટૂંકું વર્ણન'
+      'SHORT_DESCRIPTION': 'ટૂંકું વર્ણન',
+      'LEAVE': 'રજા',
+      'DOCS': 'દસ્તાવેજો',
+      'SR_NO': 'ક્રમાંક',
+      'SYSTEM_PORTAL': 'સિસ્ટમ પોર્ટલ',
+      'MAIN_MENU': 'મુખ્ય મેનુ',
+      'MANAGEMENT': 'સંચાલન',
+      'SYSTEM_TASKS': 'સિસ્ટમ કાર્યો',
+      'ADMINISTRATOR': 'એડમિનિસ્ટ્રેટર',
+      'DAYS_TEXT': 'દિવસ',
+      'RECORDS': 'રેકોર્ડ્સ'
     }
   };
 

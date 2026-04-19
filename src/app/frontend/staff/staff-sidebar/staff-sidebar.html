@@ -75,6 +75,18 @@
 
       <!-- Right Side: Status and Profile -->
       <div class="d-flex align-items-center gap-3 gap-md-4">
+        <!-- Zoom Controls -->
+        <div class="d-none d-sm-flex align-items-center gap-1 bg-white border border-secondary border-opacity-25 rounded-pill px-2 py-1 shadow-sm">
+          <button class="btn btn-sm btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center hover-scale text-primary" style="width: 28px; height: 28px;" (click)="zoomOut()" title="Zoom Out">
+            <i class="bi bi-dash fw-bold"></i>
+          </button>
+          <span class="small fw-bolder text-secondary mx-1" style="font-size: 0.75rem; min-width: 35px; text-align: center;">{{ (fontSizeService.scale() * 100).toFixed(0) }}%</span>
+          <button class="btn btn-sm btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center hover-scale text-primary" style="width: 28px; height: 28px;" (click)="zoomIn()" title="Zoom In">
+            <i class="bi bi-plus fw-bold"></i>
+          </button>
+        </div>
+
+
         <!-- Dynamic Status Indicator -->
         <div class="d-none d-sm-flex align-items-center bg-white border border-secondary border-opacity-25 rounded-pill px-3 py-1 shadow-sm" 
              [title]="isOnline() ? 'Connected to Cloud' : 'Offline Mode (Local)'">
