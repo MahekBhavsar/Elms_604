@@ -6,12 +6,12 @@
       <div class="col-12">
         <div class="card shadow-sm border-0 overflow-hidden rounded-4">
           <div class="card-body p-4 bg-white">
-            <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-search me-2"></i>{{ t('FIND_EMPLOYEE') }}</h5>
+            <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-search me-2"></i>Find Employee</h5>
             <div class="input-group">
               <input type="number" class="form-control bg-light border-0 py-3 shadow-none" 
-                     [placeholder]="t('ENTER_EMP_CODE')" [(ngModel)]="searchEmpCode" (input)="onEmpCodeChange()">
+                     placeholder="Enter Employee Code" [(ngModel)]="searchEmpCode" (input)="onEmpCodeChange()">
               <button class="btn btn-primary px-4 fw-bold" (click)="onEmpCodeSearch()">
-                <i class="bi bi-search me-2"></i>{{ t('SEARCH_EMPLOYEE') }}
+                <i class="bi bi-search me-2"></i>Search
               </button>
             </div>
           </div>
@@ -34,13 +34,13 @@
                 <i class="bi bi-person-check-fill fs-2"></i>
               </div>
               <div>
-                <h6 class="mb-0 text-white-50">{{ leaveForm.Role }} {{ t('INFO') }}</h6>
+                <h6 class="mb-0 text-white-50">{{ leaveForm.Role }} Info</h6>
                 <h4 class="fw-bold mb-0 text-white">{{ leaveForm.Name }} ({{ leaveForm.Emp_CODE }})</h4>
                 <small class="opacity-75">All Balances shown in the right panel <i class="bi bi-arrow-right-short"></i></small>
               </div>
               <div class="ms-auto text-end">
                 <h1 class="display-4 fw-bold mb-0 text-perfect-white">{{ leaveForm.Total_Days() }}</h1>
-                <small class="text-uppercase fw-bold text-white text-opacity-75">{{ t('DAYS_SELECTED') }}</small>
+                <small class="text-uppercase fw-bold text-white text-opacity-75">Days Selected</small>
               </div>
 
             </div>
@@ -48,10 +48,10 @@
             <div class="px-4 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">
               <span class="small text-muted fw-bold">
                 <i class="bi bi-info-circle me-1 text-primary"></i>
-                {{ leaveForm.Type_of_Leave }} {{ t('STATS') }}:
+                {{ leaveForm.Type_of_Leave }} Stats:
               </span>
               <span [ngClass]="isIncrementing() ? 'text-primary' : (remainingBalance() <= 3 ? 'text-danger' : 'text-success')" class="fw-bold small">
-                {{ displayValue() }} {{ isIncrementing() ? t('DAYS_TAKEN_ACCUMULATING') : t('DAYS_AVAILABLE_QUOTA') }}
+                {{ displayValue() }} {{ isIncrementing() ? 'Days Taken' : 'Days Remaining' }}
               </span>
             </div>
           </div>
@@ -62,9 +62,9 @@
             <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
               <i class="bi bi-file-earmark-plus text-primary fs-3"></i>
             </div>
-            <h3 class="text-dark fw-bold mb-0">{{ isEditMode() ? t('EDIT') : t('NEW') }} {{ t('LEAVE_APP_TITLE') || 'Leave Application' }}</h3>
+            <h3 class="text-dark fw-bold mb-0">{{ isEditMode() ? 'Edit' : 'New' }} Leave Application</h3>
             @if (isEditMode()) {
-              <span class="badge bg-warning text-dark ms-3 fw-bold">{{ t('EDIT_MODE') || 'EDIT MODE' }}</span>
+              <span class="badge bg-warning text-dark ms-3 fw-bold">EDIT MODE</span>
             }
           </div>
 
@@ -74,7 +74,7 @@
 
               <!-- Auto-filled: Emp Code & Dept Code -->
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('EMP_CODE_LABEL') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Employee Code</label>
                 <div class="input-group">
                   <span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="bi bi-person-badge"></i></span>
                   <input type="text" class="form-control bg-light border-0 py-3 shadow-none text-dark fw-bold"
@@ -85,7 +85,7 @@
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('DEPT_CODE_LABEL') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Department Code</label>
                 <div class="input-group">
                   <span class="input-group-text bg-info bg-opacity-10 border-0 text-info"><i class="bi bi-building"></i></span>
                   <input type="text" class="form-control bg-light border-0 py-3 shadow-none text-dark fw-bold"
@@ -96,7 +96,7 @@
               </div>
 
               <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('SR_NO') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Sr. No.</label>
                 <div class="input-group">
                   <input type="text"
                          class="form-control border-0 py-3 shadow-none fw-bold rounded-start-3"
@@ -120,10 +120,10 @@
               </div>
 
               <div class="col-md-8">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('TYPE_OF_LEAVE') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Type of Leave</label>
                 <select class="form-select bg-light border-0 py-3 shadow-none" 
                         [(ngModel)]="leaveForm.Type_of_Leave" name="type" (change)="fetchBalance()">
-                  <option value="" disabled>{{ t('SELECT_LEAVE_TYPE') }}</option>
+                  <option value="" disabled>Select Leave Type</option>
                   @for (name of leaveTypes(); track name) {
                     <option [value]="name">{{ name }}</option>
                   }
@@ -131,28 +131,28 @@
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('START_DATE') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Start Date</label>
                 <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.From"
                   name="from" (change)="calculateDays()" required>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('END_DATE') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">End Date</label>
                 <input type="date" class="form-control bg-light border-0 py-3 shadow-none" [(ngModel)]="leaveForm.To"
                   name="to" (change)="calculateDays()" required>
               </div>
 
               <div class="col-md-12">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('REASON_FOR_APP') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Reason for Application</label>
                 <textarea class="form-control bg-light border-0 py-3 shadow-none" rows="3"
-                  [(ngModel)]="leaveForm.Reason" name="reason" [placeholder]="t('REASON_PLACEHOLDER')" required></textarea>
+                  [(ngModel)]="leaveForm.Reason" name="reason" placeholder="Enter reason for leave..." required></textarea>
               </div>
 
               @if (leaveForm.Type_of_Leave === 'VAL') {
               <div class="col-md-12">
                 <div class="p-3 border border-warning rounded-3 bg-warning bg-opacity-10">
                   <label class="form-label small fw-bold text-uppercase d-flex justify-content-between align-items-center text-warning-emphasis">
-                    <span><i class="bi bi-calendar2-check me-1"></i> {{ t('VACATION_WORKING_DATES') }}</span>
+                    <span><i class="bi bi-calendar2-check me-1"></i> Vacation Working Dates</span>
                     <span class="badge bg-warning text-dark">Required for VAL</span>
                   </label>
                   <textarea class="form-control bg-white border-0 shadow-none" rows="3"
@@ -172,19 +172,19 @@
                 <div class="p-3 border rounded-3" 
                   [ngClass]="{'bg-danger bg-opacity-10 border-danger': leaveForm.Type_of_Leave === 'SL' && leaveForm.Total_Days() > 3, 'bg-light border-0': true}">
                   <label class="form-label small fw-bold text-muted text-uppercase d-flex justify-content-between">
-                    <span>{{ t('UPLOAD_DOC') }}</span>
+                    <span>Upload Document</span>
                     @if (leaveForm.Type_of_Leave === 'SL') {
                       @if (leaveForm.Total_Days() > 3) {
-                        <span class="badge bg-danger">{{ t('MEDICAL_COMPULSORY') }}</span>
+                        <span class="badge bg-danger">Medical Proof Compulsory</span>
                       } @else {
-                        <span class="badge bg-warning text-dark">{{ t('OPTIONAL_PROOF') }}</span>
+                        <span class="badge bg-warning text-dark">Optional Proof</span>
                       }
                     }
                   </label>
                   <input type="file" class="form-control bg-white py-2 shadow-none" (change)="onFileSelected($event)" name="document">
                   <div class="mt-2 small text-muted">
                     <i class="bi bi-info-circle me-1"></i>
-                    {{ t('ALLOWED_FILES') }}
+                    Allowed: PDF, JPG, PNG. SL > 3 days requires document.
                   </div>
                 </div>
               </div>
@@ -194,11 +194,11 @@
                   <button type="submit" class="btn text-white flex-grow-1 py-3 rounded-pill fw-bold shadow-lg"
                     [style.background]="isEditMode() ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)'">
                     <i class="bi" [ngClass]="isEditMode() ? 'bi-pencil-square' : 'bi-check2-circle'"></i> 
-                    {{ isEditMode() ? t('EDIT_LEAVE_APP') : t('CONFIRM_SUBMIT') }}
+                    {{ isEditMode() ? 'Update Leave Application' : 'Confirm and Submit' }}
                   </button>
                   @if (isEditMode()) {
                     <button type="button" class="btn btn-outline-secondary px-4 py-3 rounded-pill fw-bold" (click)="cancelEdit()">
-                      {{ t('CANCEL') }}
+                      Cancel
                     </button>
                   }
                 </div>
@@ -212,8 +212,8 @@
             <div class="mb-4">
               <i class="bi bi-person-bounding-box text-light display-1"></i>
             </div>
-            <h4 class="text-muted fw-bold">{{ t('SEARCH_TO_APPLY') }}</h4>
-            <p class="text-muted mb-0">{{ t('SEARCH_TO_APPLY_DESC') || 'Enter the employee code in the search bar above to fetch details and apply leave on their behalf.' }}</p>
+            <h4 class="text-muted fw-bold">Search to Apply</h4>
+            <p class="text-muted mb-0">Enter the employee code in the search bar above to fetch details and apply leave on their behalf.</p>
           </div>
         }
       </div>
@@ -284,20 +284,20 @@
                          <tr>
                            <td colspan="3" class="p-0 border-0">
                              <div class="bg-light p-3 mx-4 mb-3 rounded-3 shadow-inner">
-                               <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                                 <span class="small fw-bold text-muted text-uppercase">{{ t('TAKEN_HISTORY') }} ({{ b.type }})</span>
-                                 <span class="badge bg-white text-dark border">{{ leaveHistory().length }} {{ t('APPLICATIONS') || 'Applications' }}</span>
-                               </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                                  <span class="small fw-bold text-muted text-uppercase">Taken History ({{ b.type }})</span>
+                                  <span class="badge bg-white text-dark border">{{ leaveHistory().length }} Applications</span>
+                                </div>
                                @if (leaveHistory().length > 0) {
                                  <div class="table-responsive">
                                    <table class="table table-sm table-borderless mb-0 align-middle" style="font-size: 0.85rem;">
                                      <thead class="text-muted border-bottom">
-                                       <tr>
-                                          <th>{{ t('SR_NO') }}</th>
-                                          <th>{{ t('FROM_TO') }}</th>
-                                          <th class="text-center">{{ t('DAYS') }}</th>
-                                          <th class="text-center">{{ t('STATUS') }}</th>
-                                          <th class="text-end">{{ t('ACTIONS') }}</th>
+                                        <tr>
+                                          <th>Sr. No.</th>
+                                          <th>From - To</th>
+                                          <th class="text-center">Days</th>
+                                          <th class="text-center">Status</th>
+                                          <th class="text-end">Actions</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -334,7 +334,7 @@
                                  </div>
                                } @else {
                                  <div class="py-3 text-center text-muted small">
-                                   <i class="bi bi-info-circle me-1"></i> {{ t('NO_LEAVES_FOUND') }}
+                                   <i class="bi bi-info-circle me-1"></i> No Leaves Found
                                  </div>
                                }
                              </div>

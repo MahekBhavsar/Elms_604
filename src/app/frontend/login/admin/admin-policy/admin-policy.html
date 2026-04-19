@@ -3,12 +3,12 @@
     <!-- Header Section -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
       <div>
-        <h2 class="display-6 fw-bold text-dark mb-2">{{ t('POLICY_HUB') }} <span class="text-primary">{{ t('GOVERNANCE') }}</span></h2>
-        <p class="text-muted mb-0">{{ t('POLICY_SUBTITLE') }}</p>
+        <h2 class="display-6 fw-bold text-dark mb-2">Policy Central <span class="text-primary">Governance</span></h2>
+        <p class="text-muted mb-0">Create and manage guidelines for staff and HODs.</p>
       </div>
       <button (click)='openAddModal()' class='btn btn-primary d-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm hover-lift'>
         <i class='bi bi-plus-lg fs-5'></i>
-        <span class='fw-bold'>{{ t('CREATE_NEW_POLICY') }}</span>
+        <span class='fw-bold'>Create New Policy</span>
       </button>
     </div>
 
@@ -21,7 +21,7 @@
               <i class="bi bi-files fs-4"></i>
             </div>
             <div>
-              <div class="text-muted small fw-bold text-uppercase">{{ t('TOTAL') || 'Total' }}</div>
+              <div class="text-muted small fw-bold text-uppercase">Total</div>
               <div class="fs-4 fw-bold">{{ policies.length }}</div>
             </div>
           </div>
@@ -34,7 +34,7 @@
               <i class="bi bi-cloud-check fs-4"></i>
             </div>
             <div>
-              <div class="text-muted small fw-bold text-uppercase">{{ t('PUBLISHED') }}</div>
+              <div class="text-muted small fw-bold text-uppercase">Published</div>
               <div class="fs-4 fw-bold">{{ getStatusCount('Published') }}</div>
             </div>
           </div>
@@ -47,7 +47,7 @@
               <i class="bi bi-pencil-square fs-4"></i>
             </div>
             <div>
-              <div class="text-muted small fw-bold text-uppercase">{{ t('DRAFTS') }}</div>
+              <div class="text-muted small fw-bold text-uppercase">Drafts</div>
               <div class="fs-4 fw-bold">{{ getStatusCount('Draft') }}</div>
             </div>
           </div>
@@ -60,15 +60,15 @@
       <div class="spinner-border text-primary shadow-sm" style="width: 3rem; height: 3rem;" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
-      <p class="mt-3 text-muted fw-medium">{{ t('SYNCING') }}</p>
+      <p class="mt-3 text-muted fw-medium">Syncing...</p>
     </div>
 
     <div *ngIf="!loading && policies.length === 0" class="text-center py-5 empty-state">
       <div class="bg-light rounded-circle d-inline-flex p-4 mb-4">
         <i class="bi bi-journal-x fs-1 text-muted"></i>
       </div>
-      <h4 class="fw-bold">{{ t('NO_POLICIES_FOUND') }}</h4>
-      <p class="text-muted">{{ t('START_BY_CREATING_POLICY') }}</p>
+      <h4 class="fw-bold">No Policies Found</h4>
+      <p class="text-muted">Start by creating your first company policy.</p>
     </div>
 
     <div class="row g-4" *ngIf="!loading && policies.length > 0">
@@ -104,7 +104,7 @@
               <button (click)="toggleStatus(p)" class="btn btn-sm rounded-pill px-3 shadow-lg" 
                       [ngClass]="p.status === 'Published' ? 'btn-warning' : 'btn-success'">
                 <i class="bi me-1" [ngClass]="p.status === 'Published' ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
-                {{ p.status === 'Published' ? t('UNPUBLISH') : t('PUBLISH') }}
+                {{ p.status === 'Published' ? 'Unpublish' : 'Publish' }}
               </button>
               <button (click)="deletePolicy(p._id)" class="btn btn-danger btn-sm rounded-circle shadow-lg p-2">
                 <i class="bi bi-trash-fill"></i>
@@ -124,7 +124,7 @@
         <div class="modal-header border-0 bg-primary-soft px-4 py-3">
           <h5 class="modal-title fw-bold text-primary">
             <i class="bi" [ngClass]="isEditing ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-            {{ isEditing ? t('EDIT_POLICY') || 'Edit Policy' : t('CREATE_NEW_POLICY') }}
+            {{ isEditing ? 'Edit Policy' : 'Create New Policy' }}
           </h5>
           <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
@@ -132,38 +132,38 @@
           <form #policyForm="ngForm">
             <div class="row g-4">
               <div class="col-md-8">
-                <label class="form-label small fw-bold text-uppercase opacity-75">{{ t('POLICY_TITLE') }}</label>
+                <label class="form-label small fw-bold text-uppercase opacity-75">Policy Title</label>
                 <input type="text" class="form-control rounded-3 border-light p-3 shadow-sm" 
-                       [(ngModel)]="currentPolicy.title" name="title" [placeholder]="t('REASON_PLACEHOLDER') || 'Enter title...'" required>
+                       [(ngModel)]="currentPolicy.title" name="title" placeholder="Enter title..." required>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold text-uppercase opacity-75">{{ t('CATEGORY') || 'Category' }}</label>
+                <label class="form-label small fw-bold text-uppercase opacity-75">Category</label>
                 <select class="form-select rounded-3 border-light p-3 shadow-sm" 
                         [(ngModel)]="currentPolicy.category" name="category">
-                  <option *ngFor="let cat of categories" [value]="cat">{{ t(cat.toUpperCase()) || cat }}</option>
+                  <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
                 </select>
               </div>
               <div class="col-12">
-                <label class="form-label small fw-bold text-uppercase opacity-75">{{ t('SHORT_DESCRIPTION') }}</label>
+                <label class="form-label small fw-bold text-uppercase opacity-75">Short Description</label>
                 <textarea class="form-control rounded-3 border-light p-3 shadow-sm" rows="2" 
-                          [(ngModel)]="currentPolicy.description" name="description" [placeholder]="t('REASON_PLACEHOLDER') || 'Brief summary...'"></textarea>
+                          [(ngModel)]="currentPolicy.description" name="description" placeholder="Brief summary..."></textarea>
               </div>
               <div class="col-12">
-                <label class="form-label small fw-bold text-uppercase opacity-75">{{ t('FULL_POLICY_CONTENT') }}</label>
+                <label class="form-label small fw-bold text-uppercase opacity-75">Full Policy Content</label>
                 <textarea class="form-control rounded-3 border-light p-3 shadow-sm rich-content" rows="10" 
                           [(ngModel)]="currentPolicy.content" name="content" 
-                          [placeholder]="t('WRITE_POLICY_DETAIL')"></textarea>
+                          placeholder="Write the full policy detail here..."></textarea>
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-bold text-uppercase opacity-75">Initial Status</label>
                 <div class="d-flex gap-3 mt-1">
                   <div class="form-check custom-radio">
                     <input class="form-check-input" type="radio" name="status" id="draft" value="Draft" [(ngModel)]="currentPolicy.status">
-                    <label class="form-check-label fw-medium" for="draft">{{ t('DRAFTS') }}</label>
+                    <label class="form-check-label fw-medium" for="draft">Drafts</label>
                   </div>
                   <div class="form-check custom-radio">
                     <input class="form-check-input" type="radio" name="status" id="publish" value="Published" [(ngModel)]="currentPolicy.status">
-                    <label class="form-check-label fw-medium text-success" for="publish">{{ t('PUBLISH_IMMEDIATELY') || t('PUBLISHED') }}</label>
+                    <label class="form-check-label fw-medium text-success" for="publish">Publish Immediately</label>
                   </div>
                 </div>
               </div>
@@ -171,9 +171,9 @@
           </form>
         </div>
         <div class="modal-footer border-0 p-4">
-          <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold" (click)="closeModal()">{{ t('CANCEL') }}</button>
+          <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-bold" (click)="closeModal()">Cancel</button>
           <button type="button" class="btn btn-primary px-5 py-2 rounded-3 fw-bold shadow-sm" (click)="savePolicy()">
-            {{ isEditing ? t('UPDATE_POLICY') : t('CREATE_POLICY') || t('SAVE') }}
+            {{ isEditing ? 'Update Policy' : 'Create Policy' }}
           </button>
         </div>
       </div>

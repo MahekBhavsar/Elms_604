@@ -8,14 +8,14 @@
             style="width: 45px; height: 45px;">
             <i class="bi bi-file-earmark-bar-graph-fill" style="color: #1e3c72; font-size: 1.5rem;"></i>
           </div>
-          {{ t('SYSTEM_INTELLIGENCE_REPORT') }}
+          System Intelligence Report
         </h3>
-        <p class="text-secondary mb-0 mt-2 ms-1">{{ t('REPORT_SUBTITLE') || 'Real-time auditing across staff records, logs, and configurations.' }}</p>
+        <p class="text-secondary mb-0 mt-2 ms-1">Real-time auditing across staff records, logs, and configurations.</p>
       </div>
       <button class="btn text-white border-0 shadow-sm rounded-pill px-4 py-2 fw-bold" (click)="resetFilters()"
         style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); transition: transform 0.2s;"
         onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-        <i class="bi bi-arrow-clockwise me-2"></i> {{ t('RESET_FILTERS') }}
+        <i class="bi bi-arrow-clockwise me-2"></i> Reset Filters
       </button>
     </div>
 
@@ -25,19 +25,19 @@
         [ngClass]="activeTab() === 'staff' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'staff' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
         (click)="onTabChange('staff')">
-        <i class="bi bi-people-fill me-2"></i>{{ t('STAFF_DIRECTORY') }}
+        <i class="bi bi-people-fill me-2"></i>Staff Directory
       </button>
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'logs' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'logs' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
         (click)="onTabChange('logs')">
-        <i class="bi bi-calendar2-week-fill me-2"></i>{{ t('LEAVE_HISTORY') }}
+        <i class="bi bi-calendar2-week-fill me-2"></i>Leave History
       </button>
       <button class="nav-link py-3 flex-fill fw-bold rounded-3"
         [ngClass]="activeTab() === 'balance' ? 'text-white' : 'text-muted'"
         [style.background]="activeTab() === 'balance' ? 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' : 'transparent'"
         (click)="onTabChange('balance')">
-        <i class="bi bi-wallet2 me-2"></i>{{ t('BALANCE_SUMMARY') }}
+        <i class="bi bi-wallet2 me-2"></i>Balance Summary
       </button>
     </div>
 
@@ -80,7 +80,7 @@
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"
                   style="color: #2a5298;"></i></span>
               <input type="text" class="form-control bg-transparent border-0 shadow-none"
-                [placeholder]="t('SEARCH_PLACEHOLDER')" [ngModel]="searchTerm()"
+                placeholder="Search staff, code or type..." [ngModel]="searchTerm()"
                 (ngModelChange)="searchTerm.set($event)">
             </div>
           </div>
@@ -90,7 +90,7 @@
               <span class="input-group-text bg-transparent border-0"><i class="bi bi-building"
                   style="color: #2a5298;"></i></span>
               <input type="text" class="form-control bg-transparent border-0 shadow-none"
-                [placeholder]="t('DEPT_FILTER_PLACEHOLDER')" [ngModel]="deptSearch()"
+                placeholder="Filter by Dept Code" [ngModel]="deptSearch()"
                 (ngModelChange)="deptSearch.set($event)">
             </div>
           </div>
@@ -126,10 +126,10 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="border-bottom" style="background-color: #f8f9fa;">
             <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
-              <th class="ps-4 py-4 border-0" style="width: 80px;">{{ t('SR_NO') }}</th>
+              <th class="ps-4 py-4 border-0" style="width: 80px;">Sr. No.</th>
               <th class="py-4 border-0">
                 <div class="d-flex align-items-center gap-2">
-                  {{ t('EMPLOYEE_MEMBER') || 'Employee Member' }}
+                  Employee Member
                   <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
                     <button class="btn btn-sm p-0 border-0" [class.text-primary]="staffCodeSortDirection() === 'asc'" (click)="staffCodeSortDirection.set('asc'); $event.stopPropagation()" title="Code Ascending">
                       <i class="bi bi-sort-numeric-down"></i>
@@ -140,9 +140,9 @@
                   </div>
                 </div>
               </th>
-              <th class="py-4 border-0">{{ t('DEPARTMENT_INFO') }}</th>
-              <th class="py-4 border-0">{{ t('ROLE') }}</th>
-              <th class="text-end pe-4 py-4 border-0">{{ t('EMAIL') }}</th>
+              <th class="py-4 border-0">Department Info</th>
+              <th class="py-4 border-0">Role</th>
+              <th class="text-end pe-4 py-4 border-0">Email</th>
             </tr>
           </thead>
           <tbody class="border-top-0">
@@ -188,10 +188,10 @@
             <span class="badge bg-white fw-bold px-3 py-2 rounded-pill fs-6" style="color: #1e3c72;">
               {{ group.category }}
             </span>
-            <span class="text-white fw-semibold">{{ group.applications.length }} {{ t('APPLICATIONS') || 'Application(s)' }}</span>
+            <span class="text-white fw-semibold">{{ group.applications.length }} Application(s)</span>
           </div>
           <span class="badge border border-white border-opacity-25 text-white fw-bold px-3 py-1 rounded-pill shadow-sm" style="background: rgba(0, 0, 0, 0.15); font-size: 0.75rem;">
-            <i class="bi bi-calendar-check me-2"></i>{{ t('TOTAL') || 'Total' }}: {{ group.totalDays }} {{ t('DAYS') }}
+            <i class="bi bi-calendar-check me-2"></i>Total: {{ group.totalDays }} Days
           </span>
         </div>
         <!-- Applications Table for this category -->
@@ -201,7 +201,7 @@
               <tr class="small text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px;">
                 <th class="ps-4 py-3 border-0" style="width: 100px;">
                   <div class="d-flex align-items-center gap-2">
-                    {{ t('SR_NO') }}
+                    Sr. No.
                     <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
                       <button class="btn btn-sm p-0 border-0" [class.text-primary]="sortDirection() === 'asc'" (click)="sortDirection.set('asc')" title="Oldest First">
                         <i class="bi bi-sort-numeric-down"></i>
@@ -212,12 +212,12 @@
                     </div>
                   </div>
                 </th>
-                <th class="py-3 border-0">{{ t('STAFF_NAME') }}</th>
-                <th class="py-3 border-0">{{ t('DEPT') }}</th>
-                <th class="py-3 border-0">{{ t('LEAVE_PERIOD') }}</th>
-                <th class="text-center py-3 border-0">{{ t('DAYS') }}</th>
-                <th class="py-3 border-0">{{ t('STATUS') }}</th>
-                <th class="text-end pe-4 py-3 border-0">{{ t('ACTIONS') }}</th>
+                <th class="py-3 border-0">Staff Name</th>
+                <th class="py-3 border-0">Dept</th>
+                <th class="py-3 border-0">Leave Period</th>
+                <th class="text-center py-3 border-0">Days</th>
+                <th class="py-3 border-0">Status</th>
+                <th class="text-end pe-4 py-3 border-0">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -259,10 +259,10 @@
                   <td class="text-end pe-4">
                     <div class="d-flex justify-content-end gap-1">
                       <button class="btn btn-sm btn-success px-2 rounded-pill fw-bold" (click)="saveLeaveEdit()" title="Save Changes">
-                        <i class="bi bi-check-lg me-1"></i> {{ t('SAVE') }}
+                        <i class="bi bi-check-lg me-1"></i> Save
                       </button>
                       <button class="btn btn-sm btn-light px-2 rounded-pill border" (click)="cancelEditLeave()" title="Cancel">
-                        <i class="bi bi-x-lg me-1"></i> {{ t('CANCEL') }}
+                        <i class="bi bi-x-lg me-1"></i> Cancel
                       </button>
                     </div>
                   </td>
@@ -287,7 +287,7 @@
                   <td class="text-end pe-4">
                     <button class="btn btn-sm btn-outline-primary border-0 rounded-pill px-3 py-1 fw-bold d-flex align-items-center ms-auto" 
                       (click)="startEditLeave(l)" style="font-size: 0.75rem; background: rgba(30, 60, 114, 0.05);">
-                      <i class="bi bi-pencil-square me-2"></i> {{ t('EDIT') }}
+                      <i class="bi bi-pencil-square me-2"></i> Edit
                     </button>
                   </td>
                 }
@@ -316,24 +316,24 @@
           <div>
             <h6 class="fw-bold text-dark mb-1">
               <i class="bi bi-wallet2 me-2 text-primary"></i>
-              {{ t('EMPLOYEE_MASTER_BALANCE_SUMMARY') }}
+              Employee Master Balance Summary
             </h6>
-            <p class="small text-muted mb-0">{{ t('LIVE_VAL_FOR') || 'Live calculated values for' }} <strong>{{ selectedSession() || activeSession() }}</strong> {{ t('SESSION') }}.</p>
+            <p class="small text-muted mb-0">Live calculated values for <strong>{{ selectedSession() || activeSession() }}</strong> Session.</p>
           </div>
           <div class="d-flex gap-2">
               <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center" 
                       (click)="syncAllMasterBalances()" [disabled]="syncLoading()">
                 @if (syncLoading()) {
-                  <span class="spinner-border spinner-border-sm me-2"></span> {{ t('SYNCING') }}...
+                  <span class="spinner-border spinner-border-sm me-2"></span> Syncing...
                 } @else {
-                  <i class="bi bi-cloud-arrow-up-fill me-2"></i> {{ t('SYNC_ALL_TO_DB') }}
+                  <i class="bi bi-cloud-arrow-up-fill me-2"></i> Sync All to DB
                 }
               </button>
               <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="loadBalanceSummary()" [disabled]="balanceLoading()">
-                  <i class="bi bi-arrow-clockwise me-1"></i> {{ t('REFRESH_VIEW') }}
+                  <i class="bi bi-arrow-clockwise me-1"></i> Refresh View
               </button>
               <button class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center" (click)="printToPDF()">
-                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> {{ t('PRINT_PDF') }}
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> Print PDF
               </button>
           </div>
         </div>
@@ -341,10 +341,10 @@
           <table class="table table-bordered table-hover align-middle mb-0 w-100" style="white-space: nowrap;">
             <thead class="table-light">
               <tr class="text-muted text-uppercase fw-bolder" style="letter-spacing: 0.5px; font-size: 0.75rem;">
-                <th class="text-center py-2" style="width: 60px;">{{ t('SR_NO') }}</th>
+                <th class="text-center py-2" style="width: 60px;">Sr. No.</th>
                 <th class="py-2" style="min-width: 200px;">
                   <div class="d-flex align-items-center gap-2">
-                    {{ t('STAFF') }}
+                    Staff
                     <div class="btn-group btn-group-sm bg-white rounded-pill px-1 border" style="height: 24px;">
                       <button class="btn btn-sm p-0 border-0" [class.text-primary]="balanceSortDirection() === 'asc'" (click)="balanceSortDirection.set('asc'); $event.stopPropagation()" title="Code Ascending">
                         <i class="bi bi-sort-numeric-down"></i>
@@ -355,13 +355,13 @@
                     </div>
                   </div>
                 </th>
-                <th class="text-center py-2" style="width: 80px;">{{ t('DEPT') }}</th>
+                <th class="text-center py-2" style="width: 80px;">Dept</th>
                 @for (name of leaveNames; track name) {
                   @if (!selectedCategory() || selectedCategory() === name) {
                     <th class="text-center py-2" style="min-width: 100px;">{{ name }}</th>
                   }
                 }
-                <th class="text-center py-2" style="width: 100px;">{{ t('ACTION') }}</th>
+                <th class="text-center py-2" style="width: 100px;">Action</th>
               </tr>
             </thead>
             <tbody>

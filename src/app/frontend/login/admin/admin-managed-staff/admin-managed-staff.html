@@ -3,15 +3,15 @@
     
     <div class="row align-items-center mb-4">
       <div class="col-md-5">
-        <h3 class="fw-bold text-dark mb-0">{{ t('STAFF_DIRECTORY_TITLE') }}</h3>
-        <p class="text-muted small mb-0">{{ t('MANAGE_PERSONNEL') || 'Manage personnel.' }} ({{ t('TOTAL') }}: {{ totalStaff() }})</p>
+        <h3 class="fw-bold text-dark mb-0">Staff Directory</h3>
+        <p class="text-muted small mb-0">Manage personnel. (Total: {{ totalStaff() }})</p>
       </div>
       <div class="col-md-7">
         <div class="d-flex gap-2 justify-content-md-end mt-3 mt-md-0">
           <div class="input-group shadow-sm w-75">
             <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
             <input type="text" class="form-control border-0 py-2" 
-                   [placeholder]="t('SEARCH_PLACEHOLDER')" 
+                   placeholder="Search staff, code or type..." 
                    [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)">
           </div>
         </div>
@@ -23,72 +23,72 @@
         <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 20px;">
           <div class="card-body p-4">
             <h5 class="fw-bold mb-4 text-primary">
-              {{ isEditMode ? t('EDIT_STAFF_MEMBER') : t('ADD_NEW_STAFF') }}
+              {{ isEditMode ? 'Edit Staff Member' : 'Add New Staff' }}
             </h5>
             <form (ngSubmit)="onSubmit()">
               <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('EMP_CODE_OPTIONAL') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Employee Code (Optional - Auto generated if blank)</label>
                 <input type="number" name="Employee Code" [(ngModel)]="staffForm['Employee Code']" class="form-control bg-light border-0 py-2">
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('FULL_NAME') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Full Name</label>
                 <input type="text" name="Name" [(ngModel)]="staffForm.Name" class="form-control bg-light border-0 py-2" required>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">{{ t('EMAIL_ADDRESS') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">Email Address</label>
                 <input type="email" name="Email" [(ngModel)]="staffForm.Email" class="form-control bg-light border-0 py-2" required>
               </div>
               <div class="row g-2 mb-3">
                 <div class="col-12">
-                  <label class="form-label small fw-bold text-muted text-uppercase">{{ t('ROLE') }}</label>
+                  <label class="form-label small fw-bold text-muted text-uppercase">Role</label>
                   <div class="d-flex gap-3 mt-1">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="roleStaff" [checked]="isRoleSelected('Staff')" (change)="toggleRole('Staff')">
-                      <label class="form-check-label" for="roleStaff">{{ t('STAFF') }}</label>
+                      <label class="form-check-label" for="roleStaff">Staff</label>
                     </div>
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="roleHOD" [checked]="isRoleSelected('HOD')" (change)="toggleRole('HOD')">
-                      <label class="form-check-label" for="roleHOD">{{ t('HOD') }}</label>
+                      <label class="form-check-label" for="roleHOD">HOD</label>
                     </div>
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" id="roleAdmin" [checked]="isRoleSelected('Admin')" (change)="toggleRole('Admin')">
-                      <label class="form-check-label" for="roleAdmin">{{ t('ADMIN') }}</label>
+                      <label class="form-check-label" for="roleAdmin">Admin</label>
                     </div>
                   </div>
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-bold text-muted text-uppercase">{{ t('TYPE') }}</label>
+                  <label class="form-label small fw-bold text-muted text-uppercase">Type</label>
                   <select name="staffType" [(ngModel)]="staffForm.staffType" (change)="onStaffTypeChange()" class="form-select bg-light border-0 py-2">
-                    <option value="none">{{ t('SELECT_TYPE') }}</option>
-                    <option value="Teaching">{{ t('TEACHING') }}</option>
-                    <option value="Peon">{{ t('PEON') }}</option>
-                    <option value="Other">{{ t('OTHER') }}</option>
+                    <option value="none">Select Type</option>
+                    <option value="Teaching">Teaching</option>
+                    <option value="Peon">Peon</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
               </div>
               
               @if(isRoleSelected('HOD')) {
               <div class="mb-3">
-                <label class="form-label small fw-bold text-muted text-uppercase text-warning">{{ t('MANAGED_DEPTS_HOD') }}</label>
+                <label class="form-label small fw-bold text-muted text-uppercase text-warning">Managed Departments (HOD)</label>
                 <input type="text" name="managed_depts" [(ngModel)]="staffForm.managed_depts" class="form-control border border-warning py-2 shadow-sm" placeholder="e.g. 1, 2, 3">
-                <div class="form-text mt-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i>{{ t('MANAGED_DEPTS_INFO') }}</div>
+                <div class="form-text mt-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i>Comma-separated dept codes this HOD manages.</div>
               </div>
               }
               
               <div class="p-3 bg-light rounded-3 mb-4">
                 <div class="row g-2">
                   <div class="col-8">
-                    <label class="form-label small fw-bold text-muted text-uppercase">{{ t('DEPARTMENT') }}</label>
+                    <label class="form-label small fw-bold text-muted text-uppercase">Department</label>
                     <input type="text" name="department" [(ngModel)]="staffForm.department" [disabled]="staffForm.staffType === 'Peon'" class="form-control border-0">
                   </div>
                   <div class="col-4">
-                    <label class="form-label small fw-bold text-muted text-uppercase">{{ t('CODE') }}</label>
+                    <label class="form-label small fw-bold text-muted text-uppercase">Code</label>
                     <input type="number" name="dept_code" [(ngModel)]="staffForm.dept_code" [disabled]="staffForm.staffType === 'Peon'" class="form-control border-0">
                   </div>
                 </div>
               </div>
               <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-3 shadow-sm">
-                {{ isEditMode ? t('SAVE_CHANGES') : t('CONFIRM_REGISTRATION') }}
+                {{ isEditMode ? 'Save Changes' : 'Confirm Registration' }}
               </button>
             </form>
           </div>
@@ -101,13 +101,13 @@
             <table class="table table-hover align-middle mb-0">
               <thead class="bg-white">
                 <tr class="text-muted small text-uppercase fw-bolder">
-                  <th class="ps-4 py-3">{{ t('STAFF_MEMBER') }}</th>
-                  <th class="py-3">{{ t('ROLE_TYPE') }}</th>
+                  <th class="ps-4 py-3">Staff Member</th>
+                  <th class="py-3">Role / Type</th>
                   <th class="py-3 text-center cursor-pointer" (click)="toggleSort()">
-                    {{ t('DEPT_CODE') }} 
+                    Dept Code 
                     <i class="bi" [ngClass]="sortOrder() === 'asc' ? 'bi-sort-numeric-down' : sortOrder() === 'desc' ? 'bi-sort-numeric-up' : 'bi-hash'"></i>
                   </th>
-                  <th class="py-3 text-end pe-4">{{ t('ACTIONS') }}</th>
+                  <th class="py-3 text-end pe-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,7 +122,7 @@
                         <div class="fw-bold text-dark">{{ s.Name }}</div>
                         <div class="text-muted small">{{ s.Email }}</div>
                         <div class="text-secondary small fw-semibold">
-                          {{ t('EMP_CODE') }}: {{ s['Employee Code'] || s.empCode || s.Emp_CODE || '-' }}
+                          Emp Code: {{ s['Employee Code'] || s.empCode || s.Emp_CODE || '-' }}
                         </div>
                       </div>
                     </div>
@@ -133,23 +133,23 @@
                         @if (r.trim()) {
                           <span class="badge rounded-pill fw-medium shadow-sm"
                                 [ngClass]="{'bg-info text-dark': r.trim() === 'Staff', 'bg-warning text-dark': r.trim() === 'HOD', 'bg-danger text-white': r.trim() === 'Admin', 'bg-secondary text-white': !['Staff', 'HOD', 'Admin'].includes(r.trim()) }">
-                            {{ t(r.trim().toUpperCase()) }}
+                            {{ r.trim() }}
                           </span>
                         }
                       }
                     </div>
-                    <small class="text-muted d-block">{{ t(s.staffType.toUpperCase()) }}</small>
+                    <small class="text-muted d-block">{{ s.staffType || 'Staff' }}</small>
                   </td>
                   <td class="text-center">
                     @if (s.department !== 'N/A') {
                       <div class="fw-bold text-primary small mb-1">{{ s.department }} ({{ s.dept_code }})</div>
                       @if (s.managed_depts) {
-                        <div class="badge border border-warning text-warning-emphasis bg-warning bg-opacity-10 d-inline-block rounded-pill fw-medium" style="font-size: 0.65rem;" [title]="t('MANAGED_DEPTS_HOD')">
-                          <i class="bi bi-diagram-3 me-1"></i>{{ t('HOD_OF') }} {{ s.managed_depts }}
+                        <div class="badge border border-warning text-warning-emphasis bg-warning bg-opacity-10 d-inline-block rounded-pill fw-medium" style="font-size: 0.65rem;" title="Managed Departments (HOD)">
+                          <i class="bi bi-diagram-3 me-1"></i>HOD of: {{ s.managed_depts }}
                         </div>
                       }
                     } @else {
-                      <span class="text-muted small fst-italic">{{ t('NA') }}</span>
+                      <span class="text-muted small fst-italic">N/A</span>
                     }
                   </td>
                   <td class="text-end pe-4">
@@ -158,7 +158,7 @@
                   </td>
                 </tr>
                 } @empty {
-                  <tr><td colspan="4" class="text-center p-5 text-muted">{{ t('NO_STAFF_FOUND') }}</td></tr>
+                  <tr><td colspan="4" class="text-center p-5 text-muted">No matching staff members found.</td></tr>
                 }
               </tbody>
             </table>

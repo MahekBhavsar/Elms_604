@@ -5,18 +5,18 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-4">
-            <label class="small fw-bold text-muted text-uppercase">{{ t('STAFF_SEARCH') }}</label>
-            <input type="text" class="form-control shadow-none" [placeholder]="t('NAME_OR_ID')"
+            <label class="small fw-bold text-muted text-uppercase">Staff Search</label>
+            <input type="text" class="form-control shadow-none" placeholder="Name or ID"
               (input)="searchStaff.set($any($event.target).value)" />
           </div>
           <div class="col-md-4">
-            <label class="small fw-bold text-muted text-uppercase">{{ t('LEAVE_SEARCH') }}</label>
-            <input type="text" class="form-control shadow-none" [placeholder]="t('LEAVE_TYPE_PLACEHOLDER')"
+            <label class="small fw-bold text-muted text-uppercase">Leave Search</label>
+            <input type="text" class="form-control shadow-none" placeholder="Leave Type (e.g. SL, CL)"
               (input)="searchLeave.set($any($event.target).value)" />
           </div>
           <div class="col-md-4">
-            <label class="small fw-bold text-muted text-uppercase">{{ t('FILTER_BY_DEPT_CODE') }}</label>
-            <input type="text" class="form-control shadow-none" [placeholder]="t('FILTER_BY_DEPT_CODE')"
+            <label class="small fw-bold text-muted text-uppercase">Filter by Dept Code</label>
+            <input type="text" class="form-control shadow-none" placeholder="Filter by Dept Code"
               (input)="deptFilter.set($any($event.target).value)" />
           </div>
         </div>
@@ -32,19 +32,19 @@
             style="width: 35px; height: 35px;">
             <i class="bi bi-lightning-charge-fill text-white"></i>
           </div>
-          {{ t('ACTION_REQUIRED_ADMIN') }}
+          Action Required: Admin Decision
         </h5>
       </div>
       <div class="table-responsive" style="overflow-x: auto; overflow-y: hidden;">
         <table class="table table-hover table-sm align-middle mb-0">
           <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
             <tr>
-              <th class="ps-3 py-2 border-0">{{ t('STAFF_DETAILS') }}</th>
-              <th class="border-0">{{ t('REQUEST') }}</th>
-              <th class="border-0">{{ t('REASON') }}</th>
-              <th class="border-0 text-center">{{ t('ATTACHMENT') }}</th>
-              <th class="border-0">{{ t('STATUS') }}</th>
-              <th class="text-end pe-3 border-0">{{ t('ACTIONS') }}</th>
+              <th class="ps-3 py-2 border-0">Staff Details</th>
+              <th class="border-0">Request</th>
+              <th class="border-0">Reason</th>
+              <th class="border-0 text-center">Attachment</th>
+              <th class="border-0">Status</th>
+              <th class="text-end pe-3 border-0">Actions</th>
             </tr>
           </thead>
           <tbody class="border-top-0">
@@ -93,17 +93,17 @@
               <td class="py-2">
                 @if (l.Status === 'Offline Sync Pending') {
                   <span class="badge bg-warning bg-opacity-10 text-dark border border-warning rounded-pill px-2 py-1 shadow-sm d-flex align-items-center" style="font-size: 0.65rem; width: fit-content;">
-                    <i class="bi bi-arrow-repeat spin me-1"></i> {{ t('SYNCING_SPINNER') }}
+                    <i class="bi bi-arrow-repeat spin me-1"></i> Syncing...
                   </span>
                 } @else {
-                  <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1" style="font-size: 0.70rem;">{{ t('AWAITING_ACTION') }}</span>
+                  <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1" style="font-size: 0.70rem;">Awaiting Action</span>
                 }
               </td>
               <td class="text-end pe-3 py-2">
                 <button (click)="processLeave(l._id, 'Approved')"
-                  class="btn btn-sm btn-success rounded-pill px-2 me-1 fw-bold shadow-sm" style="font-size: 0.70rem;">{{ t('APPROVE_BTN') }}</button>
+                  class="btn btn-sm btn-success rounded-pill px-2 me-1 fw-bold shadow-sm" style="font-size: 0.70rem;">Approve</button>
                 <button (click)="processLeave(l._id, 'Rejected')"
-                  class="btn btn-sm btn-outline-danger rounded-pill px-2 fw-bold" style="font-size: 0.70rem;">{{ t('REJECT_BTN') }}</button>
+                  class="btn btn-sm btn-outline-danger rounded-pill px-2 fw-bold" style="font-size: 0.70rem;">Reject</button>
               </td>
             </tr>
             }
@@ -124,7 +124,7 @@
                 style="width: 28px; height: 28px;">
                 <i class="bi bi-clock-history small"></i>
               </div>
-              {{ t('AWAITING_HOD_APPROVAL') }}
+              Awaiting HOD Approval
             </h6>
           </div>
           <div class="table-responsive" style="overflow-x: hidden; overflow-y: hidden;">
@@ -198,7 +198,7 @@
                 style="width: 28px; height: 28px;">
                 <i class="bi bi-check-circle-fill small"></i>
               </div>
-              {{ t('PROCESSED_HISTORY') }}
+              Processed History
             </h6>
           </div>
           <div class="table-responsive">
@@ -237,10 +237,10 @@
                        <a [href]="apiBase + '/uploads/' + l.document" target="_blank" 
                           class="btn btn-sm btn-light border rounded-pill px-3 py-1 fw-bold text-primary"
                           style="font-size: 0.75rem;">
-                         <i class="bi bi-file-earmark-text me-1"></i> {{ t('VIEW_BTN') }}
+                         <i class="bi bi-file-earmark-text me-1"></i> View
                        </a>
                     } @else {
-                       <span class="text-muted small">{{ t('NO_FILE') }}</span>
+                       <span class="text-muted small">No File</span>
                     }
                   </td>
                   <td class="text-end pe-4 py-3">
