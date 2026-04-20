@@ -145,15 +145,82 @@ function generateEmailTemplate(headerTitle, message, detailsHtml, color = '#1e3c
 }
 
 // --- File Storage Setup ---
+// Primary: %APPDATA%/ELMS-Desktop/uploads  (Desktop / production writes here)
 const uploadDir = path.join(_dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir, { recursive: true }); }
-app.use('/uploads', express.static(uploadDir));
+
+// Secondary fallback: <project-root>/uploads  (dev-mode writes may land here)
+const projectUploadDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(projectUploadDir)) {
+    try { fs.mkdirSync(projectUploadDir, { recursive: true }); } catch (e) {}
+}
+
+// --- SMART UPLOAD ROUTE (With Cloud Recovery) ---
+app.use('/uploads/:filename', async (req, res, next) => {
+    const filename = req.params.filename;
+    const pathsToCheck = [
+        path.join(uploadDir, filename),
+        path.join(projectUploadDir, filename)
+    ];
+
+    // 1. Check local folders first
+    for (let p of pathsToCheck) {
+        if (fs.existsSync(p)) return res.sendFile(p);
+    }
+
+    // 2. If not found locally, try to recover from MongoDB Atlas
+    if (atlasDB) {
+        try {
+            console.log(`[CloudRecovery] File missing: ${filename}. Searching Atlas...`);
+            const cloudFile = await AtlasCloudFile.findOne({ filename: filename });
+            
+            if (cloudFile && cloudFile.data) {
+                const fileBuffer = Buffer.from(cloudFile.data, 'base64');
+                // Write back to primary LOCAL storage for future fast access
+                fs.writeFileSync(pathsToCheck[0], fileBuffer);
+                console.log(`[CloudRecovery] SUCCESS: Recovered ${filename} from Atlas and saved locally.`);
+                return res.sendFile(pathsToCheck[0]);
+            }
+        } catch (err) {
+            console.error(`[CloudRecovery] ERROR: Atlas search failed for ${filename}:`, err);
+        }
+    }
+
+    // 3. Last resort: Custom 404
+    res.status(404).json({ 
+        error: 'File not found. This attachment might have been uploaded on another device and is still syncing.',
+        filename: filename
+    });
+});
+
+console.log('📁 Uploads served from:', uploadDir);
+console.log('📁 Uploads fallback   :', projectUploadDir);
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage: storage });
+
+// Graceful 404 for missing upload files (replaces ugly "Cannot GET /uploads/...")
+app.use('/uploads', (req, res) => {
+    res.status(404).json({ error: 'File not found. It may have been uploaded on another device.' });
+});
+
+// API: Check if a file exists on this backend (Local OR Cloud)
+app.get('/api/uploads/check/:filename', async (req, res) => {
+    const filename = path.basename(req.params.filename); 
+    const inLocal = fs.existsSync(path.join(uploadDir, filename)) || fs.existsSync(path.join(projectUploadDir, filename));
+    
+    if (inLocal) return res.json({ exists: true, source: 'local' });
+
+    if (atlasDB) {
+        const inCloud = await AtlasCloudFile.exists({ filename: filename });
+        if (inCloud) return res.json({ exists: true, source: 'cloud' });
+    }
+
+    res.json({ exists: false });
+});
 
 // --- Smart Dual Database Connection ---
 // IMPORTANT: Credentials are baked in — NO .env file required on client machines.
@@ -565,6 +632,55 @@ const policySchema = new mongoose.Schema({
 
 const Policy = localDB.model('Policy', policySchema);
 const AtlasPolicy = atlasDB ? atlasDB.model('Policy', policySchema) : null;
+
+// 8. Cloud Files (Base64 storage for Cross-Device Sync)
+const cloudFileSchema = new mongoose.Schema({
+    filename: { type: String, required: true, unique: true },
+    data: { type: String, required: true }, // Base64 content
+    mimetype: String,
+    size: Number,
+    atlasSynced: { type: Boolean, default: true }
+}, { collection: 'cloud_files', timestamps: true });
+
+const CloudFile = localDB.model('CloudFile', cloudFileSchema);
+const AtlasCloudFile = atlasDB ? atlasDB.model('CloudFile', cloudFileSchema) : null;
+
+/** 
+ * Push a local file's content to MongoDB Atlas for cross-device sync.
+ * We store as Base64. MongoDB limit per doc is 16MB; certificates are usually <1MB.
+ */
+async function pushFileToCloud(filename) {
+    if (!atlasDB) return;
+    try {
+        // Look in both primary and fallback local folders
+        let filePath = path.join(uploadDir, filename);
+        if (!fs.existsSync(filePath)) {
+            filePath = path.join(projectUploadDir, filename);
+        }
+        
+        if (!fs.existsSync(filePath)) {
+            console.warn(`[CloudSync] Skipping: File not found locally: ${filename}`);
+            return;
+        }
+        
+        const fileBuffer = fs.readFileSync(filePath);
+        const base64Data = fileBuffer.toString('base64');
+        const stats = fs.statSync(filePath);
+        
+        // We use { filename } as the query so performDualWrite updates if it already exists
+        await performDualWrite(CloudFile, AtlasCloudFile, {
+            filename: filename,
+            data: base64Data,
+            mimetype: path.extname(filename),
+            size: stats.size,
+            atlasSynced: true
+        }, { filename: filename });
+
+        console.log(`[CloudSync] SUCCESS: ${filename} pushed to Atlas.`);
+    } catch (err) {
+        console.error(`[CloudSync] ERROR: Failed to push ${filename} to cloud:`, err.message);
+    }
+}
 
 // 1. ADMIN SESSION CONTROL
 app.post('/api/admin/set-session', async (req, res) => {
@@ -1112,6 +1228,11 @@ app.post('/api/leaves/apply', upload.single('document'), async (req, res) => {
 
         res.json({ success: true, data: savedLeave });
 
+        // Push to cloud if a document was uploaded
+        if (req.file) {
+            pushFileToCloud(req.file.filename).catch(() => {});
+        }
+
         // --- Post-Save Email Notifications ---
         try {
             // Find employee email from User model
@@ -1205,12 +1326,9 @@ app.post('/api/leaves/process/:id', async (req, res) => {
     const { status, reason } = req.body;
     const updateData = { Status: status };
     if (status === 'Rejected' && reason) updateData.Reject_Reason = reason;
-    const updated = await Leave.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    
-    // Sync to Cloud
-    if (updated) {
-        await performDualUpdate(Leave, AtlasLeave, updated._id, updateData);
-    }
+
+    // Single write path: handles local+cloud or cloud-only mode correctly
+    const updated = await performDualUpdate(Leave, AtlasLeave, req.params.id, updateData);
 
     res.json({ success: true, data: updated });
 
@@ -1843,6 +1961,41 @@ app.delete('/api/policies/:id', async (req, res) => {
         res.status(500).json({ error: "Delete failed" });
     }
 });
+
+/** 
+ * Scans the local uploads folder and pushes any files not yet in Atlas to the cloud.
+ * This ensures that existing attachments become available cross-device.
+ */
+async function syncExistingFilesToCloud() {
+    if (!atlasDB) return;
+    try {
+        console.log('🔄 [BackgroundSync] Checking for local files to push to Atlas...');
+        const primaryFiles = fs.existsSync(uploadDir) ? fs.readdirSync(uploadDir) : [];
+        const fallbackFiles = fs.existsSync(projectUploadDir) ? fs.readdirSync(projectUploadDir) : [];
+        const allFiles = [...new Set([...primaryFiles, ...fallbackFiles])];
+
+        let syncCount = 0;
+        for (const file of allFiles) {
+            // Skip hidden files
+            if (file.startsWith('.')) continue;
+            
+            const inCloud = await AtlasCloudFile.exists({ filename: file });
+            if (!inCloud) {
+                await pushFileToCloud(file);
+                syncCount++;
+            }
+        }
+        if (syncCount > 0) console.log(`✅ [BackgroundSync] Finished! Synced ${syncCount} files to Atlas.`);
+        else console.log('✅ [BackgroundSync] All local files already present in cloud.');
+    } catch (err) {
+        console.error('❌ [BackgroundSync] Sync check failed:', err);
+    }
+}
+
+// Start background sync 10 seconds after server starts to avoid heavy load during boot
+if (!process.env.VERCEL) {
+    setTimeout(syncExistingFilesToCloud, 10000);
+}
 
 app.post('/api/admin/reconcile', async (req, res) => {
     try {

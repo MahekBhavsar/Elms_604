@@ -7,7 +7,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { LanguageService } from '../../../../shared/language.service';
 import { OfflineSyncService } from '../../../../offline-sync.service';
-import { API_BASE } from '../../../../api.config';
+import { API_BASE, UPLOAD_BASE } from '../../../../api.config';
 
 @Component({
   selector: 'app-admin-leave',
@@ -17,12 +17,24 @@ import { API_BASE } from '../../../../api.config';
 })
 export class AdminLeave implements OnInit {
   apiBase = API_BASE;
+  uploadBase = UPLOAD_BASE;
   private allLeaves = signal<any[]>([]);
 
   searchStaff = signal('');
   searchLeave = signal('');
   deptFilter = signal('');
   activeSessionName = signal('');
+
+  // ── Modal State ───────────────────────────────────────────────
+  showConfirmModal = signal(false);
+  showRejectModal  = signal(false);
+  modalLeaveId     = signal('');
+  modalDecision    = signal<'Approved' | 'Rejected'>('Approved');
+  rejectRemark     = signal('');
+  isProcessing     = signal(false);
+  isLoading        = signal(false); // NEW: Track background refreshes
+  toastMsg         = signal('');
+  toastType        = signal<'success' | 'danger'>('success');
 
   constructor(
     private http: HttpClient,
@@ -73,46 +85,61 @@ export class AdminLeave implements OnInit {
   }
 
   fetchLeaves(roleMap: Map<number, string>) {
-    this.http.get<any[]>('/api/leaves/admin').subscribe({
-      next: (data) => {
-        // --- OFFLINE MERGE LOGIC ---
+    this.isLoading.set(true);
+    const session = this.activeSessionName() || 'Active';
+
+    // 1. Fetch Leaves and Bulk Balances in parallel
+    forkJoin({
+      leaves: this.http.get<any[]>('/api/leaves/admin'),
+      bulk: this.http.get<any[]>(`/api/leaves/balances/bulk?sessionName=${session}`)
+    }).subscribe({
+      next: (res) => {
+        const data = res.leaves;
+        const bulkData = res.bulk;
+
+        // 2. Map bulk data for fast lookup
+        const balanceMap = new Map<string, any>();
+        bulkData.forEach(user => {
+          user.balances.forEach((b: any) => {
+            const key = `${user.empCode}_${b.leave.toUpperCase().trim()}`;
+            balanceMap.set(key, b);
+          });
+        });
+
+        // ── OFFLINE MERGE LOGIC ──
         this.offlineSync.getQueue().then((queue: any[]) => {
           const offlineDecorated = queue.map((q: any) => ({
             ...q.payload,
             _id: 'offline_' + q.id,
-            Status: 'Offline Sync Pending', // Custom status for UI
-            role: 'Staff', 
+            Status: 'Offline Sync Pending',
+            role: 'Staff',
             liveBalance: 0,
             isOfflineRecord: true
           }));
 
           const combinedData = [...offlineDecorated, ...data];
 
-          if (combinedData.length === 0) {
-            this.allLeaves.set([]);
-            return;
-          }
+          // 3. Enrich leave records using the map
+          const enrichedLeaves = combinedData.map(leave => {
+            const typeKey = (leave['Type of Leave'] || leave.Type_of_Leave || '').toUpperCase().trim();
+            const balanceKey = `${leave.Emp_CODE}_${typeKey}`;
+            const b = balanceMap.get(balanceKey);
 
-          // Create balance requests for every single leave item (only for those already in DB)
-          const session = this.activeSessionName() || 'Active';
-          const balanceRequests = combinedData.map(leave => {
-            if (leave.isOfflineRecord) return of({ balance: 0, isIncrementing: false });
-            const typeKey = leave['Type of Leave'] || leave.Type_of_Leave;
-            return this.http.get<any>(`/api/leaves/balance/${leave.Emp_CODE}/${typeKey}?sessionName=${session}`)
-            .pipe(catchError(() => of({ balance: 0, isIncrementing: false })));
-          });
-
-          forkJoin(balanceRequests).subscribe(balances => {
-            const enrichedLeaves = combinedData.map((leave, index) => ({
+            return {
               ...leave,
               role: leave.role || leave.Role || roleMap.get(leave.Emp_CODE) || 'Staff',
-              liveBalance: (balances[index] as any).balance,
-              isIncrementing: (balances[index] as any).isIncrementing
-            }));
-            
-            this.allLeaves.set(enrichedLeaves.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0)));
+              liveBalance: b ? b.balance : 0,
+              isIncrementing: b ? b.isIncrementing : false
+            };
           });
+
+          this.allLeaves.set(enrichedLeaves.sort((a, b) => Number(a.Dept_Code || 0) - Number(b.Dept_Code || 0)));
+          this.isLoading.set(false);
         });
+      },
+      error: (err) => {
+        console.error("Fetch Data Error:", err);
+        this.isLoading.set(false);
       }
     });
   }
@@ -153,25 +180,68 @@ export class AdminLeave implements OnInit {
     return this.filteredLeaves().filter(l => ['Approved', 'Rejected'].includes(l.Status));
   });
 
+  // ── Modal Trigger (replaces alert/confirm/prompt) ─────────────
   processLeave(id: string, decision: 'Approved' | 'Rejected') {
     if (id.startsWith('offline_')) {
-      alert("This application is still syncing from the local database. Please wait until it is uploaded to MongoDB.");
+      this.showToast('This application is still syncing. Please wait.', 'danger');
       return;
     }
-
-    let remark = '';
+    this.modalLeaveId.set(id);
+    this.modalDecision.set(decision);
+    this.rejectRemark.set('');
     if (decision === 'Rejected') {
-      const input = prompt("Enter rejection reason:");
-      if (input === null || !input.trim()) return;
-      remark = input.trim();
+      this.showRejectModal.set(true);
+    } else {
+      this.showConfirmModal.set(true);
     }
+  }
 
-    if (confirm(`Confirm ${decision}?`)) {
-      this.http.post(`/api/leaves/process/${id}`, { status: decision, reason: remark })
-        .subscribe(() => {
-          alert(`Leave ${decision} successfully`);
+  confirmApprove() {
+    this.showConfirmModal.set(false);
+    this.submitDecision(this.modalLeaveId(), 'Approved', '');
+  }
+
+  confirmReject() {
+    const remark = this.rejectRemark().trim();
+    if (!remark) return; // require a reason
+    this.showRejectModal.set(false);
+    this.submitDecision(this.modalLeaveId(), 'Rejected', remark);
+  }
+
+  cancelModal() {
+    this.showConfirmModal.set(false);
+    this.showRejectModal.set(false);
+  }
+
+  private submitDecision(id: string, decision: 'Approved' | 'Rejected', remark: string) {
+    this.isProcessing.set(true);
+
+    // ── Optimistic update: immediately move record out of queue ──
+    this.allLeaves.update(leaves =>
+      leaves.map(l => l._id === id ? { ...l, Status: decision } : l)
+    );
+
+    this.http.post(`/api/leaves/process/${id}`, { status: decision, reason: remark })
+      .subscribe({
+        next: () => {
+          this.isProcessing.set(false);
+          this.showToast(`Leave ${decision} successfully!`, 'success');
+          // Background refresh to ensure full sync
           this.fetchStaffAndLeaves();
-        });
-    }
+        },
+        error: (err) => {
+          this.isProcessing.set(false);
+          // Rollback optimistic update on error
+          this.fetchStaffAndLeaves();
+          this.showToast('Action failed. Please try again.', 'danger');
+          console.error('processLeave error:', err);
+        }
+      });
+  }
+
+  private showToast(msg: string, type: 'success' | 'danger') {
+    this.toastMsg.set(msg);
+    this.toastType.set(type);
+    setTimeout(() => this.toastMsg.set(''), 3500);
   }
 }

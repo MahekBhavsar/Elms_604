@@ -1,6 +1,88 @@
 <app-admin-sidebar>
   <div class="flex-grow-1 main-content p-4 p-md-5 bg-light" style="min-height: calc(100vh - 76px);">
 
+    <!-- ── Toast Notification ────────────────────────────────── -->
+    @if (toastMsg()) {
+      <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div class="toast show align-items-center text-white border-0 rounded-3 shadow"
+             [class.bg-success]="toastType() === 'success'"
+             [class.bg-danger]="toastType() === 'danger'"
+             role="alert" style="min-width: 260px;">
+          <div class="d-flex">
+            <div class="toast-body fw-semibold">
+              <i class="bi" [class.bi-check-circle-fill]="toastType() === 'success'" [class.bi-x-circle-fill]="toastType() === 'danger'"></i>
+              {{ toastMsg() }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="cancelModal()"></button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── CONFIRM APPROVE MODAL ─────────────────────────────── -->
+    @if (showConfirmModal()) {
+      <div class="modal-backdrop-custom" (click)="cancelModal()"></div>
+      <div class="modal d-block" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                  <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-0">Confirm Approval</h5>
+              </div>
+            </div>
+            <div class="modal-body px-4 py-3">
+              <p class="text-muted mb-0">Are you sure you want to <strong class="text-success">Approve</strong> this leave application? This action will update the staff's leave balance.</p>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 pt-0 gap-2">
+              <button class="btn btn-light rounded-pill px-4" (click)="cancelModal()">Cancel</button>
+              <button class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" (click)="confirmApprove()" [disabled]="isProcessing()">
+                <span *ngIf="isProcessing()" class="spinner-border spinner-border-sm me-1"></span>
+                Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── REJECT MODAL ──────────────────────────────────────── -->
+    @if (showRejectModal()) {
+      <div class="modal-backdrop-custom" (click)="cancelModal()"></div>
+      <div class="modal d-block" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                  <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-0">Reject Leave</h5>
+              </div>
+            </div>
+            <div class="modal-body px-4 py-3">
+              <label class="form-label fw-semibold text-muted small text-uppercase mb-1">Rejection Reason <span class="text-danger">*</span></label>
+              <textarea class="form-control rounded-3 shadow-none" rows="3" placeholder="Enter reason for rejection..."
+                [value]="rejectRemark()"
+                (input)="rejectRemark.set($any($event.target).value)"></textarea>
+              <div *ngIf="!rejectRemark().trim()" class="text-danger small mt-1">Reason is required to reject.</div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 pt-0 gap-2">
+              <button class="btn btn-light rounded-pill px-4" (click)="cancelModal()">Cancel</button>
+              <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" (click)="confirmReject()"
+                [disabled]="!rejectRemark().trim() || isProcessing()">
+                <span *ngIf="isProcessing()" class="spinner-border spinner-border-sm me-1"></span>
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Filters ───────────────────────────────────────────── -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body">
         <div class="row g-3">
@@ -23,14 +105,19 @@
       </div>
     </div>
 
+    <!-- ── Action Required: Admin Decision ───────────────────── -->
     <section class="card border-0 shadow-sm mb-5 rounded-4 overflow-hidden"
       style="transition: transform 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;">
       <div class="card-header border-bottom border-light px-4 py-3"
         style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
         <h5 class="mb-0 text-white fw-bold d-flex align-items-center">
           <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center me-3"
-            style="width: 35px; height: 35px;">
-            <i class="bi bi-lightning-charge-fill text-white"></i>
+            style="width: 35px; height: 35px;" [class.pulsate]="isLoading()">
+            @if (isLoading()) {
+              <div class="spinner-border spinner-border-sm text-white" role="status"></div>
+            } @else {
+              <i class="bi bi-lightning-charge-fill text-white"></i>
+            }
           </div>
           Action Required: Admin Decision
         </h5>
@@ -81,7 +168,7 @@
               </td>
               <td class="py-2 text-center">
                 @if (l.document) {
-                   <a [href]="apiBase + '/uploads/' + l.document" target="_blank" 
+                   <a [href]="uploadBase + '/uploads/' + l.document" target="_blank"
                       class="btn btn-sm btn-light border rounded-pill px-2 py-1 fw-bold text-primary"
                       style="font-size: 0.70rem;">
                      View
@@ -106,6 +193,13 @@
                   class="btn btn-sm btn-outline-danger rounded-pill px-2 fw-bold" style="font-size: 0.70rem;">Reject</button>
               </td>
             </tr>
+            }
+            @if (getHodApproved().length === 0) {
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4" style="font-size:0.85rem;">
+                  <i class="bi bi-check2-all me-1"></i> No pending actions
+                </td>
+              </tr>
             }
           </tbody>
         </table>
@@ -162,7 +256,7 @@
                   </td>
                   <td class="py-2 text-center border-light">
                     @if (l.document) {
-                       <a [href]="apiBase + '/uploads/' + l.document" target="_blank" 
+                       <a [href]="uploadBase + '/uploads/' + l.document" target="_blank"
                           class="btn btn-sm btn-light border rounded-pill py-0 px-2 fw-bold text-primary"
                           style="font-size: 0.65rem;">
                          <i class="bi bi-paperclip"></i>
@@ -180,6 +274,13 @@
                     </div>
                   </td>
                 </tr>
+                }
+                @if (getPending().length === 0) {
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4" style="font-size:0.85rem;">
+                      <i class="bi bi-check2-all me-1"></i> No pending items
+                    </td>
+                  </tr>
                 }
               </tbody>
             </table>
@@ -234,7 +335,7 @@
                   </td>
                   <td class="py-3 text-center">
                     @if (l.document) {
-                       <a [href]="apiBase + '/uploads/' + l.document" target="_blank" 
+                       <a [href]="uploadBase + '/uploads/' + l.document" target="_blank"
                           class="btn btn-sm btn-light border rounded-pill px-3 py-1 fw-bold text-primary"
                           style="font-size: 0.75rem;">
                          <i class="bi bi-file-earmark-text me-1"></i> View
@@ -263,3 +364,27 @@
     </div>
   </div>
 </app-admin-sidebar>
+
+<style>
+  .modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1055;
+    backdrop-filter: blur(2px);
+  }
+
+  .pulsate {
+    animation: pulsate-animation 1.5s infinite ease-in-out;
+  }
+
+  @keyframes pulsate-animation {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+  }
+
+  .table-row-hover:hover {
+    background-color: rgba(30, 60, 114, 0.02) !important;
+  }
+</style>
