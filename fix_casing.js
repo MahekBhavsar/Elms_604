@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const ATLAS_URI = "mongodb+srv://Mahek:mahek123@cluster0.v8lyt.mongodb.net/employeeDB?retryWrites=true&w=majority&appName=Cluster0";
+const ATLAS_URI = "mongodb+srv://snehaljoshihappysoul_db_user:jmJk0zbC9dqTt5U8@cluster0.bnen0s3.mongodb.net/?appName=Cluster0&retryWrites=true&w=majority";
 const LOCAL_URI = "mongodb://127.0.0.1:27017/employeeDB";
 
 async function normalizeDatabase(uri, label) {

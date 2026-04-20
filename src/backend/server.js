@@ -226,7 +226,7 @@ app.get('/api/uploads/check/:filename', async (req, res) => {
 // IMPORTANT: Credentials are baked in — NO .env file required on client machines.
 // Always use the direct shard-style URI (port 27017), NOT mongodb+srv://, because
 // +srv requires DNS SRV lookups which are blocked on many corporate/college networks.
-const ATLAS_URI_DIRECT = 'mongodb://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@ac-uihr8le-shard-00-00.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-01.0xfniym.mongodb.net:27017,ac-uihr8le-shard-00-02.0xfniym.mongodb.net:27017/employeeDB?ssl=true&replicaSet=atlas-149asg-shard-0&authSource=admin&retryWrites=true&w=majority';
+const ATLAS_URI_DIRECT = 'mongodb+srv://snehaljoshihappysoul_db_user:jmJk0zbC9dqTt5U8@cluster0.bnen0s3.mongodb.net/employeeDB?appName=Cluster0&retryWrites=true&w=majority';
 // .env override is only useful for dev overrides — never needed by clients
 const ATLAS_URI = ATLAS_URI_DIRECT;
 const LOCAL_URI = process.env.MONGO_LOCAL_URI || 'mongodb://127.0.0.1:27017/employeeDB';

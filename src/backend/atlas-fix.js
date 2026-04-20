@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Connect directly to the proper Atlas DB
-mongoose.connect('mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB')
+mongoose.connect('mongodb+srv://snehaljoshihappysoul_db_user:jmJk0zbC9dqTt5U8@cluster0.bnen0s3.mongodb.net/?appName=Cluster0')
   .then(() => console.log('Connected to correct MongoDB Atlas...'))
   .catch(err => console.error('Could not connect to MongoDB...', err));
 

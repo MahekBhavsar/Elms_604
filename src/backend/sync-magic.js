@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 async function syncLocalToAtlas() {
   const localConn = mongoose.createConnection('mongodb://127.0.0.1:27017/employeeDB');
-  const atlasConn = mongoose.createConnection('mongodb+srv://mahekbhavsar29_db_user:Hopeu33dSs0e6zUH@cluster0.0xfniym.mongodb.net/employeeDB');
+  const atlasConn = mongoose.createConnection('mongodb+srv://snehaljoshihappysoul_db_user:jmJk0zbC9dqTt5U8@cluster0.bnen0s3.mongodb.net/?appName=Cluster0');
 
   const LocalLeave = localConn.model('Leave', new mongoose.Schema({}, { strict: false }), 'leave_applications');
   const AtlasLeave = atlasConn.model('Leave', new mongoose.Schema({}, { strict: false }), 'leave_applications');
